@@ -22,9 +22,9 @@ func New() *Yp {
 
 //GetAllSections returns an array containing all yaml sections
 func (yp *Yp) GetAllSections() []*YamlSection {
-	yp.Lock()
+	yp.RLock()
 	defer func() {
-		yp.Unlock()
+		yp.RUnlock()
 	}()
 	ret := []*YamlSection{}
 	for _, f := range yp.Files {
