@@ -22,36 +22,27 @@ type Session struct {
 	Clientset *internalclientset.Clientset
 }
 
-func NewSession() *Session {
+func NewSession(kubeConfig string) (*Session, error) {
 
 	s := &Session{}
-
-	kubeContext := ""
 
 	tillerNamespace := os.Getenv("TILLER_NAMESPACE")
 	if tillerNamespace == "" {
 		tillerNamespace = "kube-system"
 	}
-	err := s.connect(kubeContext, tillerNamespace)
+	err := s.connect(kubeConfig, tillerNamespace)
 	if err != nil {
-		log.WithField("error", err).Fatalf("Could not set up connection to helm")
-		return &Session{}
+		return &Session{}, fmt.Errorf("Could not set up connection to kubernetes: %v", err)
 	}
-
-	log.WithField("host", tillerHost).Info("Tiller host")
-
-	s.Helm = helm.NewClient(helm.Host(tillerHost), helm.ConnectTimeout(5))
-	log.WithField("client", s.Helm).Debug("Helm client")
 
 	err = s.Helm.PingTiller()
 	if err != nil {
-		log.WithField("error", err).Fatalf("helm.PingTiller() failed")
+		return &Session{}, fmt.Errorf("helm.PingTiller() failed: %v", err)
 	}
 
 	tillerVersion, err := s.Helm.GetVersion()
 	if err != nil {
-		log.WithField("error", err).Fatalf("failed to get Tiller version")
-		return nil
+		return &Session{}, fmt.Errorf("failed to get Tiller version, %v", err)
 	}
 
 	compatible := version.IsCompatible(version.Version, tillerVersion.Version.SemVer)
@@ -62,14 +53,14 @@ func NewSession() *Session {
 			"Tiller Version": tillerVersion.Version.SemVer,
 		}).Warnf("incompatible version numbers")
 	}
-	return s
+	return s, nil
 }
 
 //connect builds connections for all supported APIs
-func (s *Session) connect(context string, namespace string) error {
-	config, err := kube.GetConfig(context, "").ClientConfig()
+func (s *Session) connect(kubeConfig string, namespace string) error {
+	config, err := kube.GetConfig("", kubeConfig).ClientConfig()
 	if err != nil {
-		return fmt.Errorf("could not get kubernetes config for context '%s': %s", context, err)
+		return fmt.Errorf("could not get kubernetes config for context '%s': %s", kubeConfig, err)
 	}
 	s.Clientset, err = internalclientset.NewForConfig(config)
 	if err != nil {
@@ -85,6 +76,11 @@ func (s *Session) connect(context string, namespace string) error {
 	if err != nil {
 		return fmt.Errorf("could not get Tiller tunnel: %s", err)
 	}
+
+	log.WithField("host", fmt.Sprintf(":%v", s.Tiller.Local)).Info("Tiller host")
+
+	s.Helm = helm.NewClient(helm.Host(fmt.Sprintf(":%v", s.Tiller.Local)), helm.ConnectTimeout(5))
+	log.WithField("client", s.Helm).Debug("Helm client")
 
 	return nil
 }
