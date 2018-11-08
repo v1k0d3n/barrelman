@@ -26,6 +26,7 @@ func (s *Session) InstallRelease(m *ReleaseMeta, chart []byte) error {
 		helm.InstallReuseName(m.InstallReuseName),
 		helm.InstallWait(m.InstallWait),
 		helm.InstallTimeout(int64(m.InstallTimeout.Seconds())),
+		helm.InstallOption(helm.UpgradeForce(true)),
 	)
 	fmt.Printf("RESPONSE: %v\n", res)
 	return err

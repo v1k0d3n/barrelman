@@ -1,16 +1,20 @@
 package main
 
 import (
-	"bytes"
+	"archive/tar"
 	"compress/gzip"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/charter-se/barrelman/chartsync"
 	"github.com/charter-se/barrelman/cluster"
+	bfest "github.com/charter-se/barrelman/manifest"
 	"github.com/charter-se/barrelman/sourcetype"
 	"github.com/charter-se/barrelman/yamlpack"
 	log "github.com/sirupsen/logrus"
@@ -18,6 +22,11 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
+
+type ChartSpec struct {
+	Name string
+	Path string
+}
 
 func main() {
 	fmt.Printf("Barrelman Engage!\n")
@@ -48,26 +57,15 @@ func main() {
 	}
 
 	yp := yamlpack.New()
-	if err := yp.Import("testdata/armada-osh.yaml"); err != nil {
+	if err := yp.Import("testdata/keystone-manifest.yaml"); err != nil {
 		fmt.Printf("Error importing \"this\": %v\n", err)
 	}
 
-	cs := chartsync.New()
+	cs := chartsync.New(datadir)
 
-	for name, f := range yp.Files {
-		fmt.Println("_________________________")
-		fmt.Printf("This: %v\n", name)
+	for _, f := range yp.Files {
 		for _, k := range f {
-			fmt.Printf("Schema: %v\n", k.Viper.Get("schema"))
-			fmt.Printf("Metdata Name: %v\n", k.Viper.Get("metadata.name"))
-			fmt.Printf("Metdata Schema: %v\n", k.Viper.Get("metadata.schema"))
-			// y, err := k.Yaml()
-			// if err != nil {
-			// 	fmt.Printf("Failed to marshal data: %v\n", err)
-			// 	return
-			// }
-
-			//Add each chart to chartsync to download all missing charts
+			//Get the URI type in order for chartsync
 			typ, err := sourcetype.Parse(k.Viper.GetString("data.source.type"))
 			if err != nil {
 				log.WithFields(log.Fields{
@@ -77,40 +75,144 @@ func main() {
 				}).Error("Failed to parse source type")
 				return
 			}
+			continue
+			//Add each chart to repo to download/update all charts
 			cs.Add(&chartsync.ChartMeta{
 				Name:       k.Viper.GetString("metadata.name"),
+				Location:   k.Viper.GetString("data.source.location"),
 				Depends:    k.Viper.GetStringSlice("data.dependancies"),
 				Groups:     k.Viper.GetStringSlice("data.chart_group"),
 				SourceType: typ,
 			})
-
-			//fmt.Printf(">>>>\n%v\n<<<<\n", string(y))
-			// f, err := writeTmpYaml(datadir, []byte(y))
-			// if err != nil {
-			// 	fmt.Printf("Failed to write yaml section to file: %v", err)
-			// }
-			// if err := c.InstallRelease(&cluster.ReleaseMeta{
-			// 	Path:      f,
-			// 	NameSpace: k.Viper.GetString("data.namespace"),
-			// }, []byte(y)); err != nil {
-			// 	fmt.Printf("Got ERROR: %v\n", err)
-			// }
-
-			//fmt.Printf("Data:\n%v\n", string(y))
 		}
-		fmt.Printf("\n\n")
 	}
-
+	log.Info("Syncronizing with chart repositories")
+	//Perform the chart syncronization/download/update whatever
 	if err := cs.Sync(); err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
 		}).Error("Error while downloading charts")
 	}
-	// fmt.Printf("Yaml Sections:\n")
-	// for _, s := range yp.ListYamls() {
-	// 	fmt.Printf("\t%v\n", s)
-	// }
 
+	bm := bfest.NewManifest()
+	for name, f := range yp.Files {
+		fmt.Println("_________________________")
+		fmt.Printf("This: %v\n", name)
+		for _, k := range f {
+			schem, err := bfest.ParseSchema(k.Viper.GetString("schema"))
+			if err != nil {
+				log.WithFields(log.Fields{
+					"error":         err,
+					"metadata.name": k.Viper.GetString("metatdata.name"),
+				}).Error("Failed to parse schema")
+			}
+			switch schem.Type {
+			case bfest.StringChart:
+				fmt.Printf("........Schema Chart\n")
+				chart := bfest.NewChart()
+				chart.Name = k.Viper.GetString("metadata.name")
+				chart.Version = schem.Version
+				chart.Data.ChartName = k.Viper.GetString("data.chart_name")
+				chart.Data.Dependencies = k.Viper.GetStringSlice("data.dependencies")
+				chart.Data.Namespace = k.Viper.GetString("data.namespace")
+				chart.Data.SubPath = k.Viper.GetString("data.source.subpath")
+				chart.Data.Location = k.Viper.GetString("data.source.location")
+				if err := bm.AddChart(chart); err != nil {
+					os.Stderr.WriteString(fmt.Sprintf("Error loading chart: %v\n", err))
+					return
+				}
+
+			case bfest.StringChartGroup:
+				fmt.Printf("........Schema ChartGroup\n")
+				chartGroup := bfest.NewChartGroup()
+				chartGroup.Name = k.Viper.GetString("metadata.name")
+				chartGroup.Version = schem.Version
+				chartGroup.Data.Description = k.Viper.GetString("data.description")
+				chartGroup.Data.Sequenced = k.Viper.GetBool("data.sequenced")
+				chartGroup.Data.ChartGroup = k.Viper.GetStringSlice("data.chart_group")
+				bm.AddChartGroup(chartGroup)
+
+			case bfest.StringManifest:
+				fmt.Printf("........Schema Manifest\n")
+				bm.Name = k.Viper.GetString("metadata.name")
+				bm.Version = schem.Version
+				bm.Data.ChartGroups = k.Viper.GetStringSlice("data.chart_groups")
+				bm.Data.ReleasePrefix = k.Viper.GetString("data.release_prefix")
+			}
+		}
+	}
+
+	for _, v := range bm.AllCharts() {
+		fmt.Printf("Chart Name: %v\n", v.Name)
+	}
+	fmt.Printf("Number Charts: %v\n", len(bm.Lookup.Chart))
+	groups, err := bm.GetChartGroups()
+	if err != nil {
+		os.Stderr.WriteString(fmt.Sprintf("Error resolving chart groups: %v\n", err))
+		return
+	}
+	for _, cg := range groups {
+		charts, err := bm.GetChartsByName(cg.Data.ChartGroup)
+		if err != nil {
+			os.Stderr.WriteString(fmt.Sprintf("Error resolving charts: %v\n", err))
+			return
+		}
+		for _, chart := range charts {
+			fmt.Printf("%v:%v:%v\n", bm.Name, cg.Name, chart.Name)
+			path, err := cs.GetPath(&chartsync.ChartMeta{
+				Name:     chart.Name,
+				Location: chart.Data.Location,
+				Depends:  chart.Data.Dependencies,
+				SubPath:  chart.Data.SubPath,
+			})
+			if err != nil {
+				log.WithFields(log.Fields{
+					"error":    err,
+					"name":     chart.Name,
+					"location": chart.Data.Location,
+					"subpath":  chart.Data.SubPath,
+				}).Error("Failed to get yaml file path")
+			}
+			log.WithFields(log.Fields{
+				"path": path,
+			}).Info("Using chart path")
+			dependCharts := func() []*ChartSpec {
+				ret := []*ChartSpec{}
+				for _, v := range chart.Data.Dependencies {
+					thischart := bm.GetChart(v)
+					if thischart == nil {
+						os.Stderr.WriteString(fmt.Sprintf("Failed getting chart for %v", v))
+					}
+					thispath, err := cs.GetPath(&chartsync.ChartMeta{
+						Name:     thischart.Name,
+						Location: thischart.Data.Location,
+						Depends:  thischart.Data.Dependencies,
+						SubPath:  thischart.Data.SubPath,
+					})
+					if err != nil {
+						os.Stderr.WriteString(fmt.Sprintf("Failed getting path"))
+					}
+					ret = append(ret, &ChartSpec{Name: thischart.Name, Path: thispath})
+				}
+				return ret
+			}()
+
+			tgz, err := createChartArchive(datadir, path, dependCharts)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"archive": tgz,
+					"error":   err,
+				}).Error("failed to create tgz archive")
+			}
+			if err := c.InstallRelease(&cluster.ReleaseMeta{
+				Path:      tgz,
+				NameSpace: chart.Data.Namespace,
+			}, []byte{}); err != nil {
+				fmt.Printf("Got ERROR: %v\n", err)
+				//return
+			}
+		}
+	}
 }
 
 func getConfig(kubeconfig string) (*rest.Config, error) {
@@ -132,18 +234,8 @@ func userHomeDir() string {
 	return os.Getenv("HOME")
 }
 
-func writeTmpYaml(datadir string, yamlBytes []byte) (string, error) {
-	var b bytes.Buffer
-	gz := gzip.NewWriter(&b)
-	n, err := gz.Write(yamlBytes)
-	if err != nil {
-		return "", fmt.Errorf("Error while compressing yaml: %v", err)
-	}
-	if n < len(b.Bytes()) {
-		return "", fmt.Errorf("Failed to fully compress yaml")
-	}
-	gz.Close()
-	randomName := fmt.Sprintf("%v/%v", datadir, tempFileName("tmp_", ".gz"))
+func createChartArchive(datadir string, path string, dependCharts []*ChartSpec) (string, error) {
+	randomName := fmt.Sprintf("%v/%v", datadir, tempFileName("tmp_", ".tgz"))
 	f, err := os.Create(randomName)
 	if err != nil {
 		return randomName, err
@@ -151,10 +243,8 @@ func writeTmpYaml(datadir string, yamlBytes []byte) (string, error) {
 	defer func() {
 		f.Close()
 	}()
-	n, err = f.Write(b.Bytes())
-	if n < len(b.Bytes()) {
-		return randomName, fmt.Errorf("Failed to fully write yaml to file \"%v\", %v", randomName, err)
-	}
+
+	err = Package(dependCharts, path, f)
 	return randomName, err
 }
 
@@ -166,4 +256,108 @@ func tempFileName(prefix, suffix string) string {
 	randBytes := make([]byte, 16)
 	rand.Read(randBytes)
 	return prefix + hex.EncodeToString(randBytes) + suffix
+}
+
+// Tar takes a source and variable writers and walks 'source' writing each file
+// found to the tar writer; the purpose for accepting multiple writers is to allow
+// for multiple outputs (for example a file, or md5 hash)
+func Package(depends []*ChartSpec, src string, writers ...io.Writer) error {
+
+	// ensure the src actually exists before trying to tar it
+	if _, err := os.Stat(src); err != nil {
+		return fmt.Errorf("Unable to tar files - %v", err.Error())
+	}
+
+	mw := io.MultiWriter(writers...)
+
+	gzw := gzip.NewWriter(mw)
+	defer gzw.Close()
+
+	tw := tar.NewWriter(gzw)
+	defer tw.Close()
+
+	// Add main chart repo
+	if err := filepath.Walk(src, func(file string, fi os.FileInfo, err error) error {
+
+		// return on any error
+		if err != nil {
+			return err
+		}
+
+		// create a new dir/file header
+		header, err := tar.FileInfoHeader(fi, fi.Name())
+		if err != nil {
+			return err
+		}
+		// update the name to correctly reflect the desired destination when untaring
+		header.Name = fmt.Sprintf("this/%v", strings.TrimPrefix(strings.Replace(file, src, "", -1), string(filepath.Separator)))
+		if header.Name == "" {
+			return err
+		}
+		// write the header
+		if err := tw.WriteHeader(header); err != nil {
+			return err
+		}
+
+		if !fi.Mode().IsRegular() {
+			return nil
+		}
+
+		// open files for taring
+		f, err := os.Open(file)
+		if err != nil {
+			return err
+		}
+
+		// copy file data into tar writer
+		if _, err := io.Copy(tw, f); err != nil {
+			return err
+		}
+
+		// manually close here after each file operation; defering would cause each file close
+		// to wait until all operations have completed.
+		f.Close()
+
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	//Add depends
+	for _, v := range depends {
+		fmt.Printf("Adding %v to %v\n", v, src)
+		if err := filepath.Walk(v.Path, func(file string, fi os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			header, err := tar.FileInfoHeader(fi, fi.Name())
+			if err != nil {
+				return err
+			}
+			header.Name = fmt.Sprintf("this/charts/%v/%v", v.Name, strings.TrimPrefix(strings.Replace(file, v.Path, "", -1), string(filepath.Separator)))
+			if header.Name == "" {
+				return err
+			}
+			if err := tw.WriteHeader(header); err != nil {
+				return err
+			}
+
+			if !fi.Mode().IsRegular() {
+				return nil
+			}
+
+			f, err := os.Open(file)
+			if err != nil {
+				return err
+			}
+			if _, err := io.Copy(tw, f); err != nil {
+				return err
+			}
+			f.Close()
+			return nil
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
