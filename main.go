@@ -31,6 +31,12 @@ type ChartSpec struct {
 func main() {
 	fmt.Printf("Barrelman Engage!\n")
 	datadir := fmt.Sprintf("%v/.barrelman/data", userHomeDir())
+	configFile := fmt.Sprintf("%v/.barrelman/config", userHomeDir())
+	config, err := GetConfig(configFile)
+	if err != nil {
+		fmt.Printf("Got error while loading config: %v\n", err)
+		os.Exit(1)
+	}
 
 	// Open connections to the k8s APIs
 	c, err := cluster.NewSession(fmt.Sprintf("%v/.kube/config", userHomeDir()))
@@ -57,7 +63,7 @@ func main() {
 	}
 
 	yp := yamlpack.New()
-	if err := yp.Import("testdata/keystone-manifest.yaml"); err != nil {
+	if err := yp.Import("testdata/flagship-manifest.yaml"); err != nil {
 		fmt.Printf("Error importing \"this\": %v\n", err)
 	}
 
@@ -75,7 +81,6 @@ func main() {
 				}).Error("Failed to parse source type")
 				return
 			}
-			continue
 			//Add each chart to repo to download/update all charts
 			cs.Add(&chartsync.ChartMeta{
 				Name:       k.Viper.GetString("metadata.name"),
@@ -88,16 +93,15 @@ func main() {
 	}
 	log.Info("Syncronizing with chart repositories")
 	//Perform the chart syncronization/download/update whatever
-	if err := cs.Sync(); err != nil {
+	if err := cs.Sync(config.Account); err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
 		}).Error("Error while downloading charts")
+		return
 	}
 
 	bm := bfest.NewManifest()
-	for name, f := range yp.Files {
-		fmt.Println("_________________________")
-		fmt.Printf("This: %v\n", name)
+	for _, f := range yp.Files {
 		for _, k := range f {
 			schem, err := bfest.ParseSchema(k.Viper.GetString("schema"))
 			if err != nil {
@@ -108,7 +112,6 @@ func main() {
 			}
 			switch schem.Type {
 			case bfest.StringChart:
-				fmt.Printf("........Schema Chart\n")
 				chart := bfest.NewChart()
 				chart.Name = k.Viper.GetString("metadata.name")
 				chart.Version = schem.Version
@@ -123,7 +126,6 @@ func main() {
 				}
 
 			case bfest.StringChartGroup:
-				fmt.Printf("........Schema ChartGroup\n")
 				chartGroup := bfest.NewChartGroup()
 				chartGroup.Name = k.Viper.GetString("metadata.name")
 				chartGroup.Version = schem.Version
@@ -133,7 +135,6 @@ func main() {
 				bm.AddChartGroup(chartGroup)
 
 			case bfest.StringManifest:
-				fmt.Printf("........Schema Manifest\n")
 				bm.Name = k.Viper.GetString("metadata.name")
 				bm.Version = schem.Version
 				bm.Data.ChartGroups = k.Viper.GetStringSlice("data.chart_groups")
@@ -142,10 +143,10 @@ func main() {
 		}
 	}
 
-	for _, v := range bm.AllCharts() {
-		fmt.Printf("Chart Name: %v\n", v.Name)
-	}
-	fmt.Printf("Number Charts: %v\n", len(bm.Lookup.Chart))
+	// for _, v := range bm.AllCharts() {
+	// 	fmt.Printf("Chart Name: %v\n", v.Name)
+	// }
+	//fmt.Printf("Number Charts: %v\n", len(bm.Lookup.Chart))
 	groups, err := bm.GetChartGroups()
 	if err != nil {
 		os.Stderr.WriteString(fmt.Sprintf("Error resolving chart groups: %v\n", err))
@@ -158,7 +159,6 @@ func main() {
 			return
 		}
 		for _, chart := range charts {
-			fmt.Printf("%v:%v:%v\n", bm.Name, cg.Name, chart.Name)
 			path, err := cs.GetPath(&chartsync.ChartMeta{
 				Name:     chart.Name,
 				Location: chart.Data.Location,
@@ -209,7 +209,7 @@ func main() {
 				NameSpace: chart.Data.Namespace,
 			}, []byte{}); err != nil {
 				fmt.Printf("Got ERROR: %v\n", err)
-				//return
+				return
 			}
 		}
 	}
@@ -258,9 +258,6 @@ func tempFileName(prefix, suffix string) string {
 	return prefix + hex.EncodeToString(randBytes) + suffix
 }
 
-// Tar takes a source and variable writers and walks 'source' writing each file
-// found to the tar writer; the purpose for accepting multiple writers is to allow
-// for multiple outputs (for example a file, or md5 hash)
 func Package(depends []*ChartSpec, src string, writers ...io.Writer) error {
 
 	// ensure the src actually exists before trying to tar it
