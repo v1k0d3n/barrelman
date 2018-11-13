@@ -109,6 +109,10 @@ type ArchiveSpec struct {
 	Namespace string
 }
 
+type ArchiveFiles struct {
+	List []*ArchiveSpec
+}
+
 type RemoteAccount struct {
 	Type   string
 	Name   string
@@ -332,8 +336,8 @@ func (m *Manifest) GetChartSpec(c *Chart) (string, []*ChartSpec, error) {
 }
 
 //CreateArchives builds archives for charts configured in the manifest
-func (m *Manifest) CreateArchives() ([]*ArchiveSpec, error) {
-	archives := []*ArchiveSpec{}
+func (m *Manifest) CreateArchives() (*ArchiveFiles, error) {
+	af := &ArchiveFiles{List: []*ArchiveSpec{}}
 	//Chart groups as defined by Armada YAML spec
 	groups, err := m.GetChartGroups()
 	if err != nil {
@@ -358,14 +362,14 @@ func (m *Manifest) CreateArchives() ([]*ArchiveSpec, error) {
 			if err != nil {
 				return nil, fmt.Errorf("failed to create tgz archive %v: %v", tgz, err)
 			}
-			archives = append(archives, &ArchiveSpec{
+			af.List = append(af.List, &ArchiveSpec{
 				Name:      chart.Name,
 				Path:      tgz,
 				Namespace: chart.Data.Namespace,
 			})
 		}
 	}
-	return archives, nil
+	return af, nil
 }
 
 func createChartArchive(datadir string, path string, dependCharts []*ChartSpec) (string, error) {
@@ -483,6 +487,15 @@ func Package(depends []*ChartSpec, src string, writers ...io.Writer) error {
 			f.Close()
 			return nil
 		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (a *ArchiveFiles) Purge() error {
+	for _, v := range a.List {
+		if err := os.Remove(v.Path); err != nil {
 			return err
 		}
 	}

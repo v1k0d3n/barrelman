@@ -43,7 +43,6 @@ func main() {
 	}
 
 	log.Info("Syncronizing with remote chart repositories")
-	//Perform the chart syncronization/download/update whatever
 	if err := mfest.Sync(config.Account); err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
@@ -66,7 +65,7 @@ func main() {
 		return
 	}
 
-	for _, v := range archives {
+	for _, v := range archives.List {
 		//Install the release from the tgz above
 		relName, err := c.InstallRelease(&cluster.ReleaseMeta{
 			Path:      v.Path,
@@ -81,6 +80,12 @@ func main() {
 			"Namespace": v.Namespace,
 			"Release":   relName,
 		}).Info("Installed release")
+	}
+	if err := archives.Purge(); err != nil {
+		log.WithFields(log.Fields{
+			"error": err,
+		}).Error("Failed to purge local archives")
+		return
 	}
 }
 
@@ -143,6 +148,5 @@ func getConfig(kubeconfig string) (*rest.Config, error) {
 	if kubeconfig != "" {
 		return clientcmd.BuildConfigFromFlags("", kubeconfig)
 	}
-
 	return rest.InClusterConfig()
 }
