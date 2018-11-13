@@ -46,8 +46,8 @@ func (s *Session) ListReleases() ([]*Release, error) {
 	return res, err
 }
 
-func (s *Session) InstallRelease(m *ReleaseMeta, chart []byte) error {
-	_, err := s.Helm.InstallRelease(
+func (s *Session) InstallRelease(m *ReleaseMeta, chart []byte) (string, error) {
+	res, err := s.Helm.InstallRelease(
 		m.Path,
 		m.Namespace,
 		helm.ValueOverrides(m.ValueOverrides),
@@ -56,8 +56,7 @@ func (s *Session) InstallRelease(m *ReleaseMeta, chart []byte) error {
 		helm.InstallWait(m.InstallWait),
 		helm.InstallTimeout(int64(m.InstallTimeout.Seconds())),
 	)
-	//fmt.Printf("\t[RESPONSE: %v]\n", res)
-	return err
+	return res.Release.Name, err
 }
 
 func (s *Session) UpdateRelease(m *ReleaseMeta, chart []byte) error {

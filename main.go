@@ -13,17 +13,11 @@ import (
 	"strings"
 
 	"github.com/charter-se/barrelman/cluster"
+	"github.com/charter-se/barrelman/log"
 	"github.com/charter-se/barrelman/manifest"
-	"github.com/charter-se/barrelman/manifest/chartsync"
-	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
-
-type ChartSpec struct {
-	Name string
-	Path string
-}
 
 func main() {
 	fmt.Printf("Barrelman Engage!\n")
@@ -55,7 +49,7 @@ func main() {
 		fmt.Printf("Failed to create working directory: %v", err)
 	}
 
-	log.Info("Syncronizing with chart repositories")
+	log.Info("Syncronizing with remote chart repositories")
 	//Perform the chart syncronization/download/update whatever
 	if err := mfest.Sync(config.Account); err != nil {
 		log.WithFields(log.Fields{
@@ -70,55 +64,28 @@ func main() {
 		}).Error("Failed to delete by manifest")
 	}
 
+	//Chart groups as defined by Armada YAML spec
 	groups, err := mfest.GetChartGroups()
 	if err != nil {
 		os.Stderr.WriteString(fmt.Sprintf("Error resolving chart groups: %v\n", err))
 	}
+
 	for _, cg := range groups {
+		//All charts within the group
 		charts, err := mfest.GetChartsByName(cg.Data.ChartGroup)
 		if err != nil {
 			os.Stderr.WriteString(fmt.Sprintf("Error resolving charts: %v\n", err))
 			return
 		}
+		//For each chart within the group
 		for _, chart := range charts {
-			path, err := mfest.ChartSync.GetPath(&chartsync.ChartMeta{
-				Name:     chart.Name,
-				Location: chart.Data.Location,
-				Depends:  chart.Data.Dependencies,
-				SubPath:  chart.Data.SubPath,
-			})
+			//Get the local file path and dependancies for the chart
+			path, dependCharts, err := mfest.GetChartSpec(chart)
 			if err != nil {
-				log.WithFields(log.Fields{
-					"error":    err,
-					"name":     chart.Name,
-					"location": chart.Data.Location,
-					"subpath":  chart.Data.SubPath,
-				}).Error("Failed to get yaml file path")
+				log.Errorf("Error getting chart path: %v\n", err)
+				return
 			}
-			log.WithFields(log.Fields{
-				"path": path,
-			}).Info("Using chart path")
-			dependCharts := func() []*ChartSpec {
-				ret := []*ChartSpec{}
-				for _, v := range chart.Data.Dependencies {
-					thischart := mfest.GetChart(v)
-					if thischart == nil {
-						os.Stderr.WriteString(fmt.Sprintf("Failed getting chart for %v", v))
-					}
-					thispath, err := mfest.ChartSync.GetPath(&chartsync.ChartMeta{
-						Name:     thischart.Name,
-						Location: thischart.Data.Location,
-						Depends:  thischart.Data.Dependencies,
-						SubPath:  thischart.Data.SubPath,
-					})
-					if err != nil {
-						os.Stderr.WriteString(fmt.Sprintf("Failed getting path"))
-					}
-					ret = append(ret, &ChartSpec{Name: thischart.Name, Path: thispath})
-				}
-				return ret
-			}()
-
+			//Build the tgz archive
 			tgz, err := createChartArchive(datadir, path, dependCharts)
 			if err != nil {
 				log.WithFields(log.Fields{
@@ -126,13 +93,20 @@ func main() {
 					"error":   err,
 				}).Error("failed to create tgz archive")
 			}
-			if err := c.InstallRelease(&cluster.ReleaseMeta{
+			//Install the release from the tgz above
+			relName, err := c.InstallRelease(&cluster.ReleaseMeta{
 				Path:      tgz,
 				Namespace: chart.Data.Namespace,
-			}, []byte{}); err != nil {
+			}, []byte{})
+			if err != nil {
 				fmt.Printf("Got ERROR: %v\n", err)
 				return
 			}
+			log.WithFields(log.Fields{
+				"Name":      chart.Name,
+				"Namespace": chart.Data.Namespace,
+				"Release":   relName,
+			}).Info("Installed release")
 		}
 	}
 }
@@ -156,7 +130,7 @@ func userHomeDir() string {
 	return os.Getenv("HOME")
 }
 
-func createChartArchive(datadir string, path string, dependCharts []*ChartSpec) (string, error) {
+func createChartArchive(datadir string, path string, dependCharts []*manifest.ChartSpec) (string, error) {
 	randomName := fmt.Sprintf("%v/%v", datadir, tempFileName("tmp_", ".tgz"))
 	f, err := os.Create(randomName)
 	if err != nil {
@@ -180,7 +154,7 @@ func tempFileName(prefix, suffix string) string {
 	return prefix + hex.EncodeToString(randBytes) + suffix
 }
 
-func Package(depends []*ChartSpec, src string, writers ...io.Writer) error {
+func Package(depends []*manifest.ChartSpec, src string, writers ...io.Writer) error {
 
 	// ensure the src actually exists before trying to tar it
 	if _, err := os.Stat(src); err != nil {
@@ -318,8 +292,4 @@ func DeleteByManifest(bm *manifest.Manifest, c *cluster.Session) error {
 		}
 	}
 	return nil
-}
-
-func LoadManifest() {
-
 }

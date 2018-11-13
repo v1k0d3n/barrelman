@@ -91,6 +91,11 @@ type ChartDataUpgrade struct {
 	//Investigate usage in HELM API
 }
 
+type ChartSpec struct {
+	Name string
+	Path string
+}
+
 type RemoteAccount struct {
 	Type   string
 	Name   string
@@ -282,3 +287,54 @@ func parseSchema(input string) (*Schema, error) {
 	}
 	return schema, nil
 }
+
+// func (m *Manifest) GetAllChartPaths() ([]*ChartSpec, error) {
+
+// }
+
+func (m *Manifest) GetChartSpec(c *Chart) (string, []*ChartSpec, error) {
+
+	path, err := m.ChartSync.GetPath(&chartsync.ChartMeta{
+		Name:     c.Name,
+		Location: c.Data.Location,
+		Depends:  c.Data.Dependencies,
+		SubPath:  c.Data.SubPath,
+	})
+	if err != nil {
+		return "", nil, fmt.Errorf("Failed to get yaml file path: %v", err)
+	}
+	dependCharts, err := func() ([]*ChartSpec, error) {
+		ret := []*ChartSpec{}
+		for _, v := range c.Data.Dependencies {
+			thischart := m.GetChart(v)
+			if thischart == nil {
+				return nil, fmt.Errorf("Failed getting chart for %v", v)
+			}
+			thispath, err := m.ChartSync.GetPath(&chartsync.ChartMeta{
+				Name:     thischart.Name,
+				Location: thischart.Data.Location,
+				Depends:  thischart.Data.Dependencies,
+				SubPath:  thischart.Data.SubPath,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("Failed getting path")
+			}
+			ret = append(ret, &ChartSpec{Name: thischart.Name, Path: thispath})
+		}
+		return ret, nil
+	}()
+	return path, dependCharts, nil
+}
+
+// groups, err := mfest.GetChartGroups()
+// 	if err != nil {
+// 		os.Stderr.WriteString(fmt.Sprintf("Error resolving chart groups: %v\n", err))
+// 	}
+
+// 	for _, cg := range groups {
+// charts, err := mfest.GetChartsByName(cg.Data.ChartGroup)
+// if err != nil {
+// 	os.Stderr.WriteString(fmt.Sprintf("Error resolving charts: %v\n", err))
+// 	return
+// }
+//	for _, chart := range charts {
