@@ -46,11 +46,16 @@ func NewSession(kubeConfig string) (*Session, error) {
 	}
 
 	compatible := version.IsCompatible(version.Version, tillerVersion.Version.SemVer)
-	log.WithFields(log.Fields{"tillerVersion": tillerVersion.Version.SemVer, "clientServerCompatible": compatible}).Info("Connected to Tiller")
+	log.WithFields(log.Fields{
+		"tillerVersion":          tillerVersion.Version.SemVer,
+		"clientServerCompatible": compatible,
+		"Host":                   fmt.Sprintf(":%v", s.Tiller.Local),
+	}).Info("Connected to Tiller")
 	if !compatible {
 		log.WithFields(log.Fields{
 			"Helm Version":   version.Version,
 			"Tiller Version": tillerVersion.Version.SemVer,
+			"Host":           fmt.Sprintf(":%v", s.Tiller.Local),
 		}).Warnf("incompatible version numbers")
 	}
 	return s, nil
@@ -76,8 +81,6 @@ func (s *Session) connect(kubeConfig string, namespace string) error {
 	if err != nil {
 		return fmt.Errorf("could not get Tiller tunnel: %s", err)
 	}
-
-	log.WithField("host", fmt.Sprintf(":%v", s.Tiller.Local)).Info("Tiller host")
 
 	s.Helm = helm.NewClient(helm.Host(fmt.Sprintf(":%v", s.Tiller.Local)), helm.ConnectTimeout(5))
 	log.WithField("client", s.Helm).Debug("Helm client")
