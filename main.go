@@ -88,23 +88,23 @@ func main() {
 
 	mfest := manifest.NewManifest()
 	for _, k := range yp.AllSections() {
-		schem, err := manifest.ParseSchema(k.Viper.GetString("schema"))
+		schem, err := manifest.ParseSchema(k.GetString("schema"))
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error":         err,
-				"metadata.name": k.Viper.GetString("metatdata.name"),
+				"metadata.name": k.GetString("metatdata.name"),
 			}).Error("Failed to parse schema")
 		}
 		switch schem.Type {
 		case manifest.StringChart:
 			chart := manifest.NewChart()
-			chart.Name = k.Viper.GetString("metadata.name")
+			chart.Name = k.GetString("metadata.name")
 			chart.Version = schem.Version
-			chart.Data.ChartName = k.Viper.GetString("data.chart_name")
-			chart.Data.Dependencies = k.Viper.GetStringSlice("data.dependencies")
-			chart.Data.Namespace = k.Viper.GetString("data.namespace")
-			chart.Data.SubPath = k.Viper.GetString("data.source.subpath")
-			chart.Data.Location = k.Viper.GetString("data.source.location")
+			chart.Data.ChartName = k.GetString("data.chart_name")
+			chart.Data.Dependencies = k.GetStringSlice("data.dependencies")
+			chart.Data.Namespace = k.GetString("data.namespace")
+			chart.Data.SubPath = k.GetString("data.source.subpath")
+			chart.Data.Location = k.GetString("data.source.location")
 			if err := mfest.AddChart(chart); err != nil {
 				os.Stderr.WriteString(fmt.Sprintf("Error loading chart: %v\n", err))
 				return
@@ -112,18 +112,18 @@ func main() {
 
 		case manifest.StringChartGroup:
 			chartGroup := manifest.NewChartGroup()
-			chartGroup.Name = k.Viper.GetString("metadata.name")
+			chartGroup.Name = k.GetString("metadata.name")
 			chartGroup.Version = schem.Version
-			chartGroup.Data.Description = k.Viper.GetString("data.description")
-			chartGroup.Data.Sequenced = k.Viper.GetBool("data.sequenced")
-			chartGroup.Data.ChartGroup = k.Viper.GetStringSlice("data.chart_group")
+			chartGroup.Data.Description = k.GetString("data.description")
+			chartGroup.Data.Sequenced = k.GetBool("data.sequenced")
+			chartGroup.Data.ChartGroup = k.GetStringSlice("data.chart_group")
 			mfest.AddChartGroup(chartGroup)
 
 		case manifest.StringManifest:
-			mfest.Name = k.Viper.GetString("metadata.name")
+			mfest.Name = k.GetString("metadata.name")
 			mfest.Version = schem.Version
-			mfest.Data.ChartGroups = k.Viper.GetStringSlice("data.chart_groups")
-			mfest.Data.ReleasePrefix = k.Viper.GetString("data.release_prefix")
+			mfest.Data.ChartGroups = k.GetStringSlice("data.chart_groups")
+			mfest.Data.ReleasePrefix = k.GetString("data.release_prefix")
 		}
 
 	}
