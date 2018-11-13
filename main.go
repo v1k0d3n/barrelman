@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	fmt.Printf("Barrelman Engage!\n")
+	log.Warn("Barrelman Engage!")
 	datadir := fmt.Sprintf("%v/.barrelman/data", userHomeDir())
 	configFile := fmt.Sprintf("%v/.barrelman/config", userHomeDir())
 	config, err := GetConfig(configFile)
@@ -64,6 +64,14 @@ func main() {
 		}).Error("Failed to create archives")
 		return
 	}
+	//Remove archive files after we are done with them
+	defer func() {
+		if err := archives.Purge(); err != nil {
+			log.WithFields(log.Fields{
+				"error": err,
+			}).Error("Failed to purge local archives")
+		}
+	}()
 
 	for _, v := range archives.List {
 		//Install the release from the tgz above
@@ -80,12 +88,6 @@ func main() {
 			"Namespace": v.Namespace,
 			"Release":   relName,
 		}).Info("Installed release")
-	}
-	if err := archives.Purge(); err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Error("Failed to purge local archives")
-		return
 	}
 }
 

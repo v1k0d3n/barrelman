@@ -14,6 +14,10 @@ func Info(s string) {
 	logrus.Info(s)
 }
 
+func Warn(s string) {
+	logrus.Warn(s)
+}
+
 func Error(s string) {
 	logrus.Error(s)
 }
