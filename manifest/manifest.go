@@ -109,7 +109,6 @@ func (m *Manifest) AddChart(c *Chart) error {
 		return fmt.Errorf("Chart name already exists: %v", c.Name)
 	}
 	m.Lookup.Chart[c.Name] = c
-	fmt.Printf("Added chart %v\n", c.Name)
 	return nil
 }
 

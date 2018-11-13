@@ -18,7 +18,6 @@ import (
 	"github.com/charter-se/barrelman/sourcetype"
 	"github.com/charter-se/barrelman/yamlpack"
 	log "github.com/sirupsen/logrus"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -50,17 +49,11 @@ func main() {
 	}
 
 	// list pods
-	pods, err := c.Clientset.Core().Pods("").List(metav1.ListOptions{})
-	if err != nil {
-		log.WithFields(log.Fields{"error": err}).Error("Failed to retrieve pods")
-		return
-	}
-	for _, p := range pods.Items {
-		log.WithFields(log.Fields{
-			"namespace": p.Namespace,
-			"name":      p.Name,
-		}).Info("Found pods")
-	}
+	// pods, err := c.Clientset.Core().Pods("").List(metav1.ListOptions{})
+	// if err != nil {
+	// 	log.WithFields(log.Fields{"error": err}).Error("Failed to retrieve pods")
+	// 	return
+	// }
 
 	yp := yamlpack.New()
 	if err := yp.Import("testdata/flagship-manifest.yaml"); err != nil {
@@ -143,14 +136,15 @@ func main() {
 		}
 	}
 
-	// for _, v := range bm.AllCharts() {
-	// 	fmt.Printf("Chart Name: %v\n", v.Name)
-	// }
-	//fmt.Printf("Number Charts: %v\n", len(bm.Lookup.Chart))
+	if err := DeleteByManifest(bm, c); err != nil {
+		log.WithFields(log.Fields{
+			"error": err,
+		}).Error("Failed to delete by manifest")
+	}
+
 	groups, err := bm.GetChartGroups()
 	if err != nil {
 		os.Stderr.WriteString(fmt.Sprintf("Error resolving chart groups: %v\n", err))
-		return
 	}
 	for _, cg := range groups {
 		charts, err := bm.GetChartsByName(cg.Data.ChartGroup)
@@ -206,7 +200,7 @@ func main() {
 			}
 			if err := c.InstallRelease(&cluster.ReleaseMeta{
 				Path:      tgz,
-				NameSpace: chart.Data.Namespace,
+				Namespace: chart.Data.Namespace,
 			}, []byte{}); err != nil {
 				fmt.Printf("Got ERROR: %v\n", err)
 				return
@@ -322,7 +316,6 @@ func Package(depends []*ChartSpec, src string, writers ...io.Writer) error {
 
 	//Add depends
 	for _, v := range depends {
-		fmt.Printf("Adding %v to %v\n", v, src)
 		if err := filepath.Walk(v.Path, func(file string, fi os.FileInfo, err error) error {
 			if err != nil {
 				return err
@@ -357,4 +350,48 @@ func Package(depends []*ChartSpec, src string, writers ...io.Writer) error {
 		}
 	}
 	return nil
+}
+
+func DeleteByManifest(bm *bfest.Manifest, c *cluster.Session) error {
+	deleteList := make(map[string]*cluster.DeleteMeta)
+	groups, err := bm.GetChartGroups()
+	if err != nil {
+		return fmt.Errorf("Error resolving chart groups: %v\n", err)
+	}
+
+	releases, err := c.ListReleases()
+	if err != nil {
+		return fmt.Errorf("Failed to list releases %v", err)
+	}
+
+	for _, v := range releases {
+		deleteList[v.Chart.Metadata.Name] = &cluster.DeleteMeta{
+			Name:      v.Name,
+			Namespace: "",
+		}
+	}
+
+	for _, cg := range groups {
+		charts, err := bm.GetChartsByName(cg.Data.ChartGroup)
+		if err != nil {
+			return fmt.Errorf("Error resolving charts: %v\n", err)
+		}
+		for _, v := range charts {
+			if dm, exists := deleteList[v.Name]; exists {
+
+				log.WithFields(log.Fields{
+					"Name":    v.Name,
+					"Release": dm.Name,
+				}).Info("Deleting release")
+				if err := c.DeleteRelease(dm); err != nil {
+					return fmt.Errorf("error deleting list: %v\n", err)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func LoadManifest() {
+
 }

@@ -29,10 +29,6 @@ func GetConfig(s string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	keys := b.Viper.AllKeys()
-	for k, v := range keys {
-		fmt.Printf("Key: %k, val: %v\n", k, v)
-	}
 
 	account := b.Viper.Get("account")
 	// This block supports the YAML format :

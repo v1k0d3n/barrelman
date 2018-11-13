@@ -41,9 +41,7 @@ func (cs *ChartSync) Sync(acc AccountTable) error {
 	for _, v := range cs.Charts {
 		switch v.SourceType {
 		case sourcetype.Missing:
-			fmt.Printf("Got sourcetype.Missing\n")
 		case sourcetype.Git:
-			fmt.Printf("Got sourcetype.Git\n")
 			if err := cs.gitDownload(v, acc); err != nil {
 				return fmt.Errorf("[%v] %v", v.Location, err)
 			}
