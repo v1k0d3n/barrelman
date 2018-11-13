@@ -22,6 +22,10 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := ensureWorkDir(datadir); err != nil {
+		fmt.Printf("Failed to create working directory: %v", err)
+	}
+
 	// Open connections to the k8s APIs
 	c, err := cluster.NewSession(fmt.Sprintf("%v/.kube/config", userHomeDir()))
 	if err != nil {
@@ -30,16 +34,12 @@ func main() {
 	}
 
 	// Open and initialize the manifest
-	mfest := manifest.NewManifest()
-	if err := mfest.Init(&manifest.Config{DataDir: datadir}); err != nil {
+	mfest, err := manifest.New(&manifest.Config{DataDir: datadir})
+	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
-		}).Error("Error while initializing manifest: %v", err)
+		}).Error("Error while initializing manifest")
 		return
-	}
-
-	if err := ensureWorkDir(datadir); err != nil {
-		fmt.Printf("Failed to create working directory: %v", err)
 	}
 
 	log.Info("Syncronizing with remote chart repositories")
@@ -82,14 +82,6 @@ func main() {
 			"Release":   relName,
 		}).Info("Installed release")
 	}
-}
-
-func getConfig(kubeconfig string) (*rest.Config, error) {
-	if kubeconfig != "" {
-		return clientcmd.BuildConfigFromFlags("", kubeconfig)
-	}
-
-	return rest.InClusterConfig()
 }
 
 func DeleteByManifest(bm *manifest.Manifest, c *cluster.Session) error {
@@ -145,4 +137,12 @@ func userHomeDir() string {
 		return home
 	}
 	return os.Getenv("HOME")
+}
+
+func getConfig(kubeconfig string) (*rest.Config, error) {
+	if kubeconfig != "" {
+		return clientcmd.BuildConfigFromFlags("", kubeconfig)
+	}
+
+	return rest.InClusterConfig()
 }

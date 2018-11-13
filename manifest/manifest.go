@@ -25,7 +25,7 @@ const (
 
 type Schema struct {
 	Route   string // armada, yaml2vars, etc
-	Type    string // Openstack Deckhand document format spec has Document, and Control
+	Type    string // Openstack Deckhand document format spec has "Document", and "Control"
 	Version string
 }
 
@@ -115,13 +115,25 @@ type RemoteAccount struct {
 	Secret string
 }
 
-func NewManifest() *Manifest {
-	manifest := &Manifest{}
-	manifest.Data = &ManifestData{}
-	manifest.Lookup = &LookupTable{}
-	manifest.Lookup.Chart = make(map[string]*Chart)
-	manifest.Lookup.ChartGroup = make(map[string]*ChartGroup)
-	return manifest
+//New creates an initializes a *Manifest instance
+func New(c *Config) (*Manifest, error) {
+	m := &Manifest{}
+	m.Data = &ManifestData{}
+	m.Lookup = &LookupTable{}
+	m.Lookup.Chart = make(map[string]*Chart)
+	m.Lookup.ChartGroup = make(map[string]*ChartGroup)
+
+	m.Config = c
+	m.yp = yamlpack.New()
+	if err := m.yp.Import("testdata/flagship-manifest.yaml"); err != nil {
+		fmt.Printf("Error importing \"this\": %v\n", err)
+	}
+	m.ChartSync = chartsync.New(m.Config.DataDir)
+	if err := m.load(); err != nil {
+		return nil, err
+	}
+
+	return m, nil
 }
 
 func (m *Manifest) AddChartGroup(cg *ChartGroup) error {
@@ -208,19 +220,7 @@ func NewChart() *Chart {
 	return chart
 }
 
-func (m *Manifest) Init(c *Config) error {
-	m.Config = c
-	m.yp = yamlpack.New()
-	if err := m.yp.Import("testdata/flagship-manifest.yaml"); err != nil {
-		fmt.Printf("Error importing \"this\": %v\n", err)
-	}
-	m.ChartSync = chartsync.New(m.Config.DataDir)
-	if err := m.load(); err != nil {
-		return err
-	}
-	return nil
-}
-
+//Sync updates local copies of remote repositories configured in a manifest
 func (m *Manifest) Sync(config chartsync.AccountTable) error {
 	for _, k := range m.yp.AllSections() {
 		//Get the URI type in order for chartsync
@@ -238,13 +238,9 @@ func (m *Manifest) Sync(config chartsync.AccountTable) error {
 		})
 	}
 
-	//log.Info("Syncronizing with chart repositories")
-	//Perform the chart syncronization/download/update whatever
-
 	if err := m.ChartSync.Sync(config); err != nil {
 		return fmt.Errorf("Error while downloading charts: %v", err)
 	}
-
 	return nil
 }
 
@@ -300,10 +296,7 @@ func parseSchema(input string) (*Schema, error) {
 	return schema, nil
 }
 
-// func (m *Manifest) GetAllChartPaths() ([]*ChartSpec, error) {
-
-// }
-
+//GetChartSpec returns local chart path and dependancy information useful for building an archive
 func (m *Manifest) GetChartSpec(c *Chart) (string, []*ChartSpec, error) {
 
 	path, err := m.ChartSync.GetPath(&chartsync.ChartMeta{
@@ -338,6 +331,7 @@ func (m *Manifest) GetChartSpec(c *Chart) (string, []*ChartSpec, error) {
 	return path, dependCharts, nil
 }
 
+//CreateArchives builds archives for charts configured in the manifest
 func (m *Manifest) CreateArchives() ([]*ArchiveSpec, error) {
 	archives := []*ArchiveSpec{}
 	//Chart groups as defined by Armada YAML spec
@@ -394,6 +388,7 @@ func tempFileName(prefix, suffix string) string {
 	return prefix + hex.EncodeToString(randBytes) + suffix
 }
 
+//Package creates an archive based on dependancies contained in []*ChartSpec
 func Package(depends []*ChartSpec, src string, writers ...io.Writer) error {
 
 	// ensure the src actually exists before trying to tar it
