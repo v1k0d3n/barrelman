@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/charter-se/barrelman/sourcetype"
+	"github.com/charter-se/barrelman/manifest/sourcetype"
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
 )

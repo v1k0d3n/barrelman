@@ -12,11 +12,11 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/charter-se/barrelman/chartsync"
 	"github.com/charter-se/barrelman/cluster"
-	bfest "github.com/charter-se/barrelman/manifest"
-	"github.com/charter-se/barrelman/sourcetype"
-	"github.com/charter-se/barrelman/yamlpack"
+	"github.com/charter-se/barrelman/manifest"
+	"github.com/charter-se/barrelman/manifest/chartsync"
+	"github.com/charter-se/barrelman/manifest/sourcetype"
+	"github.com/charter-se/barrelman/manifest/yamlpack"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -48,13 +48,6 @@ func main() {
 		fmt.Printf("Failed to create working directory: %v", err)
 	}
 
-	// list pods
-	// pods, err := c.Clientset.Core().Pods("").List(metav1.ListOptions{})
-	// if err != nil {
-	// 	log.WithFields(log.Fields{"error": err}).Error("Failed to retrieve pods")
-	// 	return
-	// }
-
 	yp := yamlpack.New()
 	if err := yp.Import("testdata/flagship-manifest.yaml"); err != nil {
 		fmt.Printf("Error importing \"this\": %v\n", err)
@@ -65,21 +58,21 @@ func main() {
 	for _, f := range yp.Files {
 		for _, k := range f {
 			//Get the URI type in order for chartsync
-			typ, err := sourcetype.Parse(k.Viper.GetString("data.source.type"))
+			typ, err := sourcetype.Parse(k.GetString("data.source.type"))
 			if err != nil {
 				log.WithFields(log.Fields{
 					"error": err,
 					"type":  typ,
-					"name":  k.Viper.GetString("metadata.name"),
+					"name":  k.GetString("metadata.name"),
 				}).Error("Failed to parse source type")
 				return
 			}
 			//Add each chart to repo to download/update all charts
 			cs.Add(&chartsync.ChartMeta{
-				Name:       k.Viper.GetString("metadata.name"),
-				Location:   k.Viper.GetString("data.source.location"),
-				Depends:    k.Viper.GetStringSlice("data.dependancies"),
-				Groups:     k.Viper.GetStringSlice("data.chart_group"),
+				Name:       k.GetString("metadata.name"),
+				Location:   k.GetString("data.source.location"),
+				Depends:    k.GetStringSlice("data.dependancies"),
+				Groups:     k.GetStringSlice("data.chart_group"),
 				SourceType: typ,
 			})
 		}
@@ -93,61 +86,60 @@ func main() {
 		return
 	}
 
-	bm := bfest.NewManifest()
-	for _, f := range yp.Files {
-		for _, k := range f {
-			schem, err := bfest.ParseSchema(k.Viper.GetString("schema"))
-			if err != nil {
-				log.WithFields(log.Fields{
-					"error":         err,
-					"metadata.name": k.Viper.GetString("metatdata.name"),
-				}).Error("Failed to parse schema")
-			}
-			switch schem.Type {
-			case bfest.StringChart:
-				chart := bfest.NewChart()
-				chart.Name = k.Viper.GetString("metadata.name")
-				chart.Version = schem.Version
-				chart.Data.ChartName = k.Viper.GetString("data.chart_name")
-				chart.Data.Dependencies = k.Viper.GetStringSlice("data.dependencies")
-				chart.Data.Namespace = k.Viper.GetString("data.namespace")
-				chart.Data.SubPath = k.Viper.GetString("data.source.subpath")
-				chart.Data.Location = k.Viper.GetString("data.source.location")
-				if err := bm.AddChart(chart); err != nil {
-					os.Stderr.WriteString(fmt.Sprintf("Error loading chart: %v\n", err))
-					return
-				}
-
-			case bfest.StringChartGroup:
-				chartGroup := bfest.NewChartGroup()
-				chartGroup.Name = k.Viper.GetString("metadata.name")
-				chartGroup.Version = schem.Version
-				chartGroup.Data.Description = k.Viper.GetString("data.description")
-				chartGroup.Data.Sequenced = k.Viper.GetBool("data.sequenced")
-				chartGroup.Data.ChartGroup = k.Viper.GetStringSlice("data.chart_group")
-				bm.AddChartGroup(chartGroup)
-
-			case bfest.StringManifest:
-				bm.Name = k.Viper.GetString("metadata.name")
-				bm.Version = schem.Version
-				bm.Data.ChartGroups = k.Viper.GetStringSlice("data.chart_groups")
-				bm.Data.ReleasePrefix = k.Viper.GetString("data.release_prefix")
-			}
+	mfest := manifest.NewManifest()
+	for _, k := range yp.AllSections() {
+		schem, err := manifest.ParseSchema(k.Viper.GetString("schema"))
+		if err != nil {
+			log.WithFields(log.Fields{
+				"error":         err,
+				"metadata.name": k.Viper.GetString("metatdata.name"),
+			}).Error("Failed to parse schema")
 		}
+		switch schem.Type {
+		case manifest.StringChart:
+			chart := manifest.NewChart()
+			chart.Name = k.Viper.GetString("metadata.name")
+			chart.Version = schem.Version
+			chart.Data.ChartName = k.Viper.GetString("data.chart_name")
+			chart.Data.Dependencies = k.Viper.GetStringSlice("data.dependencies")
+			chart.Data.Namespace = k.Viper.GetString("data.namespace")
+			chart.Data.SubPath = k.Viper.GetString("data.source.subpath")
+			chart.Data.Location = k.Viper.GetString("data.source.location")
+			if err := mfest.AddChart(chart); err != nil {
+				os.Stderr.WriteString(fmt.Sprintf("Error loading chart: %v\n", err))
+				return
+			}
+
+		case manifest.StringChartGroup:
+			chartGroup := manifest.NewChartGroup()
+			chartGroup.Name = k.Viper.GetString("metadata.name")
+			chartGroup.Version = schem.Version
+			chartGroup.Data.Description = k.Viper.GetString("data.description")
+			chartGroup.Data.Sequenced = k.Viper.GetBool("data.sequenced")
+			chartGroup.Data.ChartGroup = k.Viper.GetStringSlice("data.chart_group")
+			mfest.AddChartGroup(chartGroup)
+
+		case manifest.StringManifest:
+			mfest.Name = k.Viper.GetString("metadata.name")
+			mfest.Version = schem.Version
+			mfest.Data.ChartGroups = k.Viper.GetStringSlice("data.chart_groups")
+			mfest.Data.ReleasePrefix = k.Viper.GetString("data.release_prefix")
+		}
+
 	}
 
-	if err := DeleteByManifest(bm, c); err != nil {
+	if err := DeleteByManifest(mfest, c); err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
 		}).Error("Failed to delete by manifest")
 	}
 
-	groups, err := bm.GetChartGroups()
+	groups, err := mfest.GetChartGroups()
 	if err != nil {
 		os.Stderr.WriteString(fmt.Sprintf("Error resolving chart groups: %v\n", err))
 	}
 	for _, cg := range groups {
-		charts, err := bm.GetChartsByName(cg.Data.ChartGroup)
+		charts, err := mfest.GetChartsByName(cg.Data.ChartGroup)
 		if err != nil {
 			os.Stderr.WriteString(fmt.Sprintf("Error resolving charts: %v\n", err))
 			return
@@ -173,7 +165,7 @@ func main() {
 			dependCharts := func() []*ChartSpec {
 				ret := []*ChartSpec{}
 				for _, v := range chart.Data.Dependencies {
-					thischart := bm.GetChart(v)
+					thischart := mfest.GetChart(v)
 					if thischart == nil {
 						os.Stderr.WriteString(fmt.Sprintf("Failed getting chart for %v", v))
 					}
@@ -352,7 +344,7 @@ func Package(depends []*ChartSpec, src string, writers ...io.Writer) error {
 	return nil
 }
 
-func DeleteByManifest(bm *bfest.Manifest, c *cluster.Session) error {
+func DeleteByManifest(bm *manifest.Manifest, c *cluster.Session) error {
 	deleteList := make(map[string]*cluster.DeleteMeta)
 	groups, err := bm.GetChartGroups()
 	if err != nil {

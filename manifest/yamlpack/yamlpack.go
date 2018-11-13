@@ -20,8 +20,8 @@ func New() *Yp {
 	return yp
 }
 
-//GetAllSections returns an array containing all yaml sections
-func (yp *Yp) GetAllSections() []*YamlSection {
+//AllSections returns an array containing all yaml sections
+func (yp *Yp) AllSections() []*YamlSection {
 	yp.RLock()
 	defer func() {
 		yp.RUnlock()
@@ -38,7 +38,7 @@ func (yp *Yp) GetAllSections() []*YamlSection {
 //ListYamls returns a list of yaml section names as defined by metadata.name
 func (yp *Yp) ListYamls() []string {
 	ret := []string{}
-	for _, ys := range yp.GetAllSections() {
+	for _, ys := range yp.AllSections() {
 		ret = append(ret, ys.Viper.Get("metadata.name").(string))
 	}
 	return ret
@@ -67,4 +67,16 @@ func (yp *Yp) DeregisterHandler(s string) {
 		delete(yp.Handlers, s)
 	}
 	return
+}
+
+func (section *YamlSection) GetString(s string) string {
+	return section.Viper.GetString(s)
+}
+
+func (section *YamlSection) GetStringSlice(s string) []string {
+	return section.Viper.GetStringSlice(s)
+}
+
+func (section *YamlSection) GetBool(s string) bool {
+	return section.Viper.GetBool(s)
 }

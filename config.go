@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/charter-se/barrelman/chartsync"
+	"github.com/charter-se/barrelman/manifest/chartsync"
 	"github.com/spf13/viper"
 )
 
