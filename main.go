@@ -15,8 +15,6 @@ import (
 	"github.com/charter-se/barrelman/cluster"
 	"github.com/charter-se/barrelman/manifest"
 	"github.com/charter-se/barrelman/manifest/chartsync"
-	"github.com/charter-se/barrelman/manifest/sourcetype"
-	"github.com/charter-se/barrelman/manifest/yamlpack"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -44,88 +42,26 @@ func main() {
 		return
 	}
 
+	// Open and initialize the manifest
+	mfest := manifest.NewManifest()
+	if err := mfest.Init(&manifest.Config{DataDir: datadir}); err != nil {
+		log.WithFields(log.Fields{
+			"error": err,
+		}).Error("Error while initializing manifest: %v", err)
+		return
+	}
+
 	if err := ensureWorkDir(datadir); err != nil {
 		fmt.Printf("Failed to create working directory: %v", err)
 	}
 
-	yp := yamlpack.New()
-	if err := yp.Import("testdata/flagship-manifest.yaml"); err != nil {
-		fmt.Printf("Error importing \"this\": %v\n", err)
-	}
-
-	cs := chartsync.New(datadir)
-
-	for _, f := range yp.Files {
-		for _, k := range f {
-			//Get the URI type in order for chartsync
-			typ, err := sourcetype.Parse(k.GetString("data.source.type"))
-			if err != nil {
-				log.WithFields(log.Fields{
-					"error": err,
-					"type":  typ,
-					"name":  k.GetString("metadata.name"),
-				}).Error("Failed to parse source type")
-				return
-			}
-			//Add each chart to repo to download/update all charts
-			cs.Add(&chartsync.ChartMeta{
-				Name:       k.GetString("metadata.name"),
-				Location:   k.GetString("data.source.location"),
-				Depends:    k.GetStringSlice("data.dependancies"),
-				Groups:     k.GetStringSlice("data.chart_group"),
-				SourceType: typ,
-			})
-		}
-	}
 	log.Info("Syncronizing with chart repositories")
 	//Perform the chart syncronization/download/update whatever
-	if err := cs.Sync(config.Account); err != nil {
+	if err := mfest.Sync(config.Account); err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
 		}).Error("Error while downloading charts")
 		return
-	}
-
-	mfest := manifest.NewManifest()
-	for _, k := range yp.AllSections() {
-		schem, err := manifest.ParseSchema(k.GetString("schema"))
-		if err != nil {
-			log.WithFields(log.Fields{
-				"error":         err,
-				"metadata.name": k.GetString("metatdata.name"),
-			}).Error("Failed to parse schema")
-		}
-		switch schem.Type {
-		case manifest.StringChart:
-			chart := manifest.NewChart()
-			chart.Name = k.GetString("metadata.name")
-			chart.Version = schem.Version
-			chart.Data.ChartName = k.GetString("data.chart_name")
-			chart.Data.Dependencies = k.GetStringSlice("data.dependencies")
-			chart.Data.Namespace = k.GetString("data.namespace")
-			chart.Data.SubPath = k.GetString("data.source.subpath")
-			chart.Data.Location = k.GetString("data.source.location")
-			if err := mfest.AddChart(chart); err != nil {
-				os.Stderr.WriteString(fmt.Sprintf("Error loading chart: %v\n", err))
-				return
-			}
-
-		case manifest.StringChartGroup:
-			chartGroup := manifest.NewChartGroup()
-			chartGroup.Name = k.GetString("metadata.name")
-			chartGroup.Version = schem.Version
-			chartGroup.Data.Description = k.GetString("data.description")
-			chartGroup.Data.Sequenced = k.GetBool("data.sequenced")
-			chartGroup.Data.ChartGroup = k.GetStringSlice("data.chart_group")
-			mfest.AddChartGroup(chartGroup)
-
-		case manifest.StringManifest:
-			mfest.Name = k.GetString("metadata.name")
-			mfest.Version = schem.Version
-			mfest.Data.ChartGroups = k.GetStringSlice("data.chart_groups")
-			mfest.Data.ReleasePrefix = k.GetString("data.release_prefix")
-		}
-
 	}
 
 	if err := DeleteByManifest(mfest, c); err != nil {
@@ -145,7 +81,7 @@ func main() {
 			return
 		}
 		for _, chart := range charts {
-			path, err := cs.GetPath(&chartsync.ChartMeta{
+			path, err := mfest.ChartSync.GetPath(&chartsync.ChartMeta{
 				Name:     chart.Name,
 				Location: chart.Data.Location,
 				Depends:  chart.Data.Dependencies,
@@ -169,7 +105,7 @@ func main() {
 					if thischart == nil {
 						os.Stderr.WriteString(fmt.Sprintf("Failed getting chart for %v", v))
 					}
-					thispath, err := cs.GetPath(&chartsync.ChartMeta{
+					thispath, err := mfest.ChartSync.GetPath(&chartsync.ChartMeta{
 						Name:     thischart.Name,
 						Location: thischart.Data.Location,
 						Depends:  thischart.Data.Dependencies,
