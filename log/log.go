@@ -71,10 +71,13 @@ func (e *Entry) Error(args ...interface{}) {
 	logrus.WithFields(logrus.Fields(e.getFields())).Error(args...)
 }
 
-func Errorf(s string, v ...interface{}) {
-	logrus.Errorf(s, v)
+func Error(args ...interface{}) {
+	logrus.Error(args...)
 }
 
+func Errorf(format string, args ...interface{}) {
+	logrus.Errorf(format, args...)
+}
 func WithField(k string, v interface{}) *Entry {
 	return &Entry{Data: Fields{k: v}}
 }

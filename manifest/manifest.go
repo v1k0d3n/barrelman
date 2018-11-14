@@ -132,7 +132,7 @@ func New(c *Config) (*Manifest, error) {
 	m.yp = yamlpack.New()
 	file := "testdata/flagship-manifest.yaml"
 	if err := m.yp.Import(file); err != nil {
-		return &Manifest{}, errors.WithFields(errors.Fields{"file": file}).Wrap(err, "Error importing manifest")
+		return &Manifest{}, errors.WithFields(errors.Fields{"file": file}).Wrap(err, "error importing manifest")
 	}
 	m.ChartSync = chartsync.New(m.Config.DataDir)
 	if err := m.load(); err != nil {
@@ -232,7 +232,7 @@ func (m *Manifest) Sync(config chartsync.AccountTable) error {
 		//Get the URI type in order for chartsync
 		typ, err := sourcetype.Parse(k.GetString("data.source.type"))
 		if err != nil {
-			return errors.WithFields(errors.Fields{"Type": typ}).Wrap(err, "Failed to parse source")
+			return errors.WithFields(errors.Fields{"Type": typ}).Wrap(err, "failed to parse source")
 		}
 		//Add each chart to repo to download/update all charts
 		m.ChartSync.Add(&chartsync.ChartMeta{
@@ -245,7 +245,7 @@ func (m *Manifest) Sync(config chartsync.AccountTable) error {
 	}
 
 	if err := m.ChartSync.Sync(config); err != nil {
-		return errors.Wrap(err, "Error while downloading charts")
+		return errors.Wrap(err, "error while downloading charts")
 	}
 	return nil
 }
@@ -321,7 +321,7 @@ func (m *Manifest) GetChartSpec(c *Chart) (string, []*ChartSpec, error) {
 		for _, v := range c.Data.Dependencies {
 			thischart := m.GetChart(v)
 			if thischart == nil {
-				return nil, errors.WithFields(errors.Fields{"Dependancy": v}).New("Failed getting depended chart")
+				return nil, errors.WithFields(errors.Fields{"Dependancy": v}).New("failed getting depended chart")
 			}
 			thispath, err := m.ChartSync.GetPath(&chartsync.ChartMeta{
 				Name:     thischart.Name,
@@ -364,7 +364,7 @@ func (m *Manifest) CreateArchives() (*ArchiveFiles, error) {
 			//Build the tgz archive
 			tgz, err := createChartArchive(m.Config.DataDir, path, dependCharts)
 			if err != nil {
-				return nil, errors.WithFields(errors.Fields{"Archive": tgz}).Wrap(err, "Failed getting depended chart")
+				return nil, errors.WithFields(errors.Fields{"Archive": tgz}).Wrap(err, "failed getting depended chart")
 			}
 			af.List = append(af.List, &ArchiveSpec{
 				Name:      chart.Name,
@@ -401,7 +401,7 @@ func Package(depends []*ChartSpec, src string, writers ...io.Writer) error {
 
 	// ensure the src actually exists before trying to tar it
 	if _, err := os.Stat(src); err != nil {
-		return errors.Wrap(err, "Unable to tar files")
+		return errors.Wrap(err, "unable to tar files")
 	}
 
 	mw := io.MultiWriter(writers...)
@@ -417,22 +417,22 @@ func Package(depends []*ChartSpec, src string, writers ...io.Writer) error {
 
 		// return on any error
 		if err != nil {
-			return errors.Wrap(err, "Failed while filepath.Walk()")
+			return errors.Wrap(err, "failed while filepath.Walk()")
 		}
 
 		// create a new dir/file header
 		header, err := tar.FileInfoHeader(fi, fi.Name())
 		if err != nil {
-			return errors.Wrap(err, "Failed while tar.FileInfoHeader()")
+			return errors.Wrap(err, "failed while tar.FileInfoHeader()")
 		}
 		// update the name to correctly reflect the desired destination when untaring
 		header.Name = fmt.Sprintf("this/%v", strings.TrimPrefix(strings.Replace(file, src, "", -1), string(filepath.Separator)))
 		if header.Name == "" {
-			return errors.Wrap(err, "Failed constructing header.Name")
+			return errors.Wrap(err, "failed constructing header.Name")
 		}
 		// write the header
 		if err := tw.WriteHeader(header); err != nil {
-			return errors.Wrap(err, "Failed while tw.WriteHeader()")
+			return errors.Wrap(err, "failed while tw.WriteHeader()")
 		}
 
 		if !fi.Mode().IsRegular() {
@@ -442,12 +442,12 @@ func Package(depends []*ChartSpec, src string, writers ...io.Writer) error {
 		// open files for taring
 		f, err := os.Open(file)
 		if err != nil {
-			return errors.WithFields(errors.Fields{"file": file}).Wrap(err, "Failed while os.Open(file)")
+			return errors.WithFields(errors.Fields{"file": file}).Wrap(err, "failed while os.Open(file)")
 		}
 
 		// copy file data into tar writer
 		if _, err := io.Copy(tw, f); err != nil {
-			return errors.WithFields(errors.Fields{"file": file}).Wrap(err, "Failed while io.Copy()")
+			return errors.WithFields(errors.Fields{"file": file}).Wrap(err, "failed while io.Copy()")
 		}
 
 		// manually close here after each file operation; defering would cause each file close
@@ -464,18 +464,18 @@ func Package(depends []*ChartSpec, src string, writers ...io.Writer) error {
 	for _, v := range depends {
 		if err := filepath.Walk(v.Path, func(file string, fi os.FileInfo, err error) error {
 			if err != nil {
-				return errors.Wrap(err, "Failed while processing dependencies filepath.Walk()")
+				return errors.Wrap(err, "failed while processing dependencies filepath.Walk()")
 			}
 			header, err := tar.FileInfoHeader(fi, fi.Name())
 			if err != nil {
-				return errors.Wrap(err, "Failed while processing dependancies tar.FileInfoHeader()")
+				return errors.Wrap(err, "failed while processing dependancies tar.FileInfoHeader()")
 			}
 			header.Name = fmt.Sprintf("this/charts/%v/%v", v.Name, strings.TrimPrefix(strings.Replace(file, v.Path, "", -1), string(filepath.Separator)))
 			if header.Name == "" {
-				return errors.Wrap(err, "Failed while processing dependencies constructing header.Name")
+				return errors.Wrap(err, "failed while processing dependencies constructing header.Name")
 			}
 			if err := tw.WriteHeader(header); err != nil {
-				return errors.Wrap(err, "Failed while processing dependencies tw.WriteHeader()")
+				return errors.Wrap(err, "failed while processing dependencies tw.WriteHeader()")
 			}
 
 			if !fi.Mode().IsRegular() {
@@ -484,10 +484,10 @@ func Package(depends []*ChartSpec, src string, writers ...io.Writer) error {
 
 			f, err := os.Open(file)
 			if err != nil {
-				return errors.WithFields(errors.Fields{"file": file}).Wrap(err, "Failed while processing dependencies os.Open(file)")
+				return errors.WithFields(errors.Fields{"file": file}).Wrap(err, "failed while processing dependencies os.Open(file)")
 			}
 			if _, err := io.Copy(tw, f); err != nil {
-				return errors.WithFields(errors.Fields{"file": file}).Wrap(err, "Failed while processing dependencies io.Copy()")
+				return errors.WithFields(errors.Fields{"file": file}).Wrap(err, "failed while processing dependencies io.Copy()")
 			}
 			f.Close()
 			return nil
@@ -501,7 +501,7 @@ func Package(depends []*ChartSpec, src string, writers ...io.Writer) error {
 func (a *ArchiveFiles) Purge() error {
 	for _, v := range a.List {
 		if err := os.Remove(v.Path); err != nil {
-			return errors.WithFields(errors.Fields{"file": v.Path}).Wrap(err, "Failed while cleaning up archives")
+			return errors.WithFields(errors.Fields{"file": v.Path}).Wrap(err, "failed while cleaning up archives")
 		}
 	}
 	return nil

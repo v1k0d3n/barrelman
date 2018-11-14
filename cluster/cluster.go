@@ -94,7 +94,7 @@ func getTillerPodName(client internalversion.PodsGetter, namespace string) (stri
 	selector := labels.Set{"app": "helm", "name": "tiller"}.AsSelector()
 	pod, err := getFirstRunningPod(client, namespace, selector)
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to get first running pod")
+		return "", errors.Wrap(err, "failed to get first running pod")
 	}
 	return pod.ObjectMeta.GetName(), nil
 }

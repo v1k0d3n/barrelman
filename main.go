@@ -6,6 +6,7 @@ import (
 	"runtime"
 
 	"github.com/charter-se/barrelman/cluster"
+	"github.com/charter-se/barrelman/errors"
 	"github.com/charter-se/barrelman/log"
 	"github.com/charter-se/barrelman/manifest"
 	"k8s.io/client-go/rest"
@@ -18,58 +19,49 @@ func main() {
 	configFile := fmt.Sprintf("%v/.barrelman/config", userHomeDir())
 	config, err := GetConfig(configFile)
 	if err != nil {
-		fmt.Printf("Got error while loading config: %v\n", err)
+		log.Error(errors.Wrap(err, "got error while loading config")
 		os.Exit(1)
 	}
 
 	if err := ensureWorkDir(datadir); err != nil {
-		fmt.Printf("Failed to create working directory: %v", err)
+		log.Error(errors.Wrap(err, "failed to create working directory"))
+		os.Exit(1)
 	}
 
 	// Open connections to the k8s APIs
 	c, err := cluster.NewSession(fmt.Sprintf("%v/.kube/config", userHomeDir()))
 	if err != nil {
-		log.WithFields(log.Fields{"error": err}).Error("Failed to create new cluster session")
-		return
+		log.Error(errors.Wrap(err, "failed to create new cluster session"))
+		os.Exit(1)
 	}
 
 	// Open and initialize the manifest
 	mfest, err := manifest.New(&manifest.Config{DataDir: datadir})
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Error("Error while initializing manifest")
-		return
+		log.Error(errors.Wrap(err, "error while initializing manifest"))
+		os.Exit(1)
 	}
 
-	log.Info("Syncronizing with remote chart repositories")
+	log.Info("syncronizing with remote chart repositories")
 	if err := mfest.Sync(config.Account); err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Error("Error while downloading charts")
-		return
+		log.Error(errors.Wrap(err, "error while downloading charts"))
+		os.Exit(1)
 	}
 
 	if err := DeleteByManifest(mfest, c); err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Error("Failed to delete by manifest")
-		return
+		log.Error(errors.Wrap(err, "failed to delete by manifest"))
+		os.Exit(1)
 	}
 
 	archives, err := mfest.CreateArchives()
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Error("Failed to create archives")
-		return
+		log.Error(errors.Wrap(err, "failed to create archives"))
+		os.Exit(1)
 	}
 	//Remove archive files after we are done with them
 	defer func() {
 		if err := archives.Purge(); err != nil {
-			log.WithFields(log.Fields{
-				"error": err,
-			}).Error("Failed to purge local archives")
+			log.Error(errors.Wrap(err, "failed to purge local archives"))
 		}
 	}()
 
@@ -80,14 +72,14 @@ func main() {
 			Namespace: v.Namespace,
 		}, []byte{})
 		if err != nil {
-			fmt.Printf("Got ERROR: %v\n", err)
+			log.Error(errors.Wrap(err, "error while installing release"))
 			return
 		}
 		log.WithFields(log.Fields{
 			"Name":      v.Name,
 			"Namespace": v.Namespace,
 			"Release":   relName,
-		}).Info("Installed release")
+		}).Info("installed release")
 	}
 }
 
@@ -95,12 +87,12 @@ func DeleteByManifest(bm *manifest.Manifest, c *cluster.Session) error {
 	deleteList := make(map[string]*cluster.DeleteMeta)
 	groups, err := bm.GetChartGroups()
 	if err != nil {
-		return fmt.Errorf("Error resolving chart groups: %v\n", err)
+		return errors.Wrap(err, "error resolving chart groups")
 	}
 
 	releases, err := c.ListReleases()
 	if err != nil {
-		return fmt.Errorf("Failed to list releases %v", err)
+		return errors.Wrap(err, "failed to list releases")
 	}
 
 	for _, v := range releases {
@@ -113,17 +105,16 @@ func DeleteByManifest(bm *manifest.Manifest, c *cluster.Session) error {
 	for _, cg := range groups {
 		charts, err := bm.GetChartsByName(cg.Data.ChartGroup)
 		if err != nil {
-			return fmt.Errorf("Error resolving charts: %v\n", err)
+			return errors.Wrap(err, "error resolving charts")
 		}
 		for _, v := range charts {
 			if dm, exists := deleteList[v.Name]; exists {
-
 				log.WithFields(log.Fields{
 					"Name":    v.Name,
 					"Release": dm.Name,
-				}).Info("Deleting release")
+				}).Info("deleting release")
 				if err := c.DeleteRelease(dm); err != nil {
-					return fmt.Errorf("error deleting list: %v\n", err)
+					return errors.Wrap(err, "error deleting list")
 				}
 			}
 		}
