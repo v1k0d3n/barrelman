@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/charter-se/barrelman/errors"
 	"github.com/charter-se/barrelman/manifest/chartsync"
 	"github.com/spf13/viper"
 )
@@ -55,18 +56,21 @@ func GetConfig(s string) (*Config, error) {
 							case "type":
 								acc.Typ = iv.(string)
 							default:
-								return nil, fmt.Errorf("Unknown field in account: %v", ik.(string))
+								return nil, errors.WithFields(errors.Fields{"Field": ik.(string)}).New("unknown field in account")
 							}
 						}
 					}
 				default:
-					return nil, fmt.Errorf("Failed to parse accounts in config file: %v, got type %T", b.FilePath, vv)
+					return nil, errors.WithFields(errors.Fields{
+						"File":      b.FilePath,
+						"ValueType": fmt.Sprintf("%T", vv),
+					}).New("Failed to parse accounts in config file")
 				}
 				config.Account[kk.(string)] = acc
 			}
 		}
 	default:
-		return nil, fmt.Errorf("Failed to parse accounts in config file: %v", b.FilePath)
+		return nil, errors.WithFields(errors.Fields{"File": b.FilePath}).New("failed to parse accounts in config file")
 	}
 	return config, nil
 }
@@ -75,13 +79,13 @@ func loadConfig(s string) (*BarrelmanConfig, error) {
 	barrelConfig := &BarrelmanConfig{FilePath: s}
 	data, err := ioutil.ReadFile(s)
 	if err != nil {
-		return nil, fmt.Errorf(fmt.Sprintf("could not read config file '%v': %v", s, err))
+		return nil, errors.WithFields(errors.Fields{"File": s}).Wrap(err, "could not read config file")
 	}
 
 	barrelConfig.Viper = viper.New()
 	barrelConfig.Viper.SetConfigType("yaml")
 	if err := barrelConfig.Viper.ReadConfig(bytes.NewBuffer(data)); err != nil {
-		return nil, fmt.Errorf("Failed to read barrelman config file [%v]: %v", barrelConfig.FilePath, err)
+		return nil, errors.WithFields(errors.Fields{"File": barrelConfig.FilePath}).Wrap(err, "failed to read barrelman config file")
 	}
 
 	return barrelConfig, nil
