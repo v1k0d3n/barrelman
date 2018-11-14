@@ -19,7 +19,7 @@ func main() {
 	configFile := fmt.Sprintf("%v/.barrelman/config", userHomeDir())
 	config, err := GetConfig(configFile)
 	if err != nil {
-		log.Error(errors.Wrap(err, "got error while loading config")
+		log.Error(errors.Wrap(err, "got error while loading config"))
 		os.Exit(1)
 	}
 
