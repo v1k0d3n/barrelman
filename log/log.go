@@ -47,6 +47,10 @@ type keyvalser interface {
 	Keyvals() []interface{}
 }
 
+func Debug(args ...interface{}) {
+	logrus.Debug(args...)
+}
+
 func Info(args ...interface{}) {
 	logrus.Info(args...)
 }

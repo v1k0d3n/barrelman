@@ -1,6 +1,10 @@
 package sourcetype
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/charter-se/barrelman/errors"
+)
 
 const (
 	Unknown = iota
@@ -20,7 +24,7 @@ func Parse(s string) (SourceType, error) {
 	case "local":
 		return SourceType(Local), nil
 	}
-	return SourceType(Unknown), fmt.Errorf("Failed to parse sourcetype (%v)", s)
+	return SourceType(Unknown), errors.WithFields(errors.Fields{"Type": s}).New("Failed to parse sourcetype")
 }
 
 func Print(st SourceType) string {
