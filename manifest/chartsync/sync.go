@@ -49,9 +49,17 @@ func (cs *ChartSync) Sync(acc AccountTable) error {
 		case sourcetype.Local:
 			fmt.Printf("Got sourcetype.Local\n")
 		case sourcetype.Unknown:
-			return fmt.Errorf("sourceType: Unknown")
+			return errors.WithFields(errors.Fields{
+				"Location":   v.Location,
+				"Name":       v.Name,
+				"SourceType": v.SourceType,
+			}).New("error syncing chart")
 		default:
-			return fmt.Errorf("Unhandled sourceType: %v", v.SourceType)
+			return errors.WithFields(errors.Fields{
+				"Location":   v.Location,
+				"Name":       v.Name,
+				"SourceType": v.SourceType,
+			}).New("error syncing chart, Unhandled sourceType")
 		}
 	}
 	return nil
