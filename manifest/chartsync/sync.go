@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/charter-se/barrelman/errors"
 	"github.com/charter-se/barrelman/manifest/sourcetype"
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
@@ -43,7 +44,7 @@ func (cs *ChartSync) Sync(acc AccountTable) error {
 		case sourcetype.Missing:
 		case sourcetype.Git:
 			if err := cs.gitDownload(v, acc); err != nil {
-				return fmt.Errorf("[%v] %v", v.Location, err)
+				return errors.WithFields(errors.Fields{"Location": v.Location}).Wrap(err, "error doing git download")
 			}
 		case sourcetype.Local:
 			fmt.Printf("Got sourcetype.Local\n")
@@ -63,7 +64,7 @@ func (cs *ChartSync) GetPath(c *ChartMeta) (string, error) {
 	}
 	target := fmt.Sprintf("%v/%v%v/%v", cs.Library, u.Host, u.Path, c.SubPath)
 	if _, err := os.Stat(target); os.IsNotExist(err) {
-		return "", fmt.Errorf("%v does not exist: %v", target, err)
+		return "", errors.WithFields(errors.Fields{"Path": target}).Wrap(err, "target path missing")
 	}
 	return target, nil
 }
@@ -111,21 +112,29 @@ func (cs *ChartSync) gitDownload(c *ChartMeta, acc AccountTable) error {
 	if _, err := os.Stat(target); os.IsNotExist(err) {
 		_, err = git.PlainClone(target, false, cloneOptions)
 		if err != nil {
-			return fmt.Errorf("Could not clone: %v", err)
+			return errors.WithFields(errors.Fields{
+				"Repository": cloneOptions.URL,
+				"AuthName":   cloneOptions.Auth.Name,
+			}).Wrap(err, "could not clone via git")
 		}
 	} else {
 		d, err := git.PlainOpen(target)
 		if err != nil {
-			return fmt.Errorf("Could not open local repository: %v", err)
+			return errors.WithFields(errors.Fields{
+				"LocalRepository": target,
+			}).Wrap(err, "could not open local repository")
 		}
 		wt, err := d.Worktree()
 		if err != nil {
-			return fmt.Errorf("Could not create working tree: %v", err)
+			return errors.Wrap(err, "could not create working tree")
 		}
 		err = wt.Pull(pullOptions)
 		if err != nil {
 			if err != git.NoErrAlreadyUpToDate {
-				return fmt.Errorf("Could pull from repository: %v", err)
+				return errors.WithFields(errors.Fields{
+					"Repository": cloneOptions.URL,
+					"AuthName":   cloneOptions.Auth.Name,
+				}).Wrap(err, "could not pull from repository")
 			}
 		}
 	}
