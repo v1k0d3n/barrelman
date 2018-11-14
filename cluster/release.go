@@ -1,9 +1,9 @@
 package cluster
 
 import (
-	"errors"
 	"time"
 
+	"github.com/charter-se/barrelman/errors"
 	"google.golang.org/grpc"
 	"k8s.io/helm/pkg/helm"
 	"k8s.io/helm/pkg/proto/hapi/chart"

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/charter-se/barrelman/errors"
 	"github.com/charter-se/barrelman/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -32,17 +33,17 @@ func NewSession(kubeConfig string) (*Session, error) {
 	}
 	err := s.connect(kubeConfig, tillerNamespace)
 	if err != nil {
-		return &Session{}, fmt.Errorf("Could not set up connection to kubernetes: %v", err)
+		return &Session{}, errors.Wrap(err, "connection to kubernetes failed")
 	}
 
 	err = s.Helm.PingTiller()
 	if err != nil {
-		return &Session{}, fmt.Errorf("helm.PingTiller() failed: %v", err)
+		return &Session{}, errors.Wrap(err, "helm.PingTiller() failed")
 	}
 
 	tillerVersion, err := s.Helm.GetVersion()
 	if err != nil {
-		return &Session{}, fmt.Errorf("failed to get Tiller version, %v", err)
+		return &Session{}, errors.Wrap(err, "failed to get Tiller version")
 	}
 
 	compatible := version.IsCompatible(version.Version, tillerVersion.Version.SemVer)
@@ -52,11 +53,11 @@ func NewSession(kubeConfig string) (*Session, error) {
 		"Host":                   fmt.Sprintf(":%v", s.Tiller.Local),
 	}).Info("Connected to Tiller")
 	if !compatible {
-		log.WithFields(log.Fields{
-			"Helm Version":   version.Version,
-			"Tiller Version": tillerVersion.Version.SemVer,
-			"Host":           fmt.Sprintf(":%v", s.Tiller.Local),
-		}).Warnf("incompatible version numbers")
+		return &Session{}, errors.WithFields(errors.Fields{
+			"tillerVersion":          tillerVersion.Version.SemVer,
+			"clientServerCompatible": compatible,
+			"Host":                   fmt.Sprintf(":%v", s.Tiller.Local),
+		}).New("incompatible version numbers")
 	}
 	return s, nil
 }
