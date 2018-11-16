@@ -103,7 +103,6 @@ func loadEnv() map[string]string {
 	for _, v := range env {
 		if iv := envRx.FindStringSubmatch(v); iv != nil {
 			if len(iv) > 2 {
-				fmt.Printf("[%v] = (%v)\n", iv[1], iv[2])
 				ret[iv[1]] = iv[2]
 			}
 		}
