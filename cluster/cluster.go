@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/charter-se/barrelman/errors"
-	"github.com/charter-se/barrelman/log"
+	"github.com/charter-se/structured/errors"
+	"github.com/charter-se/structured/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/helm/pkg/helm"

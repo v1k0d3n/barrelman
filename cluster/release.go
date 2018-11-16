@@ -3,7 +3,7 @@ package cluster
 import (
 	"time"
 
-	"github.com/charter-se/barrelman/errors"
+	"github.com/charter-se/structured/errors"
 	"google.golang.org/grpc"
 	"k8s.io/helm/pkg/helm"
 	"k8s.io/helm/pkg/proto/hapi/chart"
@@ -35,6 +35,9 @@ type Release struct {
 func (s *Session) ListReleases() ([]*Release, error) {
 	var res []*Release
 	r, err := s.Helm.ListReleases()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to Helm.ListReleases()")
+	}
 	for _, v := range r.GetReleases() {
 		rel := &Release{
 			Chart:     v.GetChart(),

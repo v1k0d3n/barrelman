@@ -3,7 +3,7 @@ package sourcetype
 import (
 	"fmt"
 
-	"github.com/charter-se/barrelman/errors"
+	"github.com/charter-se/structured/errors"
 )
 
 const (

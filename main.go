@@ -6,9 +6,9 @@ import (
 	"runtime"
 
 	"github.com/charter-se/barrelman/cluster"
-	"github.com/charter-se/barrelman/errors"
-	"github.com/charter-se/barrelman/log"
 	"github.com/charter-se/barrelman/manifest"
+	"github.com/charter-se/structured/errors"
+	"github.com/charter-se/structured/log"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
