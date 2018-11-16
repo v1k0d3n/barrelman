@@ -35,7 +35,8 @@ type LookupTable struct {
 	ChartGroup map[string]*ChartGroup
 }
 type Config struct {
-	DataDir string
+	DataDir      string
+	ManifestFile string
 }
 type Manifest struct {
 	yp        *yamlpack.Yp
@@ -130,7 +131,7 @@ func New(c *Config) (*Manifest, error) {
 
 	m.Config = c
 	m.yp = yamlpack.New()
-	file := "testdata/flagship-manifest.yaml"
+	file := m.Config.ManifestFile
 	if err := m.yp.Import(file); err != nil {
 		return &Manifest{}, errors.WithFields(errors.Fields{"file": file}).Wrap(err, "error importing manifest")
 	}
@@ -345,7 +346,7 @@ func (m *Manifest) CreateArchives() (*ArchiveFiles, error) {
 	//Chart groups as defined by Armada YAML spec
 	groups, err := m.GetChartGroups()
 	if err != nil {
-		return nil, fmt.Errorf("error resolving chart groups: %v", err)
+		return nil, errors.Wrap(err, "error resolving chart groups")
 	}
 
 	for _, cg := range groups {

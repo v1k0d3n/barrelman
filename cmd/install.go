@@ -1,27 +1,56 @@
-package main
+package cmd
 
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"runtime"
 
 	"github.com/charter-se/barrelman/cluster"
 	"github.com/charter-se/barrelman/manifest"
 	"github.com/charter-se/structured/errors"
 	"github.com/charter-se/structured/log"
+	"github.com/spf13/cobra"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-func main() {
+func init() {
+	rootCmd.AddCommand(installCmd)
+}
+
+var installCmd = &cobra.Command{
+	Use:   "install [manifest.yaml]",
+	Short: "install something",
+	Long:  `Something something else...`,
+	Args: func(cmd *cobra.Command, args []string) error {
+		flagrx := regexp.MustCompile("^--")
+		manifestFile = fmt.Sprintf("%v/.barrelman/manifest.yaml", userHomeDir())
+		if len(args) > 0 {
+			if args[0] != "" {
+				if flagrx.FindAllStringSubmatchIndex(args[0], -1) == nil {
+					manifestFile = args[0]
+				}
+			}
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		install(manifestFile)
+	},
+}
+
+func install(configFile string) {
 	log.Warn("Barrelman Engage!")
+	configFile = fmt.Sprintf("%v/.barrelman/config", userHomeDir())
 	datadir := fmt.Sprintf("%v/.barrelman/data", userHomeDir())
-	configFile := fmt.Sprintf("%v/.barrelman/config", userHomeDir())
+	//configFile := fmt.Sprintf("%v/.barrelman/config", userHomeDir())
 	config, err := GetConfig(configFile)
 	if err != nil {
 		log.Error(errors.Wrap(err, "got error while loading config"))
 		os.Exit(1)
 	}
+	log.WithFields(log.Fields{"file": configFile}).Info("Using config")
 
 	if err := ensureWorkDir(datadir); err != nil {
 		log.Error(errors.Wrap(err, "failed to create working directory"))
@@ -36,7 +65,7 @@ func main() {
 	}
 
 	// Open and initialize the manifest
-	mfest, err := manifest.New(&manifest.Config{DataDir: datadir})
+	mfest, err := manifest.New(&manifest.Config{DataDir: datadir, ManifestFile: manifestFile})
 	if err != nil {
 		log.Error(errors.Wrap(err, "error while initializing manifest"))
 		os.Exit(1)

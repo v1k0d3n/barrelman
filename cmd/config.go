@@ -1,9 +1,11 @@
-package main
+package cmd
 
 import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"regexp"
 
 	"github.com/charter-se/barrelman/manifest/chartsync"
 	"github.com/charter-se/structured/errors"
@@ -21,6 +23,7 @@ type Config struct {
 type BarrelmanConfig struct {
 	FilePath string
 	Viper    *viper.Viper
+	Env      map[string]string
 }
 
 func GetConfig(s string) (*Config, error) {
@@ -88,5 +91,22 @@ func loadConfig(s string) (*BarrelmanConfig, error) {
 		return nil, errors.WithFields(errors.Fields{"File": barrelConfig.FilePath}).Wrap(err, "failed to read barrelman config file")
 	}
 
+	barrelConfig.Env = loadEnv()
+
 	return barrelConfig, nil
+}
+
+func loadEnv() map[string]string {
+	ret := make(map[string]string)
+	env := os.Environ()
+	envRx := regexp.MustCompile("^(.+)=(.+)")
+	for _, v := range env {
+		if iv := envRx.FindStringSubmatch(v); iv != nil {
+			if len(iv) > 2 {
+				fmt.Printf("[%v] = (%v)\n", iv[1], iv[2])
+				ret[iv[1]] = iv[2]
+			}
+		}
+	}
+	return ret
 }

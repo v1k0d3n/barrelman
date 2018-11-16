@@ -1,0 +1,9 @@
+name: "barrelman"
+version: "0.0.1"
+usage: "Armada compatible deployment tool"
+description: |-
+  This plugin deploys Armada format manifests
+ignoreFlags: false
+useTunnel: false
+flags: "install deploy Armada manifest"
+command: "$HELM_PLUGIN_DIR/barrelman"
