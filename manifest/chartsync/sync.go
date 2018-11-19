@@ -95,6 +95,7 @@ func (cs *ChartSync) gitDownload(c *ChartMeta, acc AccountTable) error {
 	pullOptions := &git.PullOptions{
 		RemoteName:   "origin",
 		SingleBranch: true,
+		Force:        true,
 		Progress:     os.Stdout,
 	}
 

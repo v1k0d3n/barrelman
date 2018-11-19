@@ -4,24 +4,21 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"runtime"
 
 	"github.com/charter-se/barrelman/cluster"
 	"github.com/charter-se/barrelman/manifest"
 	"github.com/charter-se/structured/errors"
 	"github.com/charter-se/structured/log"
 	"github.com/spf13/cobra"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 func init() {
-	rootCmd.AddCommand(installCmd)
+	rootCmd.AddCommand(deleteCmd)
 }
 
-var installCmd = &cobra.Command{
-	Use:   "install [manifest.yaml]",
-	Short: "install something",
+var deleteCmd = &cobra.Command{
+	Use:   "delete [manifest.yaml]",
+	Short: "delete something",
 	Long:  `Something something else...`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		flagrx := regexp.MustCompile("^--")
@@ -36,12 +33,12 @@ var installCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		runInstall(manifestFile)
+		runDelete(manifestFile)
 	},
 }
 
-func runInstall(configFile string) {
-	log.Warn("Barrelman Install Engage!")
+func runDelete(configFile string) {
+	log.Warn("Barrelman Delete Engage!")
 	configFile = fmt.Sprintf("%v/.barrelman/config", userHomeDir())
 	datadir := fmt.Sprintf("%v/.barrelman/data", userHomeDir())
 	config, err := GetConfig(configFile)
@@ -76,62 +73,47 @@ func runInstall(configFile string) {
 		os.Exit(1)
 	}
 
-	// if err := DeleteByManifest(mfest, c); err != nil {
-	// 	log.Error(errors.Wrap(err, "failed to delete by manifest"))
-	// 	os.Exit(1)
-	// }
-
-	archives, err := mfest.CreateArchives()
-	if err != nil {
-		log.Error(errors.Wrap(err, "failed to create archives"))
+	if err := DeleteByManifest(mfest, c); err != nil {
+		log.Error(errors.Wrap(err, "failed to delete by manifest"))
 		os.Exit(1)
 	}
-	//Remove archive files after we are done with them
-	defer func() {
-		if err := archives.Purge(); err != nil {
-			log.Error(errors.Wrap(err, "failed to purge local archives"))
-		}
-	}()
+}
 
-	for _, v := range archives.List {
-		//Install the release from the tgz above
-		relName, err := c.InstallRelease(&cluster.ReleaseMeta{
-			Path:      v.Path,
-			Namespace: v.Namespace,
-		}, []byte{})
+func DeleteByManifest(bm *manifest.Manifest, c *cluster.Session) error {
+	deleteList := make(map[string]*cluster.DeleteMeta)
+	groups, err := bm.GetChartGroups()
+	if err != nil {
+		return errors.Wrap(err, "error resolving chart groups")
+	}
+
+	releases, err := c.ListReleases()
+	if err != nil {
+		return errors.Wrap(err, "failed to list releases")
+	}
+
+	for _, v := range releases {
+		deleteList[v.Chart.Metadata.Name] = &cluster.DeleteMeta{
+			Name:      v.Name,
+			Namespace: "",
+		}
+	}
+
+	for _, cg := range groups {
+		charts, err := bm.GetChartsByName(cg.Data.ChartGroup)
 		if err != nil {
-			log.Error(errors.WithFields(errors.Fields{
-				"Name":      v.Name,
-				"Namespace": v.Namespace,
-			}).Wrap(err, "error while installing release"))
-			return
+			return errors.Wrap(err, "error resolving charts")
 		}
-		log.WithFields(log.Fields{
-			"Name":      v.Name,
-			"Namespace": v.Namespace,
-			"Release":   relName,
-		}).Info("installed release")
-	}
-}
-
-func ensureWorkDir(datadir string) error {
-	return os.MkdirAll(datadir, os.ModePerm)
-}
-
-func userHomeDir() string {
-	if runtime.GOOS == "windows" {
-		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
-		if home == "" {
-			home = os.Getenv("USERPROFILE")
+		for _, v := range charts {
+			if dm, exists := deleteList[v.Name]; exists {
+				log.WithFields(log.Fields{
+					"Name":    v.Name,
+					"Release": dm.Name,
+				}).Info("deleting release")
+				if err := c.DeleteRelease(dm); err != nil {
+					return errors.Wrap(err, "error deleting list")
+				}
+			}
 		}
-		return home
 	}
-	return os.Getenv("HOME")
-}
-
-func getConfig(kubeconfig string) (*rest.Config, error) {
-	if kubeconfig != "" {
-		return clientcmd.BuildConfigFromFlags("", kubeconfig)
-	}
-	return rest.InClusterConfig()
+	return nil
 }
