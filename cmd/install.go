@@ -81,9 +81,10 @@ func runInstallCmd(cmd *installCmd) error {
 	for _, v := range archives.List {
 		//Install the release from the tgz above
 		relName, err := c.InstallRelease(&cluster.ReleaseMeta{
-			Path:      v.Path,
-			Namespace: v.Namespace,
-			Name:      v.Name,
+			Path:           v.Path,
+			Namespace:      v.Namespace,
+			Name:           v.Name,
+			ValueOverrides: v.Overrides,
 		}, []byte{})
 		if err != nil {
 			return errors.WithFields(errors.Fields{

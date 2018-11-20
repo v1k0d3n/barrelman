@@ -15,6 +15,7 @@ import (
 	"github.com/charter-se/barrelman/manifest/sourcetype"
 	"github.com/charter-se/barrelman/manifest/yamlpack"
 	"github.com/charter-se/structured/errors"
+	yaml "gopkg.in/yaml.v2"
 )
 
 const (
@@ -83,6 +84,7 @@ type ChartData struct {
 	SubPath      string
 	Location     string
 	Values       map[string]string
+	Overrides    []byte
 	Dependencies []string
 }
 
@@ -109,6 +111,7 @@ type ArchiveSpec struct {
 	Name      string
 	Path      string
 	Namespace string
+	Overrides []byte
 }
 
 type ArchiveFiles struct {
@@ -269,6 +272,10 @@ func (m *Manifest) load() error {
 			chart.Data.Namespace = k.GetString("data.namespace")
 			chart.Data.SubPath = k.GetString("data.source.subpath")
 			chart.Data.Location = k.GetString("data.source.location")
+			chart.Data.Overrides, err = yaml.Marshal(k.Viper.Sub("data.values").AllSettings())
+			if err != nil {
+				return errors.Wrap(err, "Error reading value overides in chart")
+			}
 			if err := m.AddChart(chart); err != nil {
 				return errors.Wrap(err, "Error loading chart")
 			}
@@ -371,6 +378,7 @@ func (m *Manifest) CreateArchives() (*ArchiveFiles, error) {
 				Name:      chart.Name,
 				Path:      tgz,
 				Namespace: chart.Data.Namespace,
+				Overrides: chart.Data.Overrides,
 			})
 		}
 	}

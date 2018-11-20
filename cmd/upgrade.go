@@ -117,9 +117,10 @@ func UpgradeByManifest(bm *manifest.Manifest, c *cluster.Session) error {
 		if rel, exists := upgradeList[v.Name]; exists {
 			upgradeList[v.Name].Path = v.Path
 			err := c.UpgradeRelease(&cluster.ReleaseMeta{
-				Path:      v.Path,
-				Name:      rel.Name,
-				Namespace: v.Namespace,
+				Path:           v.Path,
+				Name:           rel.Name,
+				Namespace:      v.Namespace,
+				ValueOverrides: v.Overrides,
 			})
 			if err != nil {
 				return errors.WithFields(errors.Fields{
@@ -135,9 +136,10 @@ func UpgradeByManifest(bm *manifest.Manifest, c *cluster.Session) error {
 			}).Info("upgraded release")
 		} else {
 			relName, err := c.InstallRelease(&cluster.ReleaseMeta{
-				Path:      v.Path,
-				Namespace: v.Namespace,
-				Name:      v.Name,
+				Path:           v.Path,
+				Namespace:      v.Namespace,
+				Name:           v.Name,
+				ValueOverrides: v.Overrides,
 			}, []byte{})
 			if err != nil {
 				return errors.WithFields(errors.Fields{
