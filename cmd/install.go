@@ -1,9 +1,7 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
-	"regexp"
 	"runtime"
 
 	"github.com/charter-se/barrelman/cluster"
@@ -15,77 +13,64 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-func init() {
-	rootCmd.AddCommand(installCmd)
+type installCmd struct {
+	Options *cmdOptions
+	Config  *Config
 }
 
-var installCmd = &cobra.Command{
-	Use:   "install [manifest.yaml]",
-	Short: "install something",
-	Long:  `Something something else...`,
-	Args: func(cmd *cobra.Command, args []string) error {
-		flagrx := regexp.MustCompile("^--")
-		manifestFile = fmt.Sprintf("%v/.barrelman/manifest.yaml", userHomeDir())
-		if len(args) > 0 {
-			if args[0] != "" {
-				if flagrx.FindAllStringSubmatchIndex(args[0], -1) == nil {
-					manifestFile = args[0]
-				}
+func newInstallCmd(cmd *installCmd) *cobra.Command {
+	cobraCmd := &cobra.Command{
+		Use:   "install [manifest.yaml]",
+		Short: "install something",
+		Long:  `Something something else...`,
+		Run: func(cobraCmd *cobra.Command, args []string) {
+			if len(args) > 0 {
+				cmd.Options.ManifestFile = args[0]
 			}
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		runInstall(manifestFile)
-	},
+			if err := runInstallCmd(cmd); err != nil {
+				log.Error(err)
+				os.Exit(1)
+			}
+		},
+	}
+	return cobraCmd
 }
 
-func runInstall(configFile string) {
+func runInstallCmd(cmd *installCmd) error {
 	log.Warn("Barrelman Install Engage!")
-	configFile = fmt.Sprintf("%v/.barrelman/config", userHomeDir())
-	datadir := fmt.Sprintf("%v/.barrelman/data", userHomeDir())
-	config, err := GetConfig(configFile)
-	if err != nil {
-		log.Error(errors.Wrap(err, "got error while loading config"))
-		os.Exit(1)
-	}
-	log.WithFields(log.Fields{"file": configFile}).Info("Using config")
 
-	if err := ensureWorkDir(datadir); err != nil {
-		log.Error(errors.Wrap(err, "failed to create working directory"))
-		os.Exit(1)
+	var err error
+	cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
+	if err != nil {
+		return errors.Wrap(err, "got error while loading config")
 	}
+	log.WithFields(log.Fields{"file": cmd.Options.ConfigFile}).Info("Using config")
 
 	// Open connections to the k8s APIs
-	c, err := cluster.NewSession(fmt.Sprintf("%v/.kube/config", userHomeDir()))
+	c, err := cluster.NewSession(Default().KubeConfigFile)
 	if err != nil {
-		log.Error(errors.Wrap(err, "failed to create new cluster session"))
-		os.Exit(1)
+		return errors.Wrap(err, "failed to create new cluster session")
 	}
 
 	// Open and initialize the manifest
-	mfest, err := manifest.New(&manifest.Config{DataDir: datadir, ManifestFile: manifestFile})
+	mfest, err := manifest.New(&manifest.Config{
+		DataDir:      cmd.Options.DataDir,
+		ManifestFile: cmd.Options.ManifestFile,
+	})
 	if err != nil {
-		log.Error(errors.Wrap(err, "error while initializing manifest"))
-		os.Exit(1)
+		return errors.Wrap(err, "error while initializing manifest")
 	}
 
 	log.Info("syncronizing with remote chart repositories")
-	if err := mfest.Sync(config.Account); err != nil {
-		log.Error(errors.Wrap(err, "error while downloading charts"))
-		os.Exit(1)
+	if err := mfest.Sync(cmd.Config.Account); err != nil {
+		errors.Wrap(err, "error while downloading charts")
 	}
-
-	// if err := DeleteByManifest(mfest, c); err != nil {
-	// 	log.Error(errors.Wrap(err, "failed to delete by manifest"))
-	// 	os.Exit(1)
-	// }
 
 	archives, err := mfest.CreateArchives()
 	if err != nil {
-		log.Error(errors.Wrap(err, "failed to create archives"))
-		os.Exit(1)
+		return errors.Wrap(err, "failed to create archives")
 	}
+
 	//Remove archive files after we are done with them
 	defer func() {
 		if err := archives.Purge(); err != nil {
@@ -100,11 +85,10 @@ func runInstall(configFile string) {
 			Namespace: v.Namespace,
 		}, []byte{})
 		if err != nil {
-			log.Error(errors.WithFields(errors.Fields{
+			return errors.WithFields(errors.Fields{
 				"Name":      v.Name,
 				"Namespace": v.Namespace,
-			}).Wrap(err, "error while installing release"))
-			return
+			}).Wrap(err, "error while installing release")
 		}
 		log.WithFields(log.Fields{
 			"Name":      v.Name,
@@ -112,6 +96,7 @@ func runInstall(configFile string) {
 			"Release":   relName,
 		}).Info("installed release")
 	}
+	return nil
 }
 
 func ensureWorkDir(datadir string) error {

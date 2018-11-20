@@ -1,9 +1,7 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
-	"regexp"
 
 	"github.com/charter-se/barrelman/cluster"
 	"github.com/charter-se/barrelman/manifest"
@@ -12,71 +10,68 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	rootCmd.AddCommand(deleteCmd)
+type deleteCmd struct {
+	Options *cmdOptions
+	Config  *Config
 }
 
-var deleteCmd = &cobra.Command{
-	Use:   "delete [manifest.yaml]",
-	Short: "delete something",
-	Long:  `Something something else...`,
-	Args: func(cmd *cobra.Command, args []string) error {
-		flagrx := regexp.MustCompile("^--")
-		manifestFile = fmt.Sprintf("%v/.barrelman/manifest.yaml", userHomeDir())
-		if len(args) > 0 {
-			if args[0] != "" {
-				if flagrx.FindAllStringSubmatchIndex(args[0], -1) == nil {
-					manifestFile = args[0]
-				}
+func newDeleteCmd(cmd *deleteCmd) *cobra.Command {
+
+	cobraCmd := &cobra.Command{
+		Use:   "delete [manifest.yaml]",
+		Short: "delete something",
+		Long:  `Something something else...`,
+		Run: func(cobraCmd *cobra.Command, args []string) {
+			if len(args) > 0 {
+				cmd.Options.ManifestFile = args[0]
 			}
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		runDelete(manifestFile)
-	},
+			if err := runDeleteCmd(cmd); err != nil {
+				log.Error(err)
+				os.Exit(1)
+			}
+		},
+	}
+	return cobraCmd
 }
 
-func runDelete(configFile string) {
+func runDeleteCmd(cmd *deleteCmd) error {
 	log.Warn("Barrelman Delete Engage!")
-	configFile = fmt.Sprintf("%v/.barrelman/config", userHomeDir())
-	datadir := fmt.Sprintf("%v/.barrelman/data", userHomeDir())
-	config, err := GetConfig(configFile)
-	if err != nil {
-		log.Error(errors.Wrap(err, "got error while loading config"))
-		os.Exit(1)
-	}
-	log.WithFields(log.Fields{"file": configFile}).Info("Using config")
 
-	if err := ensureWorkDir(datadir); err != nil {
-		log.Error(errors.Wrap(err, "failed to create working directory"))
-		os.Exit(1)
+	var err error
+	cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
+	if err != nil {
+		return errors.Wrap(err, "got error while loading config")
+	}
+	log.WithFields(log.Fields{"file": cmd.Options.ConfigFile}).Info("Using config")
+
+	if err := ensureWorkDir(cmd.Options.DataDir); err != nil {
+		return errors.Wrap(err, "failed to create working directory")
 	}
 
 	// Open connections to the k8s APIs
-	c, err := cluster.NewSession(fmt.Sprintf("%v/.kube/config", userHomeDir()))
+	c, err := cluster.NewSession(Default().KubeConfigFile)
 	if err != nil {
-		log.Error(errors.Wrap(err, "failed to create new cluster session"))
-		os.Exit(1)
+		return errors.Wrap(err, "failed to create new cluster session")
 	}
 
 	// Open and initialize the manifest
-	mfest, err := manifest.New(&manifest.Config{DataDir: datadir, ManifestFile: manifestFile})
+	mfest, err := manifest.New(&manifest.Config{
+		DataDir:      cmd.Options.DataDir,
+		ManifestFile: cmd.Options.ManifestFile,
+	})
 	if err != nil {
-		log.Error(errors.Wrap(err, "error while initializing manifest"))
-		os.Exit(1)
+		return errors.Wrap(err, "error while initializing manifest")
 	}
 
 	log.Info("syncronizing with remote chart repositories")
-	if err := mfest.Sync(config.Account); err != nil {
-		log.Error(errors.Wrap(err, "error while downloading charts"))
-		os.Exit(1)
+	if err := mfest.Sync(cmd.Config.Account); err != nil {
+		return errors.Wrap(err, "error while downloading charts")
 	}
 
 	if err := DeleteByManifest(mfest, c); err != nil {
-		log.Error(errors.Wrap(err, "failed to delete by manifest"))
-		os.Exit(1)
+		return errors.Wrap(err, "failed to delete by manifest")
 	}
+	return nil
 }
 
 func DeleteByManifest(bm *manifest.Manifest, c *cluster.Session) error {

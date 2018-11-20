@@ -26,7 +26,7 @@ type BarrelmanConfig struct {
 	Env      map[string]string
 }
 
-func GetConfig(s string) (*Config, error) {
+func GetConfigFromFile(s string) (*Config, error) {
 	config := &Config{}
 	config.Account = make(map[string]*chartsync.Account)
 	b, err := loadConfig(s)

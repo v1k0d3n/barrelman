@@ -95,7 +95,6 @@ func (cs *ChartSync) gitDownload(c *ChartMeta, acc AccountTable) error {
 	pullOptions := &git.PullOptions{
 		RemoteName:   "origin",
 		SingleBranch: true,
-		Force:        true,
 		Progress:     os.Stdout,
 	}
 
@@ -121,9 +120,14 @@ func (cs *ChartSync) gitDownload(c *ChartMeta, acc AccountTable) error {
 	if _, err := os.Stat(target); os.IsNotExist(err) {
 		_, err = git.PlainClone(target, false, cloneOptions)
 		if err != nil {
+			if cloneOptions.Auth != nil {
+				return errors.WithFields(errors.Fields{
+					"Repository": cloneOptions.URL,
+					"AuthName":   cloneOptions.Auth.Name(),
+				}).Wrap(err, "could not clone via git")
+			}
 			return errors.WithFields(errors.Fields{
 				"Repository": cloneOptions.URL,
-				"AuthName":   cloneOptions.Auth.Name,
 			}).Wrap(err, "could not clone via git")
 		}
 	} else {
@@ -140,9 +144,14 @@ func (cs *ChartSync) gitDownload(c *ChartMeta, acc AccountTable) error {
 		err = wt.Pull(pullOptions)
 		if err != nil {
 			if err != git.NoErrAlreadyUpToDate {
+				if cloneOptions.Auth != nil {
+					return errors.WithFields(errors.Fields{
+						"Repository": cloneOptions.URL,
+						"AuthName":   cloneOptions.Auth.Name(),
+					}).Wrap(err, "could not pull from repository")
+				}
 				return errors.WithFields(errors.Fields{
 					"Repository": cloneOptions.URL,
-					"AuthName":   cloneOptions.Auth.Name,
 				}).Wrap(err, "could not pull from repository")
 			}
 		}

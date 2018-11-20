@@ -1,37 +1,59 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
+
+	"github.com/charter-se/structured/log"
 
 	"github.com/spf13/cobra"
 )
 
-var manifestFile string
-var debug bool
-
-func init() {
-	cobra.OnInitialize(initConfig)
+type cmdOptions struct {
+	ManifestFile string
+	ConfigFile   string
+	DataDir      string
+	Debug        bool
 }
 
-func initConfig() {
-	var rootCmd = &cobra.Command{Use: "app"}
-	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Debug mode enables verbose and stack trace on error")
+func newRootCmd(args []string) *cobra.Command {
+	cobraCmd := &cobra.Command{}
+	options := &cmdOptions{
+		DataDir:      Default().DataDir,
+		ManifestFile: Default().ManifestFile,
+	}
+	config := &Config{}
+
+	flags := cobraCmd.PersistentFlags()
+	flags.StringVarP(
+		&options.ConfigFile,
+		"config",
+		"c",
+		Default().ConfigFile,
+		"specify manifest (YAML) file or a URL")
+
+	cobraCmd.AddCommand(newDeleteCmd(&deleteCmd{
+		Options: options,
+		Config:  config,
+	}))
+
+	cobraCmd.AddCommand(newInstallCmd(&installCmd{
+		Options: options,
+		Config:  config,
+	}))
+
+	cobraCmd.AddCommand(newUpgradeCmd(&upgradeCmd{
+		Options: options,
+		Config:  config,
+	}))
+
+	flags.Parse(args)
+	return cobraCmd
 }
 
-var rootCmd = &cobra.Command{
-	Use:   "barrelman",
-	Short: "barrelman is an Armada compatible Helm plugin",
-	Long:  `Something something else...`,
-	Run: func(cmd *cobra.Command, args []string) {
-		// Do Stuff Here
-	},
-}
-
-//Execute as per https://github.com/spf13/cobra
 func Execute() {
+	rootCmd := newRootCmd(os.Args[1:])
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		log.Error(err)
 		os.Exit(1)
 	}
 }
