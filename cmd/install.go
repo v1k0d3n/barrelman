@@ -83,6 +83,7 @@ func runInstallCmd(cmd *installCmd) error {
 		relName, err := c.InstallRelease(&cluster.ReleaseMeta{
 			Path:      v.Path,
 			Namespace: v.Namespace,
+			Name:      v.Name,
 		}, []byte{})
 		if err != nil {
 			return errors.WithFields(errors.Fields{

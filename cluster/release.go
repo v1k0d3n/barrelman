@@ -54,6 +54,7 @@ func (s *Session) InstallRelease(m *ReleaseMeta, chart []byte) (string, error) {
 	res, err := s.Helm.InstallRelease(
 		m.Path,
 		m.Namespace,
+		helm.ReleaseName(m.Name),
 		helm.ValueOverrides(m.ValueOverrides),
 		helm.InstallDryRun(m.InstallDryRun),
 		helm.InstallReuseName(m.InstallReuseName),
@@ -74,7 +75,6 @@ func (s *Session) UpgradeRelease(m *ReleaseMeta) error {
 		//	helm.UpgradeForce(true),
 		helm.UpdateValueOverrides(m.ValueOverrides),
 	)
-	// fmt.Printf("\t[RESPONSE: %v]\n", res)
 	return err
 }
 
