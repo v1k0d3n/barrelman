@@ -80,7 +80,7 @@ func runInstallCmd(cmd *installCmd) error {
 
 	for _, v := range archives.List {
 		//Install the release from the tgz above
-		relName, err := c.InstallRelease(&cluster.ReleaseMeta{
+		relName, _, err := c.InstallRelease(&cluster.ReleaseMeta{
 			Path:           v.Path,
 			Namespace:      v.Namespace,
 			Name:           v.Name,

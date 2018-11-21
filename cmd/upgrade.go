@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/charter-se/barrelman/cluster"
@@ -30,6 +31,17 @@ func newUpgradeCmd(cmd *upgradeCmd) *cobra.Command {
 			}
 		},
 	}
+	cobraCmd.Flags().BoolVar(
+		&cmd.Options.DryRun,
+		"dry-run",
+		false,
+		"test all charts with server")
+	cobraCmd.Flags().BoolVar(
+		&cmd.Options.Diff,
+		"diff",
+		false,
+		"Display differences")
+
 	return cobraCmd
 }
 
@@ -37,6 +49,7 @@ func runUpgradeCmd(cmd *upgradeCmd) error {
 	log.Warn("Barrelman Upgrade Engage!")
 
 	var err error
+
 	cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
 	if err != nil {
 		return errors.Wrap(err, "got error while loading config")
@@ -78,14 +91,14 @@ func runUpgradeCmd(cmd *upgradeCmd) error {
 		}
 	}()
 
-	err = UpgradeByManifest(mfest, c)
+	err = UpgradeByManifest(cmd, mfest, c)
 	if err != nil {
 		return errors.Wrap(err, "error while upgrading release")
 	}
 	return nil
 }
 
-func UpgradeByManifest(bm *manifest.Manifest, c *cluster.Session) error {
+func UpgradeByManifest(cmd *upgradeCmd, bm *manifest.Manifest, c *cluster.Session) error {
 	upgradeList := make(map[string]*cluster.ReleaseMeta)
 
 	releases, err := c.ListReleases()
@@ -112,15 +125,33 @@ func UpgradeByManifest(bm *manifest.Manifest, c *cluster.Session) error {
 		}
 	}()
 
+	err = doUpgrade(cmd, c, archives, upgradeList)
+	if err != nil {
+		return errors.Wrap(err, "Manifest upgrade failed")
+	}
+
+	return nil
+}
+
+func doUpgrade(cmd *upgradeCmd,
+	c *cluster.Session,
+	archives *manifest.ArchiveFiles,
+	upgradeList map[string]*cluster.ReleaseMeta) error {
+
+	var dryRun bool
+	if cmd.Options.DryRun || cmd.Options.Diff {
+		dryRun = true
+	}
+
 	for _, v := range archives.List {
-		//Install the release from the tgz above
 		if rel, exists := upgradeList[v.Name]; exists {
 			upgradeList[v.Name].Path = v.Path
-			err := c.UpgradeRelease(&cluster.ReleaseMeta{
+			msg, res, err := c.UpgradeRelease(&cluster.ReleaseMeta{
 				Path:           v.Path,
 				Name:           rel.Name,
 				Namespace:      v.Namespace,
 				ValueOverrides: v.Overrides,
+				DryRun:         dryRun,
 			})
 			if err != nil {
 				return errors.WithFields(errors.Fields{
@@ -133,13 +164,18 @@ func UpgradeByManifest(bm *manifest.Manifest, c *cluster.Session) error {
 				"Name":      v.Name,
 				"Namespace": v.Namespace,
 				"Release":   rel.Name,
+				"Results":   msg,
 			}).Info("upgraded release")
+			if cmd.Options.Diff {
+				fmt.Printf("Diff: %v<<*******\n", res)
+			}
 		} else {
-			relName, err := c.InstallRelease(&cluster.ReleaseMeta{
+			relName, res, err := c.InstallRelease(&cluster.ReleaseMeta{
 				Path:           v.Path,
 				Namespace:      v.Namespace,
 				Name:           v.Name,
 				ValueOverrides: v.Overrides,
+				DryRun:         dryRun,
 			}, []byte{})
 			if err != nil {
 				return errors.WithFields(errors.Fields{
@@ -151,7 +187,11 @@ func UpgradeByManifest(bm *manifest.Manifest, c *cluster.Session) error {
 				"Name":      v.Name,
 				"Namespace": v.Namespace,
 				"Release":   relName,
+				"Overrides": string(v.Overrides),
 			}).Info("installed release")
+			if cmd.Options.Diff {
+				fmt.Printf("Diff: %v<<*******\n", res)
+			}
 		}
 	}
 	return nil

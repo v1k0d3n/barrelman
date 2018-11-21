@@ -12,6 +12,8 @@ type cmdOptions struct {
 	ManifestFile string
 	ConfigFile   string
 	DataDir      string
+	DryRun       bool
+	Diff         bool
 	Debug        bool
 }
 

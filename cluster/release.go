@@ -5,6 +5,7 @@ import (
 
 	"github.com/charter-se/structured/errors"
 	"google.golang.org/grpc"
+	yaml "gopkg.in/yaml.v2"
 	"k8s.io/helm/pkg/helm"
 	"k8s.io/helm/pkg/proto/hapi/chart"
 )
@@ -18,6 +19,7 @@ type ReleaseMeta struct {
 	InstallReuseName bool
 	InstallWait      bool
 	InstallTimeout   time.Duration
+	DryRun           bool
 }
 
 type DeleteMeta struct {
@@ -50,32 +52,40 @@ func (s *Session) ListReleases() ([]*Release, error) {
 	return res, err
 }
 
-func (s *Session) InstallRelease(m *ReleaseMeta, chart []byte) (string, error) {
+func (s *Session) InstallRelease(m *ReleaseMeta, chart []byte) (string, string, error) {
 	res, err := s.Helm.InstallRelease(
 		m.Path,
 		m.Namespace,
 		helm.ReleaseName(m.Name),
 		helm.ValueOverrides(m.ValueOverrides),
-		helm.InstallDryRun(m.InstallDryRun),
+		helm.InstallDryRun(m.DryRun),
 		helm.InstallReuseName(m.InstallReuseName),
 		helm.InstallWait(m.InstallWait),
 		helm.InstallTimeout(int64(m.InstallTimeout.Seconds())),
 	)
 	if err != nil {
-		return "", errors.Wrap(err, "failed install")
+		return "", "", errors.Wrap(err, "failed install")
 	}
-	return res.Release.Name, err
+	y, err := yaml.Marshal(res.Release.Manifest)
+	if err != nil {
+		return res.Release.Name, "", err
+	}
+	return res.Release.Name, string(y), err
 }
 
-func (s *Session) UpgradeRelease(m *ReleaseMeta) error {
-	_, err := s.Helm.UpdateRelease(
+func (s *Session) UpgradeRelease(m *ReleaseMeta) (string, string, error) {
+	res, err := s.Helm.UpdateRelease(
 		m.Name,
 		m.Path,
 		//	helm.UpgradeRecreate(true),
 		//	helm.UpgradeForce(true),
 		helm.UpdateValueOverrides(m.ValueOverrides),
 	)
-	return err
+	y, err := yaml.Marshal(res.Release.Config)
+	if err != nil {
+		return res.Release.Name, "", err
+	}
+	return res.Release.Info.Description, string(y), err
 }
 
 func (s *Session) DeleteReleases(dm []*DeleteMeta) error {
