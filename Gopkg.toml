@@ -1,0 +1,97 @@
+
+# Gopkg.toml example
+#
+# Refer to https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
+# for detailed Gopkg.toml documentation.
+#
+# required = ["github.com/user/thing/cmd/thing"]
+# ignored = ["github.com/user/project/pkgX", "bitbucket.org/user/project/pkgA/pkgY"]
+#
+# [[constraint]]
+#   name = "github.com/user/project"
+#   version = "1.0.0"
+#
+# [[constraint]]
+#   name = "github.com/user/project2"
+#   branch = "dev"
+#   source = "github.com/myfork/project2"
+#
+# [[override]]
+#  name = "github.com/x/y"
+#  version = "2.4.0"
+
+[[constraint]]
+  name = "k8s.io/helm"
+  version = "2.11.0"
+
+# Fix google.org/protobuf
+# https://github.com/google/protobuf/issues/4582
+# Override Helm version with the closest release version
+[[override]]
+  name = "github.com/golang/protobuf"
+  version = "=1.1.0"
+
+[[constraint]]
+  name = "github.com/Azure/azure-sdk-for-go"
+  version = "11.3.0-beta"
+
+[[constraint]]
+  name = "github.com/Azure/go-autorest"
+  version = "9.5.2"
+
+[[constraint]]
+  name = "github.com/ghodss/yaml"
+  version = "1.0.0"
+
+[[constraint]]
+  name = "github.com/pmezard/go-difflib"
+  version = "1.0.0"
+
+[[constraint]]
+  name = "github.com/sirupsen/logrus"
+  version = "~1.0.3"
+
+[[constraint]]
+  name = "github.com/spf13/cobra"
+  version = "0.0.3"
+
+[[override]]
+  name = "github.com/spf13/pflag"
+  version = "1.0.2"
+
+[[constraint]]
+  name = "github.com/stretchr/testify"
+  version = "1.1.4"
+
+[[constraint]]
+  name = "github.com/x-cray/logrus-prefixed-formatter"
+  version = "=0.5.2"
+
+[[override]]
+  name = "k8s.io/client-go"
+  version = "kubernetes-1.11.1"
+[[override]]
+  name = "k8s.io/kubernetes"
+  version = "v1.11.1"
+[[override]]
+  name = "k8s.io/api"
+  version = "kubernetes-1.11.1"
+[[override]]
+  name = "k8s.io/apiextensions-apiserver"
+  version = "kubernetes-1.11.1"
+[[override]]
+  name = "k8s.io/apiserver"
+  version = "kubernetes-1.11.1"
+[[override]]
+  name = "k8s.io/apimachinery"
+  version = "kubernetes-1.11.1"
+[[override]]
+  name = "k8s.io/kube-openapi"
+  revision = "9be88ef10da45f8260fac1eafa747a2898949f51"
+[[override]]
+  name = "k8s.io/utils"
+  revision = "011bbbe3b2878d9b1d484312f186826acd7e78cc"
+# unknown field 'CaseSensitive' in struct literal of type jsoniter.Config
+[[override]]
+  name = "github.com/json-iterator/go"
+  version = "1.1.5"
