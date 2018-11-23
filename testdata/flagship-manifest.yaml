@@ -36,7 +36,10 @@ data:
     no_hooks: false
   upgrade:
     no_hooks: false
-  values: {}
+  values: 
+    labels:
+        elasticsearch:
+          node_selector_key: openstack-plus-minus
   source:
     type: git
     location: https://github.com/v1k0d3n/flagship
