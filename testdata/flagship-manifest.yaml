@@ -39,7 +39,7 @@ data:
   values: 
     labels:
         elasticsearch:
-          node_selector_key: openstack-plus-minus
+          node_selector_key: openstack-plus-plus
   source:
     type: git
     location: https://github.com/v1k0d3n/flagship

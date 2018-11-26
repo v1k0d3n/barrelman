@@ -1,12 +1,24 @@
 package cluster
 
 import (
+	"bufio"
+	"bytes"
+	"fmt"
+	"io"
+	"log"
+	"math"
+	"strings"
 	"time"
 
 	"github.com/charter-se/structured/errors"
+
+	"github.com/aryann/difflib"
+	"github.com/mgutz/ansi"
 	"google.golang.org/grpc"
+	yaml "gopkg.in/yaml.v2"
 	"k8s.io/helm/pkg/helm"
 	"k8s.io/helm/pkg/proto/hapi/chart"
+	"k8s.io/helm/pkg/proto/hapi/release"
 )
 
 type ReleaseMeta struct {
@@ -18,6 +30,7 @@ type ReleaseMeta struct {
 	InstallReuseName bool
 	InstallWait      bool
 	InstallTimeout   time.Duration
+	DryRun           bool
 }
 
 type DeleteMeta struct {
@@ -31,6 +44,9 @@ type Release struct {
 	Chart     *Chart
 	Name      string
 	Namespace string
+}
+
+type ReleaseDiff struct {
 }
 
 func (s *Session) ListReleases() ([]*Release, error) {
@@ -50,32 +66,56 @@ func (s *Session) ListReleases() ([]*Release, error) {
 	return res, err
 }
 
-func (s *Session) InstallRelease(m *ReleaseMeta, chart []byte) (string, error) {
+func (s *Session) InstallRelease(m *ReleaseMeta, chart []byte) (string, string, error) {
 	res, err := s.Helm.InstallRelease(
 		m.Path,
 		m.Namespace,
 		helm.ReleaseName(m.Name),
 		helm.ValueOverrides(m.ValueOverrides),
-		helm.InstallDryRun(m.InstallDryRun),
+		helm.InstallDryRun(m.DryRun),
 		helm.InstallReuseName(m.InstallReuseName),
 		helm.InstallWait(m.InstallWait),
 		helm.InstallTimeout(int64(m.InstallTimeout.Seconds())),
 	)
 	if err != nil {
-		return "", errors.Wrap(err, "failed install")
+		return "", "", errors.Wrap(err, "failed install")
 	}
-	return res.Release.Name, err
+	return res.Release.Info.Description, res.Release.Name, err
 }
 
-func (s *Session) UpgradeRelease(m *ReleaseMeta) error {
-	_, err := s.Helm.UpdateRelease(
+func (s *Session) DiffRelease(m *ReleaseMeta) (bool, []byte, error) {
+	var changed bool
+	buf := bytes.NewBufferString("")
+	currentR, err := s.Helm.ReleaseContent(m.Name)
+	if err != nil {
+		return false, nil, errors.Wrap(err, "Upgrade failed to get current release")
+	}
+	currentParsed := ParseRelease(currentR.Release)
+
+	res, err := s.Helm.UpdateRelease(
 		m.Name,
 		m.Path,
-		//	helm.UpgradeRecreate(true),
-		//	helm.UpgradeForce(true),
+		helm.UpgradeDryRun(true),
 		helm.UpdateValueOverrides(m.ValueOverrides),
 	)
-	return err
+	newParsed := ParseRelease(res.Release)
+
+	changed = DiffManifests(currentParsed, newParsed, []string{}, int(10), buf)
+	return changed, buf.Bytes(), err
+}
+
+func (s *Session) UpgradeRelease(m *ReleaseMeta) (string, error) {
+	res, err := s.Helm.UpdateRelease(
+		m.Name,
+		m.Path,
+		helm.UpgradeForce(true),
+		helm.UpgradeDryRun(m.DryRun),
+		helm.UpdateValueOverrides(m.ValueOverrides),
+	)
+	if err != nil {
+		return "", errors.Wrap(err, "Error during UpgradeRelease")
+	}
+	return res.Release.Info.Description, err
 }
 
 func (s *Session) DeleteReleases(dm []*DeleteMeta) error {
@@ -94,3 +134,248 @@ func (s *Session) DeleteRelease(m *DeleteMeta) error {
 	}
 	return nil
 }
+
+//Releases queries a k8s cluster and returns a map of currently deployed releases
+func (s *Session) Releases() (map[string]*ReleaseMeta, error) {
+	ret := make(map[string]*ReleaseMeta)
+
+	releaseList, err := s.ListReleases()
+	if err != nil {
+		return ret, errors.Wrap(err, "failed to list releases")
+	}
+
+	for _, v := range releaseList {
+		ret[v.Chart.Metadata.Name] = &ReleaseMeta{
+			Name:      v.Name,
+			Namespace: v.Namespace,
+		}
+	}
+	return ret, nil
+}
+
+// The following was taken from https://github.com/databus23/helm-diff
+// ********************************************************************
+var yamlSeperator = []byte("\n---\n")
+
+type MappingResult struct {
+	Name    string
+	Kind    string
+	Content string
+}
+
+type metadata struct {
+	ApiVersion string `yaml:"apiVersion"`
+	Kind       string
+	Metadata   struct {
+		Namespace string
+		Name      string
+	}
+}
+
+func (m metadata) String() string {
+	apiBase := m.ApiVersion
+	sp := strings.Split(apiBase, "/")
+	if len(sp) > 1 {
+		apiBase = strings.Join(sp[:len(sp)-1], "/")
+	}
+
+	return fmt.Sprintf("%s, %s, %s (%s)", m.Metadata.Namespace, m.Metadata.Name, m.Kind, apiBase)
+}
+
+func scanYamlSpecs(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+	if i := bytes.Index(data, yamlSeperator); i >= 0 {
+		// We have a full newline-terminated line.
+		return i + len(yamlSeperator), data[0:i], nil
+	}
+	// If we're at EOF, we have a final, non-terminated line. Return it.
+	if atEOF {
+		return len(data), data, nil
+	}
+	// Request more data.
+	return 0, nil, nil
+}
+
+func splitSpec(token string) (string, string) {
+	if i := strings.Index(token, "\n"); i >= 0 {
+		return token[0:i], token[i+1:]
+	}
+	return "", ""
+}
+
+func ParseRelease(release *release.Release) map[string]*MappingResult {
+	manifest := release.Manifest
+	for _, hook := range release.Hooks {
+		manifest += "\n---\n"
+		manifest += fmt.Sprintf("# Source: %s\n", hook.Path)
+		manifest += hook.Manifest
+	}
+	return Parse(manifest, release.Namespace)
+}
+
+func Parse(manifest string, defaultNamespace string) map[string]*MappingResult {
+	scanner := bufio.NewScanner(strings.NewReader(manifest))
+	scanner.Split(scanYamlSpecs)
+	//Allow for tokens (specs) up to 1M in size
+	scanner.Buffer(make([]byte, bufio.MaxScanTokenSize), 1048576)
+	//Discard the first result, we only care about everything after the first seperator
+	scanner.Scan()
+
+	result := make(map[string]*MappingResult)
+
+	for scanner.Scan() {
+		content := scanner.Text()
+		if strings.TrimSpace(content) == "" {
+			continue
+		}
+		var metadata metadata
+		if err := yaml.Unmarshal([]byte(content), &metadata); err != nil {
+			log.Fatalf("YAML unmarshal error: %s\nCan't unmarshal %s", err, content)
+		}
+		if metadata.Metadata.Namespace == "" {
+			metadata.Metadata.Namespace = defaultNamespace
+		}
+		name := metadata.String()
+		if _, ok := result[name]; ok {
+			//log.Printf("Error: Found duplicate key %#v in manifest", name)
+		} else {
+			result[name] = &MappingResult{
+				Name:    name,
+				Kind:    metadata.Kind,
+				Content: content,
+			}
+		}
+	}
+	return result
+
+}
+
+func DiffManifests(oldIndex, newIndex map[string]*MappingResult, suppressedKinds []string, context int, to io.Writer) bool {
+	seenAnyChanges := false
+	emptyMapping := &MappingResult{}
+	for key, oldContent := range oldIndex {
+		if newContent, ok := newIndex[key]; ok {
+			if oldContent.Content != newContent.Content {
+				// modified
+				fmt.Fprintf(to, ansi.Color("%s has changed:", "yellow")+"\n", key)
+				diffs := diffMappingResults(oldContent, newContent)
+				if len(diffs) > 0 {
+					seenAnyChanges = true
+				}
+				printDiffRecords(suppressedKinds, oldContent.Kind, context, diffs, to)
+			}
+		} else {
+			// removed
+			fmt.Fprintf(to, ansi.Color("%s has been removed:", "yellow")+"\n", key)
+			diffs := diffMappingResults(oldContent, emptyMapping)
+			if len(diffs) > 0 {
+				seenAnyChanges = true
+			}
+			printDiffRecords(suppressedKinds, oldContent.Kind, context, diffs, to)
+		}
+	}
+
+	for key, newContent := range newIndex {
+		if _, ok := oldIndex[key]; !ok {
+			// added
+			fmt.Fprintf(to, ansi.Color("%s has been added:", "yellow")+"\n", key)
+			diffs := diffMappingResults(emptyMapping, newContent)
+			if len(diffs) > 0 {
+				seenAnyChanges = true
+			}
+			printDiffRecords(suppressedKinds, newContent.Kind, context, diffs, to)
+		}
+	}
+	return seenAnyChanges
+}
+
+func diffMappingResults(oldContent *MappingResult, newContent *MappingResult) []difflib.DiffRecord {
+	return diffStrings(oldContent.Content, newContent.Content)
+}
+
+func diffStrings(before, after string) []difflib.DiffRecord {
+	const sep = "\n"
+	return difflib.Diff(strings.Split(before, sep), strings.Split(after, sep))
+}
+
+func printDiffRecords(suppressedKinds []string, kind string, context int, diffs []difflib.DiffRecord, to io.Writer) {
+	for _, ckind := range suppressedKinds {
+		if ckind == kind {
+			str := fmt.Sprintf("+ Changes suppressed on sensitive content of type %s\n", kind)
+			fmt.Fprintf(to, ansi.Color(str, "yellow"))
+			return
+		}
+	}
+
+	if context >= 0 {
+		distances := calculateDistances(diffs)
+		omitting := false
+		for i, diff := range diffs {
+			if distances[i] > context {
+				if !omitting {
+					fmt.Fprintln(to, "...")
+					omitting = true
+				}
+			} else {
+				omitting = false
+				printDiffRecord(diff, to)
+			}
+		}
+	} else {
+		for _, diff := range diffs {
+			printDiffRecord(diff, to)
+		}
+	}
+}
+
+func printDiffRecord(diff difflib.DiffRecord, to io.Writer) {
+	text := diff.Payload
+
+	switch diff.Delta {
+	case difflib.RightOnly:
+		fmt.Fprintf(to, "%s\n", ansi.Color("+ "+text, "green"))
+	case difflib.LeftOnly:
+		fmt.Fprintf(to, "%s\n", ansi.Color("- "+text, "red"))
+	case difflib.Common:
+		fmt.Fprintf(to, "%s\n", "  "+text)
+	}
+}
+
+// Calculate distance of every diff-line to the closest change
+func calculateDistances(diffs []difflib.DiffRecord) map[int]int {
+	distances := map[int]int{}
+
+	// Iterate forwards through diffs, set 'distance' based on closest 'change' before this line
+	change := -1
+	for i, diff := range diffs {
+		if diff.Delta != difflib.Common {
+			change = i
+		}
+		distance := math.MaxInt32
+		if change != -1 {
+			distance = i - change
+		}
+		distances[i] = distance
+	}
+
+	// Iterate backwards through diffs, reduce 'distance' based on closest 'change' after this line
+	change = -1
+	for i := len(diffs) - 1; i >= 0; i-- {
+		diff := diffs[i]
+		if diff.Delta != difflib.Common {
+			change = i
+		}
+		if change != -1 {
+			distance := change - i
+			if distance < distances[i] {
+				distances[i] = distance
+			}
+		}
+	}
+
+	return distances
+}
+
+// ********************************************************************
