@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/charter-se/barrelman/cluster"
@@ -146,7 +145,7 @@ func doUpgrade(cmd *upgradeCmd,
 	for _, v := range archives.List {
 		if rel, exists := upgradeList[v.Name]; exists {
 			upgradeList[v.Name].Path = v.Path
-			msg, res, err := c.UpgradeRelease(&cluster.ReleaseMeta{
+			msg, err := c.UpgradeRelease(&cluster.ReleaseMeta{
 				Path:           v.Path,
 				Name:           rel.Name,
 				Namespace:      v.Namespace,
@@ -164,13 +163,12 @@ func doUpgrade(cmd *upgradeCmd,
 				"Name":      v.Name,
 				"Namespace": v.Namespace,
 				"Release":   rel.Name,
-				"Results":   msg,
-			}).Info("upgraded release")
-			if cmd.Options.Diff {
-				fmt.Printf("Diff: %v<<*******\n", res)
-			}
+			}).Info(msg)
+			// if cmd.Options.Diff {
+			// 	//fmt.Printf("Diff: %v<<*******\n", res)
+			// }
 		} else {
-			relName, res, err := c.InstallRelease(&cluster.ReleaseMeta{
+			msg, relName, err := c.InstallRelease(&cluster.ReleaseMeta{
 				Path:           v.Path,
 				Namespace:      v.Namespace,
 				Name:           v.Name,
@@ -187,11 +185,10 @@ func doUpgrade(cmd *upgradeCmd,
 				"Name":      v.Name,
 				"Namespace": v.Namespace,
 				"Release":   relName,
-				"Overrides": string(v.Overrides),
-			}).Info("installed release")
-			if cmd.Options.Diff {
-				fmt.Printf("Diff: %v<<*******\n", res)
-			}
+			}).Info(msg)
+			// if cmd.Options.Diff {
+			// 	fmt.Printf("Diff: %v<<*******\n", res)
+			// }
 		}
 	}
 	return nil

@@ -14,6 +14,7 @@ type cmdOptions struct {
 	DataDir      string
 	DryRun       bool
 	Diff         bool
+	NoSync       bool
 	Debug        bool
 }
 
@@ -44,6 +45,11 @@ func newRootCmd(args []string) *cobra.Command {
 	}))
 
 	cobraCmd.AddCommand(newUpgradeCmd(&upgradeCmd{
+		Options: options,
+		Config:  config,
+	}))
+
+	cobraCmd.AddCommand(newApplyCmd(&applyCmd{
 		Options: options,
 		Config:  config,
 	}))
