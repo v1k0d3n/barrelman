@@ -2,8 +2,11 @@ package cmd
 
 import (
 	"os"
+	"runtime"
 
 	"github.com/charter-se/structured/log"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/spf13/cobra"
 )
@@ -39,16 +42,6 @@ func newRootCmd(args []string) *cobra.Command {
 		Config:  config,
 	}))
 
-	cobraCmd.AddCommand(newInstallCmd(&installCmd{
-		Options: options,
-		Config:  config,
-	}))
-
-	cobraCmd.AddCommand(newUpgradeCmd(&upgradeCmd{
-		Options: options,
-		Config:  config,
-	}))
-
 	cobraCmd.AddCommand(newApplyCmd(&applyCmd{
 		Options: options,
 		Config:  config,
@@ -64,4 +57,26 @@ func Execute() {
 		log.Error(err)
 		os.Exit(1)
 	}
+}
+
+func ensureWorkDir(datadir string) error {
+	return os.MkdirAll(datadir, os.ModePerm)
+}
+
+func userHomeDir() string {
+	if runtime.GOOS == "windows" {
+		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
+		if home == "" {
+			home = os.Getenv("USERPROFILE")
+		}
+		return home
+	}
+	return os.Getenv("HOME")
+}
+
+func getConfig(kubeconfig string) (*rest.Config, error) {
+	if kubeconfig != "" {
+		return clientcmd.BuildConfigFromFlags("", kubeconfig)
+	}
+	return rest.InClusterConfig()
 }
