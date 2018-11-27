@@ -217,6 +217,11 @@ func (rt releaseTargets) Diff(session *cluster.Session) (releaseTargets, error) 
 func (rt releaseTargets) LogDiff(session *cluster.Session) {
 	for _, v := range rt {
 		switch v.State {
+		case Installable:
+			log.WithFields(log.Fields{
+				"Name":      v.ReleaseMeta.Name,
+				"Namespace": v.ReleaseMeta.Namespace,
+			}).Info("Would install")
 		case Upgradable:
 			if v.Changed {
 				log.WithFields(log.Fields{
