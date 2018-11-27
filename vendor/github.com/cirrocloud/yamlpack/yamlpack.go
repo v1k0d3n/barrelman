@@ -12,7 +12,7 @@ type Yp struct {
 	Handlers map[string]func(string) error
 }
 
-//New returns a newly created *Yp
+//New returns a newly created and initialized *Yp
 func New() *Yp {
 	yp := &Yp{}
 	yp.Handlers = make(map[string]func(string) error)

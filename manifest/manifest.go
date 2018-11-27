@@ -13,8 +13,8 @@ import (
 
 	"github.com/charter-se/barrelman/manifest/chartsync"
 	"github.com/charter-se/barrelman/manifest/sourcetype"
-	"github.com/charter-se/barrelman/manifest/yamlpack"
 	"github.com/charter-se/structured/errors"
+	"github.com/cirrocloud/yamlpack"
 	yaml "gopkg.in/yaml.v2"
 )
 
