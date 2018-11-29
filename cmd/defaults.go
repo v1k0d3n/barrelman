@@ -7,6 +7,7 @@ type Defaults struct {
 	KubeConfigFile string
 	DataDir        string
 	ConfigFile     string
+	InstallRetry   int
 }
 
 func Default() *Defaults {
@@ -15,5 +16,6 @@ func Default() *Defaults {
 	d.ManifestFile = fmt.Sprintf("%v/.barrelman/manifest.yaml", userHomeDir())
 	d.KubeConfigFile = fmt.Sprintf("%v/.kube/config", userHomeDir())
 	d.DataDir = fmt.Sprintf("%v/.barrelman/data", userHomeDir())
+	d.InstallRetry = int(1)
 	return d
 }
