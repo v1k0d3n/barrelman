@@ -19,6 +19,7 @@ type cmdOptions struct {
 	Diff         bool
 	NoSync       bool
 	Debug        bool
+	InstallRetry int
 }
 
 func newRootCmd(args []string) *cobra.Command {

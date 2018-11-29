@@ -62,6 +62,11 @@ func newApplyCmd(cmd *applyCmd) *cobra.Command {
 		"nosync",
 		false,
 		"disable remote sync")
+	cobraCmd.Flags().IntVar(
+		&cmd.Options.InstallRetry,
+		"install-retry",
+		Default().InstallRetry,
+		"retry install (n) times (Kubernetes bug workaround)")
 
 	return cobraCmd
 }
@@ -137,7 +142,7 @@ func (cmd *applyCmd) Run() error {
 		return nil
 	}
 	log.Info("Doing apply")
-	err = rt.Apply(session)
+	err = rt.Apply(session, cmd.Options)
 	if err != nil {
 		return errors.Wrap(err, "Manifest upgrade failed")
 	}
@@ -238,23 +243,33 @@ func (rt releaseTargets) LogDiff(session *cluster.Session) {
 	}
 }
 
-func (rt releaseTargets) Apply(session *cluster.Session) error {
+func (rt releaseTargets) Apply(session *cluster.Session, opt *cmdOptions) error {
 	for _, v := range rt {
 		v.ReleaseMeta.DryRun = false
 		switch v.State {
 		case Installable:
-			msg, relName, err := session.InstallRelease(v.ReleaseMeta, []byte{})
-			if err != nil {
+			if err := func() error {
+				//This closure removes a "break OUT"
+				var err error
+				for i := 0; i < opt.InstallRetry; i++ {
+					msg, relName, err := session.InstallRelease(v.ReleaseMeta, []byte{})
+					if err != nil {
+						continue
+					}
+					log.WithFields(log.Fields{
+						"Name":      v.ReleaseMeta.Name,
+						"Namespace": v.ReleaseMeta.Namespace,
+						"Release":   relName,
+					}).Info(msg)
+					return nil
+				}
 				return errors.WithFields(errors.Fields{
 					"Name":      v.ReleaseMeta.Name,
 					"Namespace": v.ReleaseMeta.Namespace,
-				}).Wrap(err, "error while installing release")
+				}).Wrap(err, "Error while installing release")
+			}(); err != nil {
+				return err
 			}
-			log.WithFields(log.Fields{
-				"Name":      v.ReleaseMeta.Name,
-				"Namespace": v.ReleaseMeta.Namespace,
-				"Release":   relName,
-			}).Info(msg)
 
 		case Upgradable:
 			if !v.Changed {
