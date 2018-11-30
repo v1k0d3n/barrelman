@@ -48,6 +48,16 @@ func newApplyCmd(cmd *applyCmd) *cobra.Command {
 			}
 		},
 	}
+	cobraCmd.Flags().StringVar(
+		&cmd.Options.KubeConfigFile,
+		"kubeconfig",
+		Default().KubeConfigFile,
+		"use alternate kube config file")
+	cobraCmd.Flags().StringVar(
+		&cmd.Options.KubeContext,
+		"kubecontext",
+		Default().KubeContext,
+		"use alternate kube context")
 	cobraCmd.Flags().BoolVar(
 		&cmd.Options.DryRun,
 		"dry-run",
@@ -78,6 +88,7 @@ func newApplyCmd(cmd *applyCmd) *cobra.Command {
 
 func (cmd *applyCmd) Run() error {
 	var err error
+	fmt.Printf(">>%V<<\n", cmd.Options.KubeContext)
 
 	cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
 	if err != nil {
@@ -90,9 +101,17 @@ func (cmd *applyCmd) Run() error {
 	}
 
 	// Open connections to the k8s APIs
-	session, err := cluster.NewSession(Default().KubeConfigFile)
+	session, err := cluster.NewSession(cmd.Options.KubeContext, cmd.Options.KubeConfigFile)
 	if err != nil {
 		return errors.Wrap(err, "failed to create new cluster session")
+	}
+	log.WithFields(log.Fields{
+		"file": session.KubeConfig,
+	}).Info("Using kube config")
+	if session.KubeContext != "" {
+		log.WithFields(log.Fields{
+			"file": session.KubeContext,
+		}).Info("Using kube context")
 	}
 
 	// Open and initialize the manifest

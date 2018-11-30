@@ -14,7 +14,9 @@ import (
 type cmdOptions struct {
 	ManifestFile string
 	ConfigFile   string
-	DataDir      string
+	KubeConfigFile string
+	KubeContext    string
+  DataDir      string
 	DryRun       bool
 	Diff         bool
 	NoSync       bool

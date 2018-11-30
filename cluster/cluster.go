@@ -18,20 +18,25 @@ import (
 )
 
 type Session struct {
-	Helm      helm.Interface
-	Tiller    *kube.Tunnel
-	Clientset *internalclientset.Clientset
+	Helm        helm.Interface
+	Tiller      *kube.Tunnel
+	Clientset   *internalclientset.Clientset
+	KubeConfig  string
+	KubeContext string
 }
 
-func NewSession(kubeConfig string) (*Session, error) {
+func NewSession(kubeContext string, kubeConfig string) (*Session, error) {
 
 	s := &Session{}
+	s.KubeConfig = kubeConfig
+	s.KubeContext = kubeContext
+	fmt.Printf("NewSession Context: %v\n", kubeContext)
 
 	tillerNamespace := os.Getenv("TILLER_NAMESPACE")
 	if tillerNamespace == "" {
 		tillerNamespace = "kube-system"
 	}
-	err := s.connect(kubeConfig, tillerNamespace)
+	err := s.connect(tillerNamespace)
 	if err != nil {
 		return &Session{}, errors.Wrap(err, "connection to kubernetes failed")
 	}
@@ -63,10 +68,13 @@ func NewSession(kubeConfig string) (*Session, error) {
 }
 
 //connect builds connections for all supported APIs
-func (s *Session) connect(kubeConfig string, namespace string) error {
-	config, err := kube.GetConfig("", kubeConfig).ClientConfig()
+func (s *Session) connect(namespace string) error {
+	config, err := kube.GetConfig(s.KubeContext, s.KubeConfig).ClientConfig()
 	if err != nil {
-		return errors.WithFields(errors.Fields{"KubeConfig": kubeConfig}).Wrap(err, "could not get kubernetes config for context")
+		return errors.WithFields(errors.Fields{
+			"KubeConfig":  s.KubeConfig,
+			"kubeContext": s.KubeContext,
+		}).Wrap(err, "could not get kubernetes config for context")
 	}
 	s.Clientset, err = internalclientset.NewForConfig(config)
 	if err != nil {

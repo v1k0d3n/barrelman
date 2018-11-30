@@ -31,6 +31,16 @@ func newDeleteCmd(cmd *deleteCmd) *cobra.Command {
 			}
 		},
 	}
+	cobraCmd.Flags().StringVar(
+		&cmd.Options.KubeConfigFile,
+		"kube-config",
+		Default().KubeConfigFile,
+		"use alternate kube config file")
+	cobraCmd.Flags().StringVar(
+		&cmd.Options.KubeContext,
+		"kube-context",
+		Default().KubeContext,
+		"use alternate kube context")
 	return cobraCmd
 }
 
@@ -49,9 +59,17 @@ func runDeleteCmd(cmd *deleteCmd) error {
 	}
 
 	// Open connections to the k8s APIs
-	c, err := cluster.NewSession(Default().KubeConfigFile)
+	session, err := cluster.NewSession(cmd.Options.KubeContext, cmd.Options.KubeConfigFile)
 	if err != nil {
 		return errors.Wrap(err, "failed to create new cluster session")
+	}
+	log.WithFields(log.Fields{
+		"file": session.KubeConfig,
+	}).Info("Using kube config")
+	if session.KubeContext != "" {
+		log.WithFields(log.Fields{
+			"file": session.KubeContext,
+		}).Info("Using kube context")
 	}
 
 	// Open and initialize the manifest
@@ -68,7 +86,7 @@ func runDeleteCmd(cmd *deleteCmd) error {
 		return errors.Wrap(err, "error while downloading charts")
 	}
 
-	if err := DeleteByManifest(mfest, c); err != nil {
+	if err := DeleteByManifest(mfest, session); err != nil {
 		return errors.Wrap(err, "failed to delete by manifest")
 	}
 	return nil
