@@ -15,6 +15,7 @@ type cmdOptions struct {
 	ManifestFile   string
 	ConfigFile     string
 	KubeConfigFile string
+	KubeContext    string
 	DataDir        string
 	DryRun         bool
 	Diff           bool
