@@ -233,7 +233,7 @@ func (rt releaseTargets) dryRun(session *cluster.Session) error {
 		v.ReleaseMeta.DryRun = true
 		switch v.State {
 		case Installable:
-			_, _, err := session.InstallRelease(v.ReleaseMeta, []byte{})
+			_, _, err := session.InstallRelease(v.ReleaseMeta, []byte{}, false)
 			if err != nil {
 				return err
 			}
@@ -310,7 +310,7 @@ func (rt releaseTargets) Apply(session *cluster.Session, opt *cmdOptions) error 
 					}
 				}
 				for i := 0; i < opt.InstallRetry; i++ {
-					msg, relName, err := session.InstallRelease(v.ReleaseMeta, []byte{})
+					msg, relName, err := session.InstallRelease(v.ReleaseMeta, []byte{}, false)
 					if err != nil {
 						continue
 					}

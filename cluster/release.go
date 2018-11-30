@@ -51,7 +51,16 @@ type ReleaseDiff struct {
 
 func (s *Session) ListReleases() ([]*Release, error) {
 	var res []*Release
-	r, err := s.Helm.ListReleases()
+	r, err := s.Helm.ListReleases(
+		helm.ReleaseListStatuses([]release.Status_Code{
+			release.Status_DEPLOYED,
+			release.Status_FAILED,
+			release.Status_PENDING_INSTALL,
+			release.Status_PENDING_ROLLBACK,
+			release.Status_PENDING_UPGRADE,
+			release.Status_UNKNOWN,
+		}),
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to Helm.ListReleases()")
 	}
@@ -66,7 +75,7 @@ func (s *Session) ListReleases() ([]*Release, error) {
 	return res, err
 }
 
-func (s *Session) InstallRelease(m *ReleaseMeta, chart []byte) (string, string, error) {
+func (s *Session) InstallRelease(m *ReleaseMeta, chart []byte, force bool) (string, string, error) {
 	res, err := s.Helm.InstallRelease(
 		m.Path,
 		m.Namespace,
@@ -98,6 +107,9 @@ func (s *Session) DiffRelease(m *ReleaseMeta) (bool, []byte, error) {
 		helm.UpgradeDryRun(true),
 		helm.UpdateValueOverrides(m.ValueOverrides),
 	)
+	if err != nil {
+		return false, []byte{}, errors.Wrap(err, "Failed to get results from Tiller")
+	}
 	newParsed := ParseRelease(res.Release)
 
 	changed = DiffManifests(currentParsed, newParsed, []string{}, int(10), buf)

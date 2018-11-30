@@ -1,0 +1,359 @@
+---
+schema: armada/ChartGroup/v1
+metadata:
+  schema: metadata/Document/v1
+  name: flagship-kubernetes
+data:
+  description: "Flagship Core Kubernetes Deployment"
+  sequenced: True
+  chart_group:
+    - utils-kube-pod-checkpointer
+    - kube-proxy
+    - kube-controller
+    - kube-scheduler
+    - utils-coredns
+    - utils-ingress-controller
+    - utils-weave-scope
+    - utils-kubernetes-dashboard
+---
+schema: armada/Manifest/v1
+metadata:
+  schema: metadata/Document/v1
+  name: flagship-kubernetes
+data:
+  release_prefix: armada
+  chart_groups:
+    - flagship-kubernetes
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: kubernetes-common
+data:
+  chart_name: kubernetes-common
+  release: kubernetes-common
+  namespace: kube-system
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  values: {}
+  source:
+    type: git
+    location: https://github.com/v1k0d3n/flagship
+    subpath: charts/kubernetes-common
+    reference: master
+  dependencies: []
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: utils-kube-pod-checkpointer
+data:
+  chart_name: utils-kube-pod-checkpointer
+  release: utils-kube-pod-checkpointer
+  namespace: kube-system
+  timeout: 3600
+  wait:
+    timeout: 3600
+    labels:
+      release_group: flagship-kubernetes
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  values:
+    images:
+      tags:
+        kube_pod_checkpointer: quay.io/coreos/pod-checkpointer:018007e77ccd61e8e59b7e15d7fc5e318a5a2682
+  source:
+    type: git
+    location: https://github.com/v1k0d3n/flagship
+    subpath: charts/utils-kube-pod-checkpointer
+    reference: master
+  dependencies:
+    - kubernetes-common
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: kube-proxy
+data:
+  chart_name: kube-proxy
+  release: kube-proxy
+  namespace: kube-system
+  timeout: 3600
+  wait:
+    timeout: 3600
+    labels:
+      release_group: flagship-kubernetes
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  values:
+    images:
+      tags:
+        kube_proxy: k8s.gcr.io/hyperkube:v1.11.3
+    manifests:
+      daemonset_kube_proxy: true
+  source:
+    type: git
+    location: https://github.com/v1k0d3n/flagship
+    subpath: charts/kube-proxy
+    reference: master
+  dependencies:
+    - kubernetes-common
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: kube-controller
+data:
+  chart_name: kube-controller
+  release: kube-controller
+  namespace: kube-system
+  timeout: 3600
+  wait:
+    timeout: 3600
+    labels:
+      release_group: flagship-kubernetes
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  values:
+    labels:
+      kube_api:
+        node_selector_key: control-plane
+        node_selector_value: enabled
+    images:
+      tags:
+        kube_controller: k8s.gcr.io/hyperkube:v1.11.3
+    pod:
+      dns_policy: Default
+      replicas:
+        kube_controller_manager: 2
+      lifecycle:
+        upgrades:
+          deployments:
+            revision_history: 5
+            pod_replacement_strategy: RollingUpdate
+            rolling_update:
+              max_unavailable: 1
+              max_surge: 1
+        disruption_budget:
+          kube_controller_manager:
+            min_available: 1
+        termination_grace_period:
+          kube_controller_manager:
+            timeout: 30
+    args:
+      bootkube_controller_manager:
+        leader_elect: true
+        configure_cloud_routes: false
+        allocate_node_cidrs: true
+        cluster_cidr: 10.25.0.0/16
+        service_cluster_ip_range: 10.96.0.0/16
+        configure_cloud_routes: false
+        kubeconfig: /etc/kubernetes/secrets/kubeconfig
+        leader_elect: true
+        root_ca_file: /etc/kubernetes/secrets/ca.crt
+        service_account_private_key_file: /etc/kubernetes/secrets/service-account.key
+      kube_controller_manager:
+        leader_elect: true
+        configure_cloud_routes: false
+        allocate_node_cidrs: true
+        cluster_cidr: 10.25.0.0/16
+        service_cluster_ip_range: 10.96.0.0/16
+        cluster_signing_cert_file: /etc/kubernetes/secrets/ca.crt
+        cluster_signing_key_file: /etc/kubernetes/secrets/ca.key
+        configure_cloud_routes: false
+        leader_elect: true
+        root_ca_file: /etc/kubernetes/secrets/ca.crt
+        service_account_private_key_file: /etc/kubernetes/secrets/service-account.key
+    manifests:
+      bootstrap_controller_manager: false
+      kube_controller_manager: true
+      pdb_kube_controller_manager: true
+      secrets_kube_controller_manager: false
+  source:
+    type: git
+    location: https://github.com/v1k0d3n/flagship
+    subpath: charts/kube-controller
+    reference: master
+  dependencies:
+    - kubernetes-common
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: kube-scheduler
+data:
+  chart_name: kube-scheduler
+  release: kube-scheduler
+  namespace: kube-system
+  timeout: 3600
+  wait:
+    timeout: 3600
+    labels:
+      release_group: flagship-kubernetes
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  values:
+    images:
+      tags:
+        kube_scheduler: k8s.gcr.io/hyperkube:v1.11.3
+    manifests:
+      deployment_kube_scheduler: true
+      bootkube_kube_scheduler: false
+      pdb_kube_scheduler: true
+  source:
+    type: git
+    location: https://github.com/v1k0d3n/flagship
+    subpath: charts/kube-scheduler
+    reference: master
+  dependencies:
+    - kubernetes-common
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: utils-coredns
+data:
+  chart_name: utils-coredns
+  release: utils-coredns
+  namespace: kube-system
+  timeout: 3600
+  wait:
+    timeout: 3600
+    labels:
+      release_group: flagship-kubernetes
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  values:
+    images:
+      tags:
+        coredns: quay.io/charter-se/coredns:1.2.5
+    pod:
+      replicas:
+        coredns: 2
+    service:
+      coredns:
+        name: coredns
+        advertise_address: 10.96.0.10
+  source:
+    type: git
+    location: https://github.com/v1k0d3n/flagship
+    subpath: charts/utils-coredns
+    reference: master
+  dependencies:
+    - kubernetes-common
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: utils-ingress-controller
+data:
+  chart_name: utils-ingress-controller
+  release: utils-ingress-controller
+  namespace: kube-system
+  timeout: 3600
+  wait:
+    timeout: 3600
+    labels:
+      release_group: flagship-kubernetes
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  values:
+    images:
+      tags:
+        nginx_ingress_controller: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.14.0
+        nginx_ingress_default_backend: k8s.gcr.io/defaultbackend:1.3
+    manifests:
+      deployment_nginx_ingress_controller: true
+      deployment_nginx_ingress_default_backend: true
+      hpa_nginx_ingress_controller: true
+      pdp_nginx_ingress_default_backend: true
+      pdp_nginx_ingress_controller: true
+      service_nginx_ingress_controller: true
+      service_nginx_ingress_controller_metrics: true
+      service_nginx_ingress_controller_stats: true
+      service_nginx_ingress_default_backend: true
+      configmap_nginx_ingress_controller: true
+  source:
+    type: git
+    location: https://github.com/v1k0d3n/flagship
+    subpath: charts/utils-ingress-controller
+    reference: master
+  dependencies:
+    - kubernetes-common
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: utils-weave-scope
+data:
+  chart_name: utils-weave-scope
+  release: utils-weave-scope
+  namespace: kube-system
+  timeout: 3600
+  wait:
+    timeout: 3600
+    labels:
+      release_group: flagship-kubernetes
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  values:
+    images:
+      tags:
+        weave_scope: weaveworks/scope:1.9.1
+    manifests:
+      deployment_weave_scope: true
+      daemonset_weave_scope: true
+  source:
+    type: git
+    location: https://github.com/v1k0d3n/flagship
+    subpath: charts/utils-weave-scope
+    reference: master
+  dependencies:
+    - kubernetes-common
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: utils-kubernetes-dashboard
+data:
+  chart_name: utils-kubernetes-dashboard
+  release: utils-kubernetes-dashboard
+  namespace: kube-system
+  timeout: 3600
+  wait:
+    timeout: 3600
+    labels:
+      release_group: flagship-kubernetes
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+  values:
+    images:
+      tags:
+        kubernetes_dashboard: k8s.gcr.io/kubernetes-dashboard-amd64:v1.10.0
+    manifests:
+      deployment_kubernetes_dashboard: true
+  source:
+    type: git
+    location: https://github.com/v1k0d3n/flagship
+    subpath: charts/utils-kubernetes-dashboard
+    reference: master
+  dependencies:
+    - kubernetes-common
