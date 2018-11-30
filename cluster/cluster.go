@@ -18,9 +18,10 @@ import (
 )
 
 type Session struct {
-	Helm      helm.Interface
-	Tiller    *kube.Tunnel
-	Clientset *internalclientset.Clientset
+	Helm       helm.Interface
+	Tiller     *kube.Tunnel
+	Clientset  *internalclientset.Clientset
+	KubeConfig string
 }
 
 func NewSession(kubeConfig string) (*Session, error) {
@@ -68,6 +69,7 @@ func (s *Session) connect(kubeConfig string, namespace string) error {
 	if err != nil {
 		return errors.WithFields(errors.Fields{"KubeConfig": kubeConfig}).Wrap(err, "could not get kubernetes config for context")
 	}
+	s.KubeConfig = kubeConfig
 	s.Clientset, err = internalclientset.NewForConfig(config)
 	if err != nil {
 		return errors.Wrap(err, "could not get kubernetes client")

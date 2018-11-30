@@ -47,6 +47,11 @@ func newApplyCmd(cmd *applyCmd) *cobra.Command {
 			}
 		},
 	}
+	cobraCmd.Flags().StringVar(
+		&cmd.Options.KubeConfigFile,
+		"kube-config",
+		Default().KubeConfigFile,
+		"test all charts with server")
 	cobraCmd.Flags().BoolVar(
 		&cmd.Options.DryRun,
 		"dry-run",
@@ -85,10 +90,13 @@ func (cmd *applyCmd) Run() error {
 	}
 
 	// Open connections to the k8s APIs
-	session, err := cluster.NewSession(Default().KubeConfigFile)
+	session, err := cluster.NewSession(cmd.Options.KubeConfigFile)
 	if err != nil {
 		return errors.Wrap(err, "failed to create new cluster session")
 	}
+	log.WithFields(log.Fields{
+		"file": session.KubeConfig,
+	}).Info("Using kube config")
 
 	// Open and initialize the manifest
 	mfest, err := manifest.New(&manifest.Config{
