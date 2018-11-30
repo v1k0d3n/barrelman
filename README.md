@@ -3,6 +3,16 @@
 
 Barrelman is a [Helm plugin](https://github.com/helm/helm/blob/master/docs/plugins.md) that strives for document compatability with [Armada](https://github.com/att-comdev/armada) and follows Aramada YAML conventions.
 
+## Build
+
+```sh
+go get github.com/CirroCloud/yamlpack
+go get github.com/charter-se/structured
+git clone https://github.com/charter-se/barrelman.git
+cd barrelman
+go build .
+```
+
 ## Install
 
 Copy or link the barrelman binary and plugin.yaml files to ~/.helm/plugins/barrelman/
