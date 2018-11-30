@@ -14,6 +14,7 @@ import (
 const (
 	Installable = iota
 	Upgradable
+	Replaceable
 	Deletable
 	NoChange
 )
@@ -72,6 +73,10 @@ func newApplyCmd(cmd *applyCmd) *cobra.Command {
 		"nosync",
 		false,
 		"disable remote sync")
+	cmd.Options.Force = cobraCmd.Flags().StringSlice(
+		"force",
+		*(Default().Force),
+		"force apply chart name(s)")
 	cobraCmd.Flags().IntVar(
 		&cmd.Options.InstallRetry,
 		"install-retry",
@@ -169,6 +174,15 @@ func (cmd *applyCmd) Run() error {
 	return nil
 }
 
+//IsReplaceable checks a release against the --force flag values to see if an existing release should be replaced via delete
+func (cmd *applyCmd) isInForce(rel *cluster.ReleaseMeta) bool {
+	for _, r := range *cmd.Options.Force {
+		if r == rel.Name {
+			return true
+		}
+	}
+	return false
+}
 func (cmd *applyCmd) ComputeReleases(
 	session *cluster.Session,
 	archives *manifest.ArchiveFiles,
@@ -177,16 +191,29 @@ func (cmd *applyCmd) ComputeReleases(
 
 	for _, v := range archives.List {
 		if rel, ok := currentReleases[v.Name]; ok {
-			rt = append(rt,
-				&releaseTarget{
-					State: Upgradable,
-					ReleaseMeta: &cluster.ReleaseMeta{
-						Path:           v.Path,
-						Name:           rel.Name,
-						Namespace:      v.Namespace,
-						ValueOverrides: v.Overrides,
-					},
-				})
+			if cmd.isInForce(rel) {
+				rt = append(rt,
+					&releaseTarget{
+						State: Replaceable,
+						ReleaseMeta: &cluster.ReleaseMeta{
+							Path:           v.Path,
+							Name:           rel.Name,
+							Namespace:      v.Namespace,
+							ValueOverrides: v.Overrides,
+						},
+					})
+			} else {
+				rt = append(rt,
+					&releaseTarget{
+						State: Upgradable,
+						ReleaseMeta: &cluster.ReleaseMeta{
+							Path:           v.Path,
+							Name:           rel.Name,
+							Namespace:      v.Namespace,
+							ValueOverrides: v.Overrides,
+						},
+					})
+			}
 		} else {
 			rt = append(rt,
 				&releaseTarget{
@@ -200,7 +227,6 @@ func (cmd *applyCmd) ComputeReleases(
 				})
 		}
 	}
-
 	return rt
 }
 
@@ -266,10 +292,25 @@ func (rt releaseTargets) Apply(session *cluster.Session, opt *cmdOptions) error 
 	for _, v := range rt {
 		v.ReleaseMeta.DryRun = false
 		switch v.State {
-		case Installable:
+
+		case Installable, Replaceable:
 			if err := func() error {
 				//This closure removes a "break OUT"
 				var err error
+				if v.State == Replaceable {
+					//The relase exists, it needs to be deleted
+					dm := &cluster.DeleteMeta{
+						Name:      v.ReleaseMeta.Name,
+						Namespace: v.ReleaseMeta.Namespace,
+					}
+					log.WithFields(log.Fields{
+						"Name":      v.ReleaseMeta.Name,
+						"Namespace": v.ReleaseMeta.Namespace,
+					}).Info("Deleting (force install)")
+					if err := session.DeleteRelease(dm); err != nil {
+						return errors.Wrap(err, "error deleting release before install (forced)")
+					}
+				}
 				for i := 0; i < opt.InstallRetry; i++ {
 					msg, relName, err := session.InstallRelease(v.ReleaseMeta, []byte{})
 					if err != nil {

@@ -12,16 +12,17 @@ import (
 )
 
 type cmdOptions struct {
-	ManifestFile   string
-	ConfigFile     string
+	ManifestFile string
+	ConfigFile   string
 	KubeConfigFile string
 	KubeContext    string
-	DataDir        string
-	DryRun         bool
-	Diff           bool
-	NoSync         bool
-	Debug          bool
-	InstallRetry   int
+  DataDir      string
+	DryRun       bool
+	Diff         bool
+	NoSync       bool
+	Debug        bool
+	InstallRetry int
+	Force        *[]string
 }
 
 func newRootCmd(args []string) *cobra.Command {
