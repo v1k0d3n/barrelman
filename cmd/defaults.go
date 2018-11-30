@@ -8,6 +8,7 @@ type Defaults struct {
 	DataDir        string
 	ConfigFile     string
 	InstallRetry   int
+	Force          *[]string
 }
 
 func Default() *Defaults {
@@ -17,5 +18,6 @@ func Default() *Defaults {
 	d.KubeConfigFile = fmt.Sprintf("%v/.kube/config", userHomeDir())
 	d.DataDir = fmt.Sprintf("%v/.barrelman/data", userHomeDir())
 	d.InstallRetry = int(1)
+	d.Force = &[]string{}
 	return d
 }
