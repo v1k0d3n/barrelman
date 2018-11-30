@@ -83,8 +83,6 @@ func newApplyCmd(cmd *applyCmd) *cobra.Command {
 
 func (cmd *applyCmd) Run() error {
 	var err error
-	fmt.Printf(">>%V<<\n", cmd.Options.KubeContext)
-
 	cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
 	if err != nil {
 		return errors.Wrap(err, "got error while loading config")

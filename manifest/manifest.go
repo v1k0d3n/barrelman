@@ -135,7 +135,11 @@ func New(c *Config) (*Manifest, error) {
 	m.Config = c
 	m.yp = yamlpack.New()
 	file := m.Config.ManifestFile
-	if err := m.yp.Import(file); err != nil {
+	fileR, err := os.Open(file)
+	if err != nil {
+		return &Manifest{}, errors.WithFields(errors.Fields{"file": file}).Wrap(err, "error opening file")
+	}
+	if err := m.yp.Import(file, fileR); err != nil {
 		return &Manifest{}, errors.WithFields(errors.Fields{"file": file}).Wrap(err, "error importing manifest")
 	}
 	m.ChartSync = chartsync.New(m.Config.DataDir)
