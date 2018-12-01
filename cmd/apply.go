@@ -174,6 +174,7 @@ func (cmd *applyCmd) Run() error {
 
 //IsReplaceable checks a release against the --force flag values to see if an existing release should be replaced via delete
 func (cmd *applyCmd) isInForce(rel *cluster.ReleaseMeta) bool {
+	//Checks for releases configured for Force by cmdline
 	for _, r := range *cmd.Options.Force {
 		if r == rel.Name {
 			return true
@@ -181,6 +182,7 @@ func (cmd *applyCmd) isInForce(rel *cluster.ReleaseMeta) bool {
 	}
 	return false
 }
+
 func (cmd *applyCmd) ComputeReleases(
 	session *cluster.Session,
 	archives *manifest.ArchiveFiles,
@@ -189,7 +191,7 @@ func (cmd *applyCmd) ComputeReleases(
 
 	for _, v := range archives.List {
 		if rel, ok := currentReleases[v.Name]; ok {
-			if cmd.isInForce(rel) {
+			if cmd.isInForce(rel) || rel.Status == cluster.Status_FAILED {
 				rt = append(rt,
 					&releaseTarget{
 						State: Replaceable,
