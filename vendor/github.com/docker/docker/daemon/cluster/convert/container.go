@@ -1,11 +1,11 @@
-package convert
+package convert // import "github.com/docker/docker/daemon/cluster/convert"
 
 import (
 	"errors"
 	"fmt"
 	"strings"
 
-	container "github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/container"
 	mounttypes "github.com/docker/docker/api/types/mount"
 	types "github.com/docker/docker/api/types/swarm"
 	swarmapi "github.com/docker/swarmkit/api"
@@ -34,6 +34,9 @@ func containerSpecFromGRPC(c *swarmapi.ContainerSpec) *types.ContainerSpec {
 		Hosts:      c.Hosts,
 		Secrets:    secretReferencesFromGRPC(c.Secrets),
 		Configs:    configReferencesFromGRPC(c.Configs),
+		Isolation:  IsolationFromGRPC(c.Isolation),
+		Init:       initFromGRPC(c.Init),
+		Sysctls:    c.Sysctls,
 	}
 
 	if c.DNSConfig != nil {
@@ -116,6 +119,21 @@ func containerSpecFromGRPC(c *swarmapi.ContainerSpec) *types.ContainerSpec {
 	}
 
 	return containerSpec
+}
+
+func initFromGRPC(v *gogotypes.BoolValue) *bool {
+	if v == nil {
+		return nil
+	}
+	value := v.GetValue()
+	return &value
+}
+
+func initToGRPC(v *bool) *gogotypes.BoolValue {
+	if v == nil {
+		return nil
+	}
+	return &gogotypes.BoolValue{Value: *v}
 }
 
 func secretReferencesToGRPC(sr []*types.SecretReference) []*swarmapi.SecretReference {
@@ -232,6 +250,9 @@ func containerToGRPC(c *types.ContainerSpec) (*swarmapi.ContainerSpec, error) {
 		Hosts:      c.Hosts,
 		Secrets:    secretReferencesToGRPC(c.Secrets),
 		Configs:    configReferencesToGRPC(c.Configs),
+		Isolation:  isolationToGRPC(c.Isolation),
+		Init:       initToGRPC(c.Init),
+		Sysctls:    c.Sysctls,
 	}
 
 	if c.DNSConfig != nil {
@@ -300,6 +321,12 @@ func containerToGRPC(c *types.ContainerSpec) (*swarmapi.ContainerSpec, error) {
 			} else if string(m.BindOptions.Propagation) != "" {
 				return nil, fmt.Errorf("invalid MountPropagation: %q", m.BindOptions.Propagation)
 			}
+
+			if m.BindOptions.NonRecursive {
+				// TODO(AkihiroSuda): NonRecursive is unsupported for Swarm-mode now because of mutual vendoring
+				// across moby and swarmkit. Will be available soon after the moby PR gets merged.
+				return nil, fmt.Errorf("invalid NonRecursive: %q", m.BindOptions.Propagation)
+			}
 		}
 
 		if m.VolumeOptions != nil {
@@ -353,4 +380,27 @@ func healthConfigToGRPC(h *container.HealthConfig) *swarmapi.HealthConfig {
 		Retries:     int32(h.Retries),
 		StartPeriod: gogotypes.DurationProto(h.StartPeriod),
 	}
+}
+
+// IsolationFromGRPC converts a swarm api container isolation to a moby isolation representation
+func IsolationFromGRPC(i swarmapi.ContainerSpec_Isolation) container.Isolation {
+	switch i {
+	case swarmapi.ContainerIsolationHyperV:
+		return container.IsolationHyperV
+	case swarmapi.ContainerIsolationProcess:
+		return container.IsolationProcess
+	case swarmapi.ContainerIsolationDefault:
+		return container.IsolationDefault
+	}
+	return container.IsolationEmpty
+}
+
+func isolationToGRPC(i container.Isolation) swarmapi.ContainerSpec_Isolation {
+	if i.IsHyperV() {
+		return swarmapi.ContainerIsolationHyperV
+	}
+	if i.IsProcess() {
+		return swarmapi.ContainerIsolationProcess
+	}
+	return swarmapi.ContainerIsolationDefault
 }

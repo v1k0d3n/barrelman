@@ -2,25 +2,25 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
 
+	"github.com/docker/docker/api/types"
 	eventtypes "github.com/docker/docker/api/types/events"
+	"github.com/docker/docker/client"
 	eventstestutils "github.com/docker/docker/daemon/events/testutils"
 	"github.com/docker/docker/integration-cli/checker"
 	"github.com/docker/docker/integration-cli/cli"
 	"github.com/docker/docker/integration-cli/cli/build"
-	"github.com/docker/docker/integration-cli/request"
-	"github.com/docker/docker/pkg/testutil"
-	icmd "github.com/docker/docker/pkg/testutil/cmd"
 	"github.com/go-check/check"
+	"gotest.tools/icmd"
 )
 
 func (s *DockerSuite) TestEventsTimestampFormats(c *check.C) {
@@ -36,7 +36,7 @@ func (s *DockerSuite) TestEventsTimestampFormats(c *check.C) {
 	// List of available time formats to --since
 	unixTs := func(t time.Time) string { return fmt.Sprintf("%v", t.Unix()) }
 	rfc3339 := func(t time.Time) string { return t.Format(time.RFC3339) }
-	duration := func(t time.Time) string { return time.Now().Sub(t).String() }
+	duration := func(t time.Time) string { return time.Since(t).String() }
 
 	// --since=$start must contain only the 'untag' event
 	for _, f := range []func(time.Time) string{unixTs, rfc3339, duration} {
@@ -50,11 +50,11 @@ func (s *DockerSuite) TestEventsTimestampFormats(c *check.C) {
 		containerEvents := eventActionsByIDAndType(c, events, name, "container")
 		c.Assert(containerEvents, checker.HasLen, 5, check.Commentf("events: %v", events))
 
-		c.Assert(containerEvents[0], checker.Equals, "create", check.Commentf(out))
-		c.Assert(containerEvents[1], checker.Equals, "attach", check.Commentf(out))
-		c.Assert(containerEvents[2], checker.Equals, "start", check.Commentf(out))
-		c.Assert(containerEvents[3], checker.Equals, "die", check.Commentf(out))
-		c.Assert(containerEvents[4], checker.Equals, "destroy", check.Commentf(out))
+		c.Assert(containerEvents[0], checker.Equals, "create", check.Commentf("%s", out))
+		c.Assert(containerEvents[1], checker.Equals, "attach", check.Commentf("%s", out))
+		c.Assert(containerEvents[2], checker.Equals, "start", check.Commentf("%s", out))
+		c.Assert(containerEvents[3], checker.Equals, "die", check.Commentf("%s", out))
+		c.Assert(containerEvents[4], checker.Equals, "destroy", check.Commentf("%s", out))
 	}
 }
 
@@ -69,7 +69,7 @@ func (s *DockerSuite) TestEventsUntag(c *check.C) {
 		Command: []string{dockerBinary, "events", "--since=1"},
 		Timeout: time.Millisecond * 2500,
 	})
-	c.Assert(result, icmd.Matches, icmd.Expected{Timeout: true})
+	result.Assert(c, icmd.Expected{Timeout: true})
 
 	events := strings.Split(result.Stdout(), "\n")
 	nEvents := len(events)
@@ -79,47 +79,6 @@ func (s *DockerSuite) TestEventsUntag(c *check.C) {
 	for _, v := range events[nEvents-3 : nEvents-1] {
 		c.Assert(v, checker.Contains, "untag", check.Commentf("event should be untag"))
 	}
-}
-
-func (s *DockerSuite) TestEventsLimit(c *check.C) {
-	// Windows: Limit to 4 goroutines creating containers in order to prevent
-	// timeouts creating so many containers simultaneously. This is a due to
-	// a bug in the Windows platform. It will be fixed in a Windows Update.
-	numContainers := 17
-	numConcurrentContainers := numContainers
-	if testEnv.DaemonPlatform() == "windows" {
-		numConcurrentContainers = 4
-	}
-	sem := make(chan bool, numConcurrentContainers)
-	errChan := make(chan error, numContainers)
-
-	args := []string{"run", "--rm", "busybox", "true"}
-	for i := 0; i < numContainers; i++ {
-		sem <- true
-		go func() {
-			defer func() { <-sem }()
-			out, err := exec.Command(dockerBinary, args...).CombinedOutput()
-			if err != nil {
-				err = fmt.Errorf("%v: %s", err, string(out))
-			}
-			errChan <- err
-		}()
-	}
-
-	// Wait for all goroutines to finish
-	for i := 0; i < cap(sem); i++ {
-		sem <- true
-	}
-	close(errChan)
-
-	for err := range errChan {
-		c.Assert(err, checker.IsNil, check.Commentf("%q failed with error", strings.Join(args, " ")))
-	}
-
-	out, _ := dockerCmd(c, "events", "--since=0", "--until", daemonUnixTime(c))
-	events := strings.Split(out, "\n")
-	nEvents := len(events) - 1
-	c.Assert(nEvents, checker.Equals, 256, check.Commentf("events should be limited to 256, but received %d", nEvents))
 }
 
 func (s *DockerSuite) TestEventsContainerEvents(c *check.C) {
@@ -134,11 +93,11 @@ func (s *DockerSuite) TestEventsContainerEvents(c *check.C) {
 	containerEvents := eventActionsByIDAndType(c, events, "container-events-test", "container")
 	c.Assert(containerEvents, checker.HasLen, 5, check.Commentf("events: %v", events))
 
-	c.Assert(containerEvents[0], checker.Equals, "create", check.Commentf(out))
-	c.Assert(containerEvents[1], checker.Equals, "attach", check.Commentf(out))
-	c.Assert(containerEvents[2], checker.Equals, "start", check.Commentf(out))
-	c.Assert(containerEvents[3], checker.Equals, "die", check.Commentf(out))
-	c.Assert(containerEvents[4], checker.Equals, "destroy", check.Commentf(out))
+	c.Assert(containerEvents[0], checker.Equals, "create", check.Commentf("%s", out))
+	c.Assert(containerEvents[1], checker.Equals, "attach", check.Commentf("%s", out))
+	c.Assert(containerEvents[2], checker.Equals, "start", check.Commentf("%s", out))
+	c.Assert(containerEvents[3], checker.Equals, "die", check.Commentf("%s", out))
+	c.Assert(containerEvents[4], checker.Equals, "destroy", check.Commentf("%s", out))
 }
 
 func (s *DockerSuite) TestEventsContainerEventsAttrSort(c *check.C) {
@@ -177,11 +136,11 @@ func (s *DockerSuite) TestEventsContainerEventsSinceUnixEpoch(c *check.C) {
 	containerEvents := eventActionsByIDAndType(c, events, "since-epoch-test", "container")
 	c.Assert(containerEvents, checker.HasLen, 5, check.Commentf("events: %v", events))
 
-	c.Assert(containerEvents[0], checker.Equals, "create", check.Commentf(out))
-	c.Assert(containerEvents[1], checker.Equals, "attach", check.Commentf(out))
-	c.Assert(containerEvents[2], checker.Equals, "start", check.Commentf(out))
-	c.Assert(containerEvents[3], checker.Equals, "die", check.Commentf(out))
-	c.Assert(containerEvents[4], checker.Equals, "destroy", check.Commentf(out))
+	c.Assert(containerEvents[0], checker.Equals, "create", check.Commentf("%s", out))
+	c.Assert(containerEvents[1], checker.Equals, "attach", check.Commentf("%s", out))
+	c.Assert(containerEvents[2], checker.Equals, "start", check.Commentf("%s", out))
+	c.Assert(containerEvents[3], checker.Equals, "die", check.Commentf("%s", out))
+	c.Assert(containerEvents[4], checker.Equals, "destroy", check.Commentf("%s", out))
 }
 
 func (s *DockerSuite) TestEventsImageTag(c *check.C) {
@@ -230,7 +189,7 @@ func (s *DockerSuite) TestEventsImageImport(c *check.C) {
 	cleanedContainerID := strings.TrimSpace(out)
 
 	since := daemonUnixTime(c)
-	out, _, err := testutil.RunCommandPipelineWithOutput(
+	out, err := RunCommandPipelineWithOutput(
 		exec.Command(dockerBinary, "export", cleanedContainerID),
 		exec.Command(dockerBinary, "import", "-"),
 	)
@@ -263,7 +222,7 @@ func (s *DockerSuite) TestEventsImageLoad(c *check.C) {
 	dockerCmd(c, "load", "-i", "saveimg.tar")
 
 	result := icmd.RunCommand("rm", "-rf", "saveimg.tar")
-	c.Assert(result, icmd.Matches, icmd.Success)
+	result.Assert(c, icmd.Success)
 
 	out, _ = dockerCmd(c, "images", "-q", "--no-trunc", myImageName)
 	imageID := strings.TrimSpace(out)
@@ -303,10 +262,10 @@ func (s *DockerSuite) TestEventsPluginOps(c *check.C) {
 	pluginEvents := eventActionsByIDAndType(c, events, pNameWithTag, "plugin")
 	c.Assert(pluginEvents, checker.HasLen, 4, check.Commentf("events: %v", events))
 
-	c.Assert(pluginEvents[0], checker.Equals, "pull", check.Commentf(out))
-	c.Assert(pluginEvents[1], checker.Equals, "enable", check.Commentf(out))
-	c.Assert(pluginEvents[2], checker.Equals, "disable", check.Commentf(out))
-	c.Assert(pluginEvents[3], checker.Equals, "remove", check.Commentf(out))
+	c.Assert(pluginEvents[0], checker.Equals, "pull", check.Commentf("%s", out))
+	c.Assert(pluginEvents[1], checker.Equals, "enable", check.Commentf("%s", out))
+	c.Assert(pluginEvents[2], checker.Equals, "disable", check.Commentf("%s", out))
+	c.Assert(pluginEvents[3], checker.Equals, "remove", check.Commentf("%s", out))
 }
 
 func (s *DockerSuite) TestEventsFilters(c *check.C) {
@@ -499,9 +458,15 @@ func (s *DockerSuite) TestEventsResize(c *check.C) {
 	cID := strings.TrimSpace(out)
 	c.Assert(waitRun(cID), checker.IsNil)
 
-	endpoint := "/containers/" + cID + "/resize?h=80&w=24"
-	status, _, err := request.SockRequest("POST", endpoint, nil, daemonHost())
-	c.Assert(status, checker.Equals, http.StatusOK)
+	cli, err := client.NewEnvClient()
+	c.Assert(err, checker.IsNil)
+	defer cli.Close()
+
+	options := types.ResizeOptions{
+		Height: 80,
+		Width:  24,
+	}
+	err = cli.ContainerResize(context.Background(), cID, options)
 	c.Assert(err, checker.IsNil)
 
 	dockerCmd(c, "stop", cID)
@@ -527,7 +492,10 @@ func (s *DockerSuite) TestEventsAttach(c *check.C) {
 	c.Assert(err, checker.IsNil)
 	defer stdout.Close()
 	c.Assert(cmd.Start(), checker.IsNil)
-	defer cmd.Process.Kill()
+	defer func() {
+		cmd.Process.Kill()
+		cmd.Wait()
+	}()
 
 	// Make sure we're done attaching by writing/reading some stuff
 	_, err = stdin.Write([]byte("hello\n"))
@@ -595,6 +563,8 @@ func (s *DockerRegistrySuite) TestEventsImageFilterPush(c *check.C) {
 }
 
 func (s *DockerSuite) TestEventsFilterType(c *check.C) {
+	// FIXME(vdemeester) fails on e2e run
+	testRequires(c, SameHostDaemon)
 	since := daemonUnixTime(c)
 	name := "labelfiltertest"
 	label := "io.docker.testing=image"
@@ -633,7 +603,7 @@ func (s *DockerSuite) TestEventsFilterType(c *check.C) {
 	events = strings.Split(strings.TrimSpace(out), "\n")
 
 	// Events generated by the container that builds the image
-	c.Assert(events, checker.HasLen, 3, check.Commentf("Events == %s", events))
+	c.Assert(events, checker.HasLen, 2, check.Commentf("Events == %s", events))
 
 	out, _ = dockerCmd(
 		c,
@@ -663,7 +633,7 @@ func (s *DockerSuite) TestEventsSpecialFiltersWithExecCreate(c *check.C) {
 	)
 
 	events := strings.Split(strings.TrimSpace(out), "\n")
-	c.Assert(len(events), checker.Equals, 1, check.Commentf(out))
+	c.Assert(len(events), checker.Equals, 1, check.Commentf("%s", out))
 
 	out, _ = dockerCmd(
 		c,
@@ -673,7 +643,7 @@ func (s *DockerSuite) TestEventsSpecialFiltersWithExecCreate(c *check.C) {
 		"--filter",
 		"event=exec_create",
 	)
-	c.Assert(len(events), checker.Equals, 1, check.Commentf(out))
+	c.Assert(len(events), checker.Equals, 1, check.Commentf("%s", out))
 }
 
 func (s *DockerSuite) TestEventsFilterImageInContainerAction(c *check.C) {
@@ -683,7 +653,7 @@ func (s *DockerSuite) TestEventsFilterImageInContainerAction(c *check.C) {
 
 	out, _ := dockerCmd(c, "events", "--filter", "image=busybox", "--since", since, "--until", daemonUnixTime(c))
 	events := strings.Split(strings.TrimSpace(out), "\n")
-	c.Assert(len(events), checker.GreaterThan, 1, check.Commentf(out))
+	c.Assert(len(events), checker.GreaterThan, 1, check.Commentf("%s", out))
 }
 
 func (s *DockerSuite) TestEventsContainerRestart(c *check.C) {
@@ -691,7 +661,7 @@ func (s *DockerSuite) TestEventsContainerRestart(c *check.C) {
 
 	// wait until test2 is auto removed.
 	waitTime := 10 * time.Second
-	if testEnv.DaemonPlatform() == "windows" {
+	if testEnv.OSType == "windows" {
 		// Windows takes longer...
 		waitTime = 90 * time.Second
 	}
@@ -781,7 +751,7 @@ func (s *DockerSuite) TestEventsFormat(c *check.C) {
 func (s *DockerSuite) TestEventsFormatBadFunc(c *check.C) {
 	// make sure it fails immediately, without receiving any event
 	result := dockerCmdWithResult("events", "--format", "{{badFuncString .}}")
-	c.Assert(result, icmd.Matches, icmd.Expected{
+	result.Assert(c, icmd.Expected{
 		Error:    "exit status 64",
 		ExitCode: 64,
 		Err:      "Error parsing format: template: :1: function \"badFuncString\" not defined",
@@ -791,7 +761,7 @@ func (s *DockerSuite) TestEventsFormatBadFunc(c *check.C) {
 func (s *DockerSuite) TestEventsFormatBadField(c *check.C) {
 	// make sure it fails immediately, without receiving any event
 	result := dockerCmdWithResult("events", "--format", "{{.badFieldString}}")
-	c.Assert(result, icmd.Matches, icmd.Expected{
+	result.Assert(c, icmd.Expected{
 		Error:    "exit status 64",
 		ExitCode: 64,
 		Err:      "Error parsing format: template: :1:2: executing \"\" at <.badFieldString>: can't evaluate field badFieldString in type *events.Message",

@@ -312,7 +312,7 @@ var _ = utils.SIGDescribe("PersistentVolumes", func() {
 				framework.DeleteAllStatefulSets(c, ns)
 			})
 
-			It("should be reschedulable", func() {
+			It("should be reschedulable [Slow]", func() {
 				// Only run on providers with default storageclass
 				framework.SkipUnlessProviderIs("openstack", "gce", "gke", "vsphere", "azure")
 
@@ -409,7 +409,7 @@ func makeStatefulSetWithPVCs(ns, cmd string, mounts []v1.VolumeMount, claims []v
 					Containers: []v1.Container{
 						{
 							Name:           "nginx",
-							Image:          imageutils.GetE2EImage(imageutils.NginxSlim),
+							Image:          imageutils.GetE2EImage(imageutils.Nginx),
 							Command:        []string{"/bin/sh"},
 							Args:           []string{"-c", cmd},
 							VolumeMounts:   mounts,

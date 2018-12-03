@@ -1,4 +1,4 @@
-package chrootarchive
+package chrootarchive // import "github.com/docker/docker/pkg/chrootarchive"
 
 import (
 	"fmt"
@@ -12,11 +12,14 @@ import (
 )
 
 // NewArchiver returns a new Archiver which uses chrootarchive.Untar
-func NewArchiver(idMappings *idtools.IDMappings) *archive.Archiver {
-	if idMappings == nil {
-		idMappings = &idtools.IDMappings{}
+func NewArchiver(idMapping *idtools.IdentityMapping) *archive.Archiver {
+	if idMapping == nil {
+		idMapping = &idtools.IdentityMapping{}
 	}
-	return &archive.Archiver{Untar: Untar, IDMappings: idMappings}
+	return &archive.Archiver{
+		Untar:     Untar,
+		IDMapping: idMapping,
+	}
 }
 
 // Untar reads a stream of bytes from `archive`, parses it as a tar archive,
@@ -46,8 +49,8 @@ func untarHandler(tarArchive io.Reader, dest string, options *archive.TarOptions
 		options.ExcludePatterns = []string{}
 	}
 
-	idMappings := idtools.NewIDMappingsFromMaps(options.UIDMaps, options.GIDMaps)
-	rootIDs := idMappings.RootPair()
+	idMapping := idtools.NewIDMappingsFromMaps(options.UIDMaps, options.GIDMaps)
+	rootIDs := idMapping.RootPair()
 
 	dest = filepath.Clean(dest)
 	if _, err := os.Stat(dest); os.IsNotExist(err) {

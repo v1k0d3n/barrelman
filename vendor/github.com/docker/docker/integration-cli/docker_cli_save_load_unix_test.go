@@ -13,9 +13,9 @@ import (
 
 	"github.com/docker/docker/integration-cli/checker"
 	"github.com/docker/docker/integration-cli/cli/build"
-	icmd "github.com/docker/docker/pkg/testutil/cmd"
 	"github.com/go-check/check"
 	"github.com/kr/pty"
+	"gotest.tools/icmd"
 )
 
 // save a repo and try to load it using stdout
