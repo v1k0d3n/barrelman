@@ -4,23 +4,25 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"os/exec"
 	"reflect"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/docker/docker/client"
 	"github.com/docker/docker/integration-cli/checker"
 	"github.com/docker/docker/integration-cli/cli"
 	"github.com/docker/docker/integration-cli/cli/build"
-	"github.com/docker/docker/integration-cli/request"
-	icmd "github.com/docker/docker/pkg/testutil/cmd"
+	"github.com/docker/docker/pkg/parsers/kernel"
 	"github.com/go-check/check"
+	"gotest.tools/icmd"
 )
 
 func (s *DockerSuite) TestExec(c *check.C) {
@@ -133,7 +135,7 @@ func (s *DockerSuite) TestExecExitStatus(c *check.C) {
 	runSleepingContainer(c, "-d", "--name", "top")
 
 	result := icmd.RunCommand(dockerBinary, "exec", "top", "sh", "-c", "exit 23")
-	c.Assert(result, icmd.Matches, icmd.Expected{ExitCode: 23, Error: "exit status 23"})
+	result.Assert(c, icmd.Expected{ExitCode: 23, Error: "exit status 23"})
 }
 
 func (s *DockerSuite) TestExecPausedContainer(c *check.C) {
@@ -164,7 +166,7 @@ func (s *DockerSuite) TestExecTTYCloseStdin(c *check.C) {
 	stdinRw.Close()
 
 	out, _, err := runCommandWithOutput(cmd)
-	c.Assert(err, checker.IsNil, check.Commentf(out))
+	c.Assert(err, checker.IsNil, check.Commentf("%s", out))
 
 	out, _ = dockerCmd(c, "top", "exec_tty_stdin")
 	outArr := strings.Split(out, "\n")
@@ -229,18 +231,18 @@ func (s *DockerSuite) TestExecStopNotHanging(c *check.C) {
 	testRequires(c, DaemonIsLinux)
 	dockerCmd(c, "run", "-d", "--name", "testing", "busybox", "top")
 
-	err := exec.Command(dockerBinary, "exec", "testing", "top").Start()
-	c.Assert(err, checker.IsNil)
+	result := icmd.StartCmd(icmd.Command(dockerBinary, "exec", "testing", "top"))
+	result.Assert(c, icmd.Success)
+	go icmd.WaitOnCmd(0, result)
 
 	type dstop struct {
-		out []byte
+		out string
 		err error
 	}
-
 	ch := make(chan dstop)
 	go func() {
-		out, err := exec.Command(dockerBinary, "stop", "testing").CombinedOutput()
-		ch <- dstop{out, err}
+		result := icmd.RunCommand(dockerBinary, "stop", "testing")
+		ch <- dstop{result.Combined(), result.Error}
 		close(ch)
 	}()
 	select {
@@ -262,7 +264,7 @@ func (s *DockerSuite) TestExecCgroup(c *check.C) {
 
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	execCgroups := []sort.StringSlice{}
+	var execCgroups []sort.StringSlice
 	errChan := make(chan error)
 	// exec a few times concurrently to get consistent failure
 	for i := 0; i < 5; i++ {
@@ -357,16 +359,21 @@ func (s *DockerSuite) TestExecInspectID(c *check.C) {
 	}
 
 	// But we should still be able to query the execID
-	sc, body, _ := request.SockRequest("GET", "/exec/"+execID+"/json", nil, daemonHost())
+	cli, err := client.NewEnvClient()
+	c.Assert(err, checker.IsNil)
+	defer cli.Close()
 
-	c.Assert(sc, checker.Equals, http.StatusOK, check.Commentf("received status != 200 OK: %d\n%s", sc, body))
+	_, err = cli.ContainerExecInspect(context.Background(), execID)
+	c.Assert(err, checker.IsNil)
 
 	// Now delete the container and then an 'inspect' on the exec should
 	// result in a 404 (not 'container not running')
 	out, ec := dockerCmd(c, "rm", "-f", id)
 	c.Assert(ec, checker.Equals, 0, check.Commentf("error removing container: %s", out))
-	sc, body, _ = request.SockRequest("GET", "/exec/"+execID+"/json", nil, daemonHost())
-	c.Assert(sc, checker.Equals, http.StatusNotFound, check.Commentf("received status != 404: %d\n%s", sc, body))
+
+	_, err = cli.ContainerExecInspect(context.Background(), execID)
+	expected := "No such exec instance"
+	c.Assert(err.Error(), checker.Contains, expected)
 }
 
 func (s *DockerSuite) TestLinksPingLinkedContainersOnRename(c *check.C) {
@@ -512,7 +519,7 @@ func (s *DockerSuite) TestExecStartFails(c *check.C) {
 	c.Assert(waitRun(name), checker.IsNil)
 
 	out, _, err := dockerCmdWithError("exec", name, "no-such-cmd")
-	c.Assert(err, checker.NotNil, check.Commentf(out))
+	c.Assert(err, checker.NotNil, check.Commentf("%s", out))
 	c.Assert(out, checker.Contains, "executable file not found")
 }
 
@@ -538,6 +545,38 @@ func (s *DockerSuite) TestExecEnvLinksHost(c *check.C) {
 
 func (s *DockerSuite) TestExecWindowsOpenHandles(c *check.C) {
 	testRequires(c, DaemonIsWindows)
+
+	if runtime.GOOS == "windows" {
+		v, err := kernel.GetKernelVersion()
+		c.Assert(err, checker.IsNil)
+		build, _ := strconv.Atoi(strings.Split(strings.SplitN(v.String(), " ", 3)[2][1:], ".")[0])
+		if build >= 17743 {
+			c.Skip("Temporarily disabled on RS5 17743+ builds due to platform bug")
+
+			// This is being tracked internally. @jhowardmsft. Summary of failure
+			// from an email in early July 2018 below:
+			//
+			// Platform regression. In cmd.exe by the look of it. I can repro
+			// it outside of CI.  It fails the same on 17681, 17676 and even as
+			// far back as 17663, over a month old. From investigating, I can see
+			// what's happening in the container, but not the reason. The test
+			// starts a long-running container based on the Windows busybox image.
+			// It then adds another process (docker exec) to that container to
+			// sleep. It loops waiting for two instances of busybox.exe running,
+			// and cmd.exe to quit. What's actually happening is that the second
+			// exec hangs indefinitely, and from docker top, I can see
+			// "OpenWith.exe" running.
+
+			//Manual repro would be
+			//# Start the first long-running container
+			//docker run --rm -d --name test busybox sleep 300
+
+			//# In another window, docker top test. There should be a single instance of busybox.exe running
+			//# In a third window, docker exec test cmd /c start sleep 10  NOTE THIS HANGS UNTIL 5 MIN TIMEOUT
+			//# In the second window, run docker top test. Note that OpenWith.exe is running, one cmd.exe and only one busybox. I would expect no "OpenWith" and two busybox.exe's.
+		}
+	}
+
 	runSleepingContainer(c, "-d", "--name", "test")
 	exec := make(chan bool)
 	go func() {

@@ -53,6 +53,7 @@ var deletePolices = map[string]release.Hook_DeletePolicy{
 	hooks.BeforeHookCreation: release.Hook_BEFORE_HOOK_CREATION,
 }
 
+// Manifest represents a manifest file, which has a name and some content.
 type Manifest = manifest.Manifest
 
 type result struct {
@@ -172,6 +173,13 @@ func (file *manifestFile) sort(result *result) error {
 			if !ok {
 				isUnknownHook = true
 				break
+			}
+			if e == release.Hook_CRD_INSTALL {
+				result.generic = append(result.generic, Manifest{
+					Name:    file.path,
+					Content: m,
+					Head:    &entry,
+				})
 			}
 			h.Events = append(h.Events, e)
 		}

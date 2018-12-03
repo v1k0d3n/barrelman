@@ -40,7 +40,7 @@ func xmain() error {
 }
 
 func handle(workerImageDigest string, executor testChunkExecutor) error {
-	log.Printf("Waiting for a funker request")
+	log.Print("Waiting for a funker request")
 	return funker.Handle(func(args *types.Args) types.Result {
 		log.Printf("Executing chunk %d, contains %d test filters",
 			args.ChunkID, len(args.Tests))
@@ -58,7 +58,7 @@ func handle(workerImageDigest string, executor testChunkExecutor) error {
 				RawLog:  rawLog,
 			}
 		}
-		elapsed := time.Now().Sub(begin)
+		elapsed := time.Since(begin)
 		log.Printf("Finished chunk %d, code=%d, elapsed=%v", args.ChunkID, code, elapsed)
 		return types.Result{
 			ChunkID: args.ChunkID,
