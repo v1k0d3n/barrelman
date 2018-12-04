@@ -1,3 +1,4 @@
+//go:generate mockery -name=Sessioner
 package cluster
 
 import (
@@ -17,6 +18,10 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 )
 
+type Sessioner interface {
+	Init() error
+}
+
 type Session struct {
 	Helm        helm.Interface
 	Tiller      *kube.Tunnel
@@ -25,12 +30,17 @@ type Session struct {
 	KubeContext string
 }
 
-func NewSession(kubeContext string, kubeConfig string) (*Session, error) {
-
+//NewSession returns a *Session with kubernetes connections established
+func NewSession(kubeContext string, kubeConfig string) *Session {
 	s := &Session{}
 	s.KubeConfig = kubeConfig
 	s.KubeContext = kubeContext
-	fmt.Printf("NewSession Context: %v\n", kubeContext)
+	return &Session{}
+}
+
+func (s *Session) Init() error {
+
+	fmt.Printf("NewSession Context: %v\n", s.KubeContext)
 
 	tillerNamespace := os.Getenv("TILLER_NAMESPACE")
 	if tillerNamespace == "" {
@@ -38,17 +48,17 @@ func NewSession(kubeContext string, kubeConfig string) (*Session, error) {
 	}
 	err := s.connect(tillerNamespace)
 	if err != nil {
-		return &Session{}, errors.Wrap(err, "connection to kubernetes failed")
+		return errors.Wrap(err, "connection to kubernetes failed")
 	}
 
 	err = s.Helm.PingTiller()
 	if err != nil {
-		return &Session{}, errors.Wrap(err, "helm.PingTiller() failed")
+		return errors.Wrap(err, "helm.PingTiller() failed")
 	}
 
 	tillerVersion, err := s.Helm.GetVersion()
 	if err != nil {
-		return &Session{}, errors.Wrap(err, "failed to get Tiller version")
+		return errors.Wrap(err, "failed to get Tiller version")
 	}
 
 	compatible := version.IsCompatible(version.Version, tillerVersion.Version.SemVer)
@@ -58,13 +68,13 @@ func NewSession(kubeContext string, kubeConfig string) (*Session, error) {
 		"Host":                   fmt.Sprintf(":%v", s.Tiller.Local),
 	}).Info("Connected to Tiller")
 	if !compatible {
-		return &Session{}, errors.WithFields(errors.Fields{
+		return errors.WithFields(errors.Fields{
 			"tillerVersion":          tillerVersion.Version.SemVer,
 			"clientServerCompatible": compatible,
 			"Host":                   fmt.Sprintf(":%v", s.Tiller.Local),
 		}).New("incompatible version numbers")
 	}
-	return s, nil
+	return nil
 }
 
 //connect builds connections for all supported APIs

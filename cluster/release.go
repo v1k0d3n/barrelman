@@ -1,3 +1,4 @@
+//go:generate mockery -name=Sessioner
 package cluster
 
 import (
@@ -60,6 +61,17 @@ type Release struct {
 }
 
 type ReleaseDiff struct {
+}
+
+type Releaser interface {
+	ListReleases() ([]*Release, error)
+	InstallRelease(*ReleaseMeta, []byte, bool) (string, string, error)
+	DiffRelease(m *ReleaseMeta) (bool, []byte, error)
+	UpgradeRelease(m *ReleaseMeta) (string, error)
+	DeleteReleases(dm []*DeleteMeta)
+	DeleteRelease(m *DeleteMeta)
+	Releases() (map[string]*ReleaseMeta, error)
+	DiffManifests(map[string]*MappingResult, map[string]*MappingResult, []string, int, io.Writer) bool
 }
 
 func (s *Session) ListReleases() ([]*Release, error) {
@@ -279,6 +291,9 @@ func Parse(manifest string, defaultNamespace string) map[string]*MappingResult {
 
 }
 
+func (s *Session) DiffManifests(oldIndex, newIndex map[string]*MappingResult, suppressedKinds []string, context int, to io.Writer) bool {
+	return DiffManifests(oldIndex, newIndex, suppressedKinds, context, to)
+}
 func DiffManifests(oldIndex, newIndex map[string]*MappingResult, suppressedKinds []string, context int, to io.Writer) bool {
 	seenAnyChanges := false
 	emptyMapping := &MappingResult{}
