@@ -80,7 +80,7 @@ func TestInstallRelease(t *testing.T) {
 				mock.Anything,
 			).Return(&rls.InstallReleaseResponse{},
 				errors.New("Sucessfully failed")).Once()
-			_, _, err := s.InstallRelease(&ReleaseMeta{}, []byte{}, true)
+			_, _, err := s.InstallRelease(&ReleaseMeta{}, []byte{})
 			So(err, ShouldNotBeNil)
 			Print(err)
 		})
@@ -105,7 +105,7 @@ func TestInstallRelease(t *testing.T) {
 				mock.Anything,
 				mock.Anything,
 			).Return(r, nil).Once()
-			_, _, err := s.InstallRelease(&ReleaseMeta{}, []byte{}, true)
+			_, _, err := s.InstallRelease(&ReleaseMeta{}, []byte{})
 			So(err, ShouldBeNil)
 		})
 	})
@@ -236,57 +236,80 @@ func TestReleases(t *testing.T) {
 }
 func TestDiffRelease(t *testing.T) {
 	s := NewMockSession()
+	//origRelease serves as the release already deployed on k8s
+	origRelease, err := yaml.Marshal(metadata{
+		ApiVersion: "v1",
+		Kind:       "Test",
+		Metadata: struct {
+			Namespace string
+			Name      string
+		}{
+			Name:      "testRelease",
+			Namespace: "testNamespace",
+		},
+	})
+	if err != nil {
+		panic("Could not marshall document")
+	}
+	//newRelease serves as the response to a dry-run with changes
+	newRelease, err := yaml.Marshal(metadata{
+		ApiVersion: "v1",
+		Kind:       "Test",
+		Metadata: struct {
+			Namespace string
+			Name      string
+		}{
+			Name:      "testRelease",
+			Namespace: "testNamespace2",
+		},
+	})
+	if err != nil {
+		panic("Could not marshall document")
+	}
+
+	hapiRelease := &hapi_release5.Release{
+		Name:     "something",
+		Manifest: "\n---\n" + string(origRelease),
+		Info: &release.Info{
+			Status: &release.Status{
+				Code: release.Status_DEPLOYED,
+			},
+		},
+	}
+
 	Convey("DiffRelease", t, func() {
 		Convey("Can fail to ReleaseContent", func() {
 			TestHelm.On("ReleaseContent", mock.Anything).Return(&rls.GetReleaseContentResponse{
 				Release: nil,
-			}, errors.New("ReleaeContent should fail")).Once()
+			}, errors.New("ReleaseContent should fail")).Once()
 			_, _, err := s.DiffRelease(&ReleaseMeta{
 				Name:      "something",
 				Namespace: "that_namespace",
 			})
 			So(err, ShouldNotBeNil)
 		})
+		Convey("Can fail to UpdateRelease (dry run)", func() {
+			TestHelm.On("ReleaseContent", mock.Anything).Return(&rls.GetReleaseContentResponse{
+				Release: hapiRelease,
+			}, nil).Once()
+
+			TestHelm.On("UpdateRelease",
+				mock.AnythingOfType("string"),
+				mock.AnythingOfType("string"),
+				mock.Anything,
+				mock.Anything,
+				mock.Anything,
+			).Return(nil, errors.New("UpdateRelease should fail")).Once()
+
+			_, _, err := s.DiffRelease(&ReleaseMeta{
+				Name:      "something",
+				Namespace: "that_namespace",
+			})
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldContainSubstring, "Failed to get results")
+		})
 
 		Convey("Can succeed", func() {
-			origRelease, err := yaml.Marshal(metadata{
-				ApiVersion: "v1",
-				Kind:       "Test",
-				Metadata: struct {
-					Namespace string
-					Name      string
-				}{
-					Name:      "testRelease",
-					Namespace: "testNamespace",
-				},
-			})
-			if err != nil {
-				panic("Could not marshall document")
-			}
-
-			newRelease, err := yaml.Marshal(metadata{
-				ApiVersion: "v1",
-				Kind:       "Test",
-				Metadata: struct {
-					Namespace string
-					Name      string
-				}{
-					Name:      "testRelease",
-					Namespace: "testNamespace2",
-				},
-			})
-			if err != nil {
-				panic("Could not marshall document")
-			}
-			r := &hapi_release5.Release{
-				Name:     "something",
-				Manifest: "\n---\n" + string(origRelease),
-				Info: &release.Info{
-					Status: &release.Status{
-						Code: release.Status_DEPLOYED,
-					},
-				},
-			}
 
 			updateReleaseResp := &rls.UpdateReleaseResponse{
 				Release: &hapi_release5.Release{
@@ -296,7 +319,7 @@ func TestDiffRelease(t *testing.T) {
 			}
 
 			TestHelm.On("ReleaseContent", mock.Anything).Return(&rls.GetReleaseContentResponse{
-				Release: r,
+				Release: hapiRelease,
 			}, nil).Once()
 			TestHelm.On("UpdateRelease",
 				mock.AnythingOfType("string"),
