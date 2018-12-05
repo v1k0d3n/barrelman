@@ -5,23 +5,34 @@ Barrelman is a [Helm plugin](https://github.com/helm/helm/blob/master/docs/plugi
 
 ## Build
 
+### MacOS
+install xcode and xcode tools
+
+depending on the state of your install you may need to run:
+```sh
+sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+```
+
+### Get the code
 ```sh
 go get github.com/CirroCloud/yamlpack
 go get github.com/charter-se/structured
 git clone https://github.com/charter-se/barrelman.git
 cd barrelman
-go build .
 ```
-
+### Build
+```sh
+go build ./...
+```
 ## Install
 
 Copy or link the barrelman binary and plugin.yaml files to ~/.helm/plugins/barrelman/
 ```sh
-cd barrelman
 mkdir ~/.helm/plugins/barrelman
 cp barrelman ~/.helm/plugins/barrelman
 cp plugins.yaml ~/.helm/plugins/barrelman
 ``` 
+
 
 ## Overview
 The two main concepts are the ability to process a single YAML file that consists of multiple charts and target state commanding.

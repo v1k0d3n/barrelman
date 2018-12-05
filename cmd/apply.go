@@ -99,8 +99,8 @@ func (cmd *applyCmd) Run() error {
 	}
 
 	// Open connections to the k8s APIs
-	session, err := cluster.NewSession(cmd.Options.KubeContext, cmd.Options.KubeConfigFile)
-	if err != nil {
+	session := cluster.NewSession(cmd.Options.KubeContext, cmd.Options.KubeConfigFile)
+	if err = session.Init(); err != nil {
 		return errors.Wrap(err, "failed to create new cluster session")
 	}
 	log.WithFields(log.Fields{
@@ -235,7 +235,7 @@ func (rt releaseTargets) dryRun(session *cluster.Session) error {
 		v.ReleaseMeta.DryRun = true
 		switch v.State {
 		case Installable:
-			_, _, err := session.InstallRelease(v.ReleaseMeta, []byte{}, false)
+			_, _, err := session.InstallRelease(v.ReleaseMeta, []byte{})
 			if err != nil {
 				return err
 			}
@@ -312,7 +312,7 @@ func (rt releaseTargets) Apply(session *cluster.Session, opt *cmdOptions) error 
 					}
 				}
 				for i := 0; i < opt.InstallRetry; i++ {
-					msg, relName, err := session.InstallRelease(v.ReleaseMeta, []byte{}, false)
+					msg, relName, err := session.InstallRelease(v.ReleaseMeta, []byte{})
 					if err != nil {
 						continue
 					}

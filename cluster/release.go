@@ -1,3 +1,4 @@
+//go:generate mockery -name=Releaser
 package cluster
 
 import (
@@ -62,6 +63,18 @@ type Release struct {
 type ReleaseDiff struct {
 }
 
+type Releaser interface {
+	ListReleases() ([]*Release, error)
+	InstallRelease(*ReleaseMeta, []byte, bool) (string, string, error)
+	DiffRelease(m *ReleaseMeta) (bool, []byte, error)
+	UpgradeRelease(m *ReleaseMeta) (string, error)
+	DeleteReleases(dm []*DeleteMeta)
+	DeleteRelease(m *DeleteMeta)
+	Releases() (map[string]*ReleaseMeta, error)
+	DiffManifests(map[string]*MappingResult, map[string]*MappingResult, []string, int, io.Writer) bool
+}
+
+//ListReleases returns an array of running releases as reported by the cluster
 func (s *Session) ListReleases() ([]*Release, error) {
 	var res []*Release
 	r, err := s.Helm.ListReleases(
@@ -89,7 +102,8 @@ func (s *Session) ListReleases() ([]*Release, error) {
 	return res, err
 }
 
-func (s *Session) InstallRelease(m *ReleaseMeta, chart []byte, force bool) (string, string, error) {
+//InstallRelease uploads a chart and starts a release
+func (s *Session) InstallRelease(m *ReleaseMeta, chart []byte) (string, string, error) {
 	res, err := s.Helm.InstallRelease(
 		m.Path,
 		m.Namespace,
@@ -106,6 +120,7 @@ func (s *Session) InstallRelease(m *ReleaseMeta, chart []byte, force bool) (stri
 	return res.Release.Info.Description, res.Release.Name, err
 }
 
+//DiffRelease compares the differences between a running release and a proposed release
 func (s *Session) DiffRelease(m *ReleaseMeta) (bool, []byte, error) {
 	var changed bool
 	buf := bytes.NewBufferString("")
@@ -130,6 +145,7 @@ func (s *Session) DiffRelease(m *ReleaseMeta) (bool, []byte, error) {
 	return changed, buf.Bytes(), err
 }
 
+//UpgradeRelease applies changes to an already running release, potentially triggering a restart
 func (s *Session) UpgradeRelease(m *ReleaseMeta) (string, error) {
 	res, err := s.Helm.UpdateRelease(
 		m.Name,
@@ -144,6 +160,7 @@ func (s *Session) UpgradeRelease(m *ReleaseMeta) (string, error) {
 	return res.Release.Info.Description, err
 }
 
+//DeleteReleases calls DeleteRelease on an array of Releases
 func (s *Session) DeleteReleases(dm []*DeleteMeta) error {
 	for _, v := range dm {
 		if err := s.DeleteRelease(v); err != nil {
@@ -153,6 +170,7 @@ func (s *Session) DeleteReleases(dm []*DeleteMeta) error {
 	return nil
 }
 
+//DeleteRelease runs a DeleteRelease command based on a release name
 func (s *Session) DeleteRelease(m *DeleteMeta) error {
 	_, err := s.Helm.DeleteRelease(m.Name, helm.DeletePurge(true))
 	if err != nil {
@@ -161,7 +179,7 @@ func (s *Session) DeleteRelease(m *DeleteMeta) error {
 	return nil
 }
 
-//Releases queries a k8s cluster and returns a map of currently deployed releases
+//Releases queries a cluster and returns a map of currently deployed releases
 func (s *Session) Releases() (map[string]*ReleaseMeta, error) {
 	ret := make(map[string]*ReleaseMeta)
 
@@ -279,6 +297,9 @@ func Parse(manifest string, defaultNamespace string) map[string]*MappingResult {
 
 }
 
+func (s *Session) DiffManifests(oldIndex, newIndex map[string]*MappingResult, suppressedKinds []string, context int, to io.Writer) bool {
+	return DiffManifests(oldIndex, newIndex, suppressedKinds, context, to)
+}
 func DiffManifests(oldIndex, newIndex map[string]*MappingResult, suppressedKinds []string, context int, to io.Writer) bool {
 	seenAnyChanges := false
 	emptyMapping := &MappingResult{}

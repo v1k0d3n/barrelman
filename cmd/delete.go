@@ -59,8 +59,8 @@ func runDeleteCmd(cmd *deleteCmd) error {
 	}
 
 	// Open connections to the k8s APIs
-	session, err := cluster.NewSession(cmd.Options.KubeContext, cmd.Options.KubeConfigFile)
-	if err != nil {
+	session := cluster.NewSession(cmd.Options.KubeContext, cmd.Options.KubeConfigFile)
+	if err = session.Init(); err != nil {
 		return errors.Wrap(err, "failed to create new cluster session")
 	}
 	log.WithFields(log.Fields{
