@@ -30,36 +30,30 @@
 
 [[override]]
   name = "github.com/docker/distribution"
-  version = "v2.7.0-rc.0"
+  version = "v2.7.0"
 
 [[override]]
   name = "k8s.io/helm"
   revision = "58be8e461c9ab8e86ea2ad519601e1a288f21e8c"
 [[override]]
   name = "k8s.io/client-go"
-  version = "kubernetes-1.13.0-rc.2"
+  version = "kubernetes-1.13.0"
 [[override]]
   name = "k8s.io/kubernetes"
-  version = "v1.13.0-rc.2"
+  version = "v1.13.0"
 [[override]]
   name = "k8s.io/api"
-  version = "kubernetes-1.13.0-rc.2"
+  version = "kubernetes-1.13.0"
 [[override]]
   name = "k8s.io/apiextensions-apiserver"
-  version = "kubernetes-1.13.0-rc.2"
+  version = "kubernetes-1.13.0"
 [[override]]
   name = "k8s.io/apiserver"
-  version = "kubernetes-1.13.0-rc.2"
+  version = "kubernetes-1.13.0"
 [[override]]
   name = "k8s.io/apimachinery"
-  version = "kubernetes-1.13.0-rc.2"
-# [[override]]
-#   name = "k8s.io/kube-openapi"
-#   revision = "9be88ef10da45f8260fac1eafa747a2898949f51"
+  version = "kubernetes-1.13.0"
 [[override]]
   name = "k8s.io/utils"
   revision = "011bbbe3b2878d9b1d484312f186826acd7e78cc"
-# unknown field 'CaseSensitive' in struct literal of type jsoniter.Config
-# [[override]]
-#   name = "github.com/json-iterator/go"
-#   version = "1.1.5"
+
