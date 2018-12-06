@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
+	"strconv"
 
 	"github.com/charter-se/barrelman/manifest/chartsync"
 	"github.com/charter-se/structured/errors"
@@ -53,11 +54,11 @@ func GetConfigFromFile(s string) (*Config, error) {
 						case string:
 							switch ik.(string) {
 							case "user":
-								acc.User = iv.(string)
+								acc.User = toString(iv)
 							case "secret":
-								acc.Secret = iv.(string)
+								acc.Secret = toString(iv)
 							case "type":
-								acc.Typ = iv.(string)
+								acc.Typ = toString(iv)
 							default:
 								return nil, errors.WithFields(errors.Fields{"Field": ik.(string)}).New("unknown field in account")
 							}
@@ -108,4 +109,15 @@ func loadEnv() map[string]string {
 		}
 	}
 	return ret
+}
+
+func toString(v interface{}) string {
+	switch v.(type) {
+	case string:
+		return v.(string)
+	case int:
+		return strconv.Itoa(v.(int))
+	default:
+		panic(fmt.Sprintf("unhandled type in toString(): %T\n", v))
+	}
 }

@@ -65,11 +65,11 @@ type ReleaseDiff struct {
 
 type Releaser interface {
 	ListReleases() ([]*Release, error)
-	InstallRelease(*ReleaseMeta, []byte, bool) (string, string, error)
+	InstallRelease(*ReleaseMeta, []byte) (string, string, error)
 	DiffRelease(m *ReleaseMeta) (bool, []byte, error)
 	UpgradeRelease(m *ReleaseMeta) (string, error)
-	DeleteReleases(dm []*DeleteMeta)
-	DeleteRelease(m *DeleteMeta)
+	DeleteReleases(dm []*DeleteMeta) error
+	DeleteRelease(m *DeleteMeta) error
 	Releases() (map[string]*ReleaseMeta, error)
 	DiffManifests(map[string]*MappingResult, map[string]*MappingResult, []string, int, io.Writer) bool
 }

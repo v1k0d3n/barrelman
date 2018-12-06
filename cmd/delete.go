@@ -64,11 +64,11 @@ func runDeleteCmd(cmd *deleteCmd) error {
 		return errors.Wrap(err, "failed to create new cluster session")
 	}
 	log.WithFields(log.Fields{
-		"file": session.KubeConfig,
+		"file": session.GetKubeConfig(),
 	}).Info("Using kube config")
-	if session.KubeContext != "" {
+	if session.GetKubeContext() != "" {
 		log.WithFields(log.Fields{
-			"file": session.KubeContext,
+			"file": session.GetKubeContext(),
 		}).Info("Using kube context")
 	}
 

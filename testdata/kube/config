@@ -1,0 +1,27 @@
+apiVersion: v1
+clusters:
+contexts:
+- context:
+    cluster: docker-for-desktop-cluster
+    user: docker-for-desktop
+  name: docker-for-desktop
+- context:
+    cluster: cluster.flagship.sh
+    user: flagship_admin
+  name: flagship
+- context:
+    cluster: minikube
+    user: minikube
+  name: minikube
+current-context: flagship
+kind: Config
+preferences: {}
+users:
+- name: flagship_admin
+  user:
+    client-certificate: /Users/p1contractor9/.flagship/tls/admin.crt
+    client-key: /Users/p1contractor9/.flagship/tls/admin.key
+- name: minikube
+  user:
+    client-certificate: /Users/p1contractor9/.minikube/client.crt
+    client-key: /Users/p1contractor9/.minikube/client.key

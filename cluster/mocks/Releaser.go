@@ -12,13 +12,31 @@ type Releaser struct {
 }
 
 // DeleteRelease provides a mock function with given fields: m
-func (_m *Releaser) DeleteRelease(m *cluster.DeleteMeta) {
-	_m.Called(m)
+func (_m *Releaser) DeleteRelease(m *cluster.DeleteMeta) error {
+	ret := _m.Called(m)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*cluster.DeleteMeta) error); ok {
+		r0 = rf(m)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // DeleteReleases provides a mock function with given fields: dm
-func (_m *Releaser) DeleteReleases(dm []*cluster.DeleteMeta) {
-	_m.Called(dm)
+func (_m *Releaser) DeleteReleases(dm []*cluster.DeleteMeta) error {
+	ret := _m.Called(dm)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func([]*cluster.DeleteMeta) error); ok {
+		r0 = rf(dm)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // DiffManifests provides a mock function with given fields: _a0, _a1, _a2, _a3, _a4
@@ -65,27 +83,27 @@ func (_m *Releaser) DiffRelease(m *cluster.ReleaseMeta) (bool, []byte, error) {
 	return r0, r1, r2
 }
 
-// InstallRelease provides a mock function with given fields: _a0, _a1, _a2
-func (_m *Releaser) InstallRelease(_a0 *cluster.ReleaseMeta, _a1 []byte, _a2 bool) (string, string, error) {
-	ret := _m.Called(_a0, _a1, _a2)
+// InstallRelease provides a mock function with given fields: _a0, _a1
+func (_m *Releaser) InstallRelease(_a0 *cluster.ReleaseMeta, _a1 []byte) (string, string, error) {
+	ret := _m.Called(_a0, _a1)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(*cluster.ReleaseMeta, []byte, bool) string); ok {
-		r0 = rf(_a0, _a1, _a2)
+	if rf, ok := ret.Get(0).(func(*cluster.ReleaseMeta, []byte) string); ok {
+		r0 = rf(_a0, _a1)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	var r1 string
-	if rf, ok := ret.Get(1).(func(*cluster.ReleaseMeta, []byte, bool) string); ok {
-		r1 = rf(_a0, _a1, _a2)
+	if rf, ok := ret.Get(1).(func(*cluster.ReleaseMeta, []byte) string); ok {
+		r1 = rf(_a0, _a1)
 	} else {
 		r1 = ret.Get(1).(string)
 	}
 
 	var r2 error
-	if rf, ok := ret.Get(2).(func(*cluster.ReleaseMeta, []byte, bool) error); ok {
-		r2 = rf(_a0, _a1, _a2)
+	if rf, ok := ret.Get(2).(func(*cluster.ReleaseMeta, []byte) error); ok {
+		r2 = rf(_a0, _a1)
 	} else {
 		r2 = ret.Error(2)
 	}
