@@ -85,6 +85,7 @@ func TestApplyRun(t *testing.T) {
 
 			err := c.Run(session)
 			So(err, ShouldBeNil)
+			session.AssertExpectations(t)
 		})
 
 		Convey("Should fail after retry count exceeded", func() {
@@ -124,6 +125,169 @@ func TestApplyRun(t *testing.T) {
 			err := c.Run(session)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "Error injection")
+			session.AssertExpectations(t)
+		})
+
+		Convey("Should succeed in replacing release (Force)", func() {
+			c := &applyCmd{
+				Options: &cmdOptions{
+					ConfigFile:     getTestDataDir() + "/config",
+					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
+					DataDir:        getTestDataDir() + "/",
+					KubeConfigFile: getTestDataDir() + "/kube/config",
+					DryRun:         false,
+					InstallRetry:   3,
+					NoSync:         true,
+					Force:          &[]string{"storage-minio"},
+				},
+			}
+			session := &mocks.Sessioner{}
+			session.On("Init").Return(nil).Once()
+			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Once()
+			session.On("GetKubeContext").Return("").Once()
+			session.On("Releases").Return(map[string]*cluster.ReleaseMeta{
+				"storage-minio": &cluster.ReleaseMeta{
+					Name: "storage-minio",
+				},
+			}, nil).Once()
+
+			session.On("DeleteRelease", mock.Anything).Return(nil).Once()
+			//This run of InstallRelease will be a dry run to check for errors
+			session.On("InstallRelease",
+				mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
+					return true
+				}),
+				mock.Anything,
+			).Return("Simulated install succeeded", "some_release", nil).Once()
+
+			err := c.Run(session)
+			So(err, ShouldBeNil)
+			session.AssertExpectations(t)
+		})
+
+		Convey("Should succeed in upgrading release", func() {
+			c := &applyCmd{
+				Options: &cmdOptions{
+					ConfigFile:     getTestDataDir() + "/config",
+					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
+					DataDir:        getTestDataDir() + "/",
+					KubeConfigFile: getTestDataDir() + "/kube/config",
+					DryRun:         false,
+					InstallRetry:   3,
+					NoSync:         true,
+					Force:          &[]string{},
+				},
+			}
+			session := &mocks.Sessioner{}
+			session.On("Init").Return(nil).Once()
+			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Once()
+			session.On("GetKubeContext").Return("").Once()
+			session.On("Releases").Return(map[string]*cluster.ReleaseMeta{
+				"storage-minio": &cluster.ReleaseMeta{
+					Name: "storage-minio",
+				},
+			}, nil).Once()
+
+			session.On("DiffRelease", mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
+				return true
+			}),
+			).Return(true, []byte{}, nil)
+
+			//One with dry-run, one without
+			session.On("UpgradeRelease",
+				mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
+					return true
+				}),
+			).Return("Simulated upgrade complete", nil).Twice()
+
+			err := c.Run(session)
+			So(err, ShouldBeNil)
+			session.AssertExpectations(t)
+		})
+		Convey("Should fail in upgrading release", func() {
+			c := &applyCmd{
+				Options: &cmdOptions{
+					ConfigFile:     getTestDataDir() + "/config",
+					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
+					DataDir:        getTestDataDir() + "/",
+					KubeConfigFile: getTestDataDir() + "/kube/config",
+					DryRun:         false,
+					InstallRetry:   3,
+					NoSync:         true,
+					Force:          &[]string{},
+				},
+			}
+			session := &mocks.Sessioner{}
+			session.On("Init").Return(nil).Once()
+			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Once()
+			session.On("GetKubeContext").Return("").Once()
+			session.On("Releases").Return(map[string]*cluster.ReleaseMeta{
+				"storage-minio": &cluster.ReleaseMeta{
+					Name: "storage-minio",
+				},
+			}, nil).Once()
+			session.On("UpgradeRelease",
+				mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
+					return true
+				}),
+			).Return("Simulated upgrade fail", nil).Once()
+
+			session.On("DiffRelease", mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
+				return true
+			}),
+			).Return(true, []byte{}, nil).Once()
+
+			//One with dry-run, one without
+			session.On("UpgradeRelease",
+				mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
+					return true
+				}),
+			).Return("Simulated upgrade fail", errors.New("sim fail")).Once()
+
+			err := c.Run(session)
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldContainSubstring, "sim fail")
+			session.AssertExpectations(t)
+		})
+
+		Convey("Can skip on no change", func() {
+			c := &applyCmd{
+				Options: &cmdOptions{
+					ConfigFile:     getTestDataDir() + "/config",
+					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
+					DataDir:        getTestDataDir() + "/",
+					KubeConfigFile: getTestDataDir() + "/kube/config",
+					DryRun:         false,
+					InstallRetry:   3,
+					NoSync:         true,
+					Force:          &[]string{},
+				},
+			}
+			session := &mocks.Sessioner{}
+			session.On("Init").Return(nil).Once()
+			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Once()
+			session.On("GetKubeContext").Return("").Once()
+			session.On("Releases").Return(map[string]*cluster.ReleaseMeta{
+				"storage-minio": &cluster.ReleaseMeta{
+					Name: "storage-minio",
+				},
+			}, nil).Once()
+
+			session.On("DiffRelease", mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
+				return true
+			}),
+			).Return(false, []byte{}, nil)
+
+			//One with dry-run, one without
+			session.On("UpgradeRelease",
+				mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
+					return true
+				}),
+			).Return("Simulated upgrade complete", nil).Once()
+
+			err := c.Run(session)
+			So(err, ShouldBeNil)
+			session.AssertExpectations(t)
 		})
 	})
 }
