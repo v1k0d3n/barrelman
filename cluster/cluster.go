@@ -60,6 +60,7 @@ func (s *Session) SetKubeContext(c string) {
 	s.kubeContext = c
 }
 
+//Init establishes connextions to the cluster
 func (s *Session) Init() error {
 
 	fmt.Printf("NewSession Context: %v\n", s.GetKubeContext())

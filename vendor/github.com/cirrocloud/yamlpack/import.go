@@ -76,7 +76,10 @@ func importYaml(r io.Reader) ([]*YamlSection, error) {
 		} else {
 			b = data[chunks[i][1]:]
 		}
-		vp.ReadConfig(bytes.NewBuffer(b))
+		err = vp.ReadConfig(bytes.NewBuffer(b))
+		if err != nil {
+			return nil, err
+		}
 		sections = append(sections, &YamlSection{Bytes: b, Viper: vp})
 	}
 	return sections, nil

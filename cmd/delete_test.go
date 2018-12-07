@@ -35,8 +35,6 @@ func TestNewDeleteCmd(t *testing.T) {
 
 func TestDeleteRun(t *testing.T) {
 	Convey("Delete", t, func() {
-		//cwd, err := osext.ExecutableFolder()
-		//So(err, ShouldBeNil)
 		Convey("Can fail to find config file", func() {
 			c := &deleteCmd{
 				Options: &cmdOptions{

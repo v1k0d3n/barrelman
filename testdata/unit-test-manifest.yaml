@@ -43,8 +43,7 @@ data:
     location: https://./
     subpath: charts/test-minio
     reference: master
-  dependencies:
-    - kubernetes-common
+  dependencies: []
 ---
 schema: armada/ChartGroup/v1
 metadata:
