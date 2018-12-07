@@ -22,13 +22,45 @@ func TestNewApplyCmd(t *testing.T) {
 			})
 			So(cmd.Name(), ShouldEqual, "apply")
 		})
+		Convey("Can fail Run", func() {
+			cmd := newApplyCmd(&applyCmd{
+				Options: &cmdOptions{},
+				Config:  &Config{},
+			})
+
+			err := cmd.RunE(cmd, []string{})
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldContainSubstring, "no such file or directory")
+		})
 	})
 }
 
+func TestDiff(t *testing.T) {
+	Convey("Should handle DiffRelease failure", t, func() {
+
+		session := &mocks.Sessioner{}
+		rt := releaseTargets{
+			&releaseTarget{
+				ReleaseMeta: &cluster.ReleaseMeta{
+					Name:      "storage-minio",
+					Namespace: "scratch",
+				},
+				State: Upgradable,
+			},
+		}
+
+		session.On("DiffRelease", mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
+			return true
+		}),
+		).Return(true, []byte{}, errors.New("simulated fail in DiffRelease"))
+		_, err := rt.Diff(session)
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldContainSubstring, "simulated")
+		session.AssertExpectations(t)
+	})
+}
 func TestApplyRun(t *testing.T) {
 	Convey("Run", t, func() {
-		//cwd, err := osext.ExecutableFolder()
-		//So(err, ShouldBeNil)
 		Convey("Can fail to find config file", func() {
 			c := &applyCmd{
 				Options: &cmdOptions{
@@ -39,6 +71,51 @@ func TestApplyRun(t *testing.T) {
 			err := c.Run(session)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "no such file or directory")
+		})
+
+		Convey("Can handle Init failure", func() {
+			c := &applyCmd{
+				Options: &cmdOptions{
+					ConfigFile:     getTestDataDir() + "/config",
+					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
+					DataDir:        getTestDataDir() + "/",
+					KubeConfigFile: getTestDataDir() + "/kube/config",
+					DryRun:         false,
+					InstallRetry:   3,
+					NoSync:         true,
+				},
+			}
+			session := &mocks.Sessioner{}
+			session.On("Init").Return(errors.New("simulated Init failure")).Once()
+
+			err := c.Run(session)
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldContainSubstring, "simulated Init failure")
+			session.AssertExpectations(t)
+		})
+
+		Convey("Can handle Releases failure", func() {
+			c := &applyCmd{
+				Options: &cmdOptions{
+					ConfigFile:     getTestDataDir() + "/config",
+					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
+					DataDir:        getTestDataDir() + "/",
+					KubeConfigFile: getTestDataDir() + "/kube/config",
+					DryRun:         false,
+					InstallRetry:   3,
+					NoSync:         true,
+				},
+			}
+			session := &mocks.Sessioner{}
+			session.On("Init").Return(nil).Once()
+			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Once()
+			session.On("GetKubeContext").Return("").Once()
+			session.On("Releases").Return(nil, errors.New("small error")).Once()
+
+			err := c.Run(session)
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldContainSubstring, "small error")
+			session.AssertExpectations(t)
 		})
 
 		Convey("Can succeed with one install failure (retry)", func() {
@@ -162,6 +239,39 @@ func TestApplyRun(t *testing.T) {
 
 			err := c.Run(session)
 			So(err, ShouldBeNil)
+			session.AssertExpectations(t)
+		})
+
+		Convey("Should fail in replacing release (Force)", func() {
+			c := &applyCmd{
+				Options: &cmdOptions{
+					ConfigFile:     getTestDataDir() + "/config",
+					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
+					DataDir:        getTestDataDir() + "/",
+					KubeConfigFile: getTestDataDir() + "/kube/config",
+					DryRun:         false,
+					InstallRetry:   3,
+					NoSync:         true,
+					Force:          &[]string{"storage-minio"},
+				},
+			}
+			session := &mocks.Sessioner{}
+			session.On("Init").Return(nil).Once()
+			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Once()
+			session.On("GetKubeContext").Return("").Once()
+			session.On("Releases").Return(map[string]*cluster.ReleaseMeta{
+				"storage-minio": &cluster.ReleaseMeta{
+					Name: "storage-minio",
+				},
+			}, nil).Once()
+
+			session.On("DeleteRelease", mock.Anything).Return(
+				errors.New("you can't delete here"),
+			).Once()
+
+			err := c.Run(session)
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldContainSubstring, "you can't")
 			session.AssertExpectations(t)
 		})
 

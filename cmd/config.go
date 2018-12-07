@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"regexp"
 	"strconv"
@@ -28,12 +27,24 @@ type BarrelmanConfig struct {
 }
 
 func GetConfigFromFile(s string) (*Config, error) {
-	config := &Config{}
-	config.Account = make(map[string]*chartsync.Account)
-	b, err := loadConfig(s)
+	f, err := os.Open(s)
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		f.Close()
+	}()
+
+	b, err := toBarrelmanConfig(s, f)
+	if err != nil {
+		return nil, err
+	}
+	return GetConfigFromBarrelmanConfig(b)
+}
+
+func GetConfigFromBarrelmanConfig(b *BarrelmanConfig) (*Config, error) {
+	config := &Config{}
+	config.Account = make(map[string]*chartsync.Account)
 
 	account := b.Viper.Get("account")
 	// This block supports the YAML format :
@@ -68,27 +79,23 @@ func GetConfigFromFile(s string) (*Config, error) {
 					return nil, errors.WithFields(errors.Fields{
 						"File":      b.FilePath,
 						"ValueType": fmt.Sprintf("%T", vv),
-					}).New("Failed to parse accounts in config file")
+					}).New("Failed to parse accounts in config")
 				}
 				config.Account[kk.(string)] = acc
 			}
 		}
 	default:
-		return nil, errors.WithFields(errors.Fields{"File": b.FilePath}).New("failed to parse accounts in config file")
+		return nil, errors.WithFields(errors.Fields{"File": b.FilePath}).New("failed to parse accounts in config")
 	}
 	return config, nil
 }
 
-func loadConfig(s string) (*BarrelmanConfig, error) {
+func toBarrelmanConfig(s string, r io.Reader) (*BarrelmanConfig, error) {
 	barrelConfig := &BarrelmanConfig{FilePath: s}
-	data, err := ioutil.ReadFile(s)
-	if err != nil {
-		return nil, errors.WithFields(errors.Fields{"File": s}).Wrap(err, "could not read config file")
-	}
 
 	barrelConfig.Viper = viper.New()
 	barrelConfig.Viper.SetConfigType("yaml")
-	if err := barrelConfig.Viper.ReadConfig(bytes.NewBuffer(data)); err != nil {
+	if err := barrelConfig.Viper.ReadConfig(r); err != nil {
 		return nil, errors.WithFields(errors.Fields{"File": barrelConfig.FilePath}).Wrap(err, "failed to read barrelman config file")
 	}
 
@@ -115,8 +122,10 @@ func toString(v interface{}) string {
 	switch v.(type) {
 	case string:
 		return v.(string)
-	case int:
+	case int, int8, int16, int32, int64:
 		return strconv.Itoa(v.(int))
+	case float32, float64:
+		return fmt.Sprintf("%v", v)
 	default:
 		panic(fmt.Sprintf("unhandled type in toString(): %T\n", v))
 	}

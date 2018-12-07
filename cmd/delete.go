@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"os"
-
 	"github.com/charter-se/barrelman/cluster"
 	"github.com/charter-se/barrelman/manifest"
 	"github.com/charter-se/structured/errors"
@@ -21,16 +19,16 @@ func newDeleteCmd(cmd *deleteCmd) *cobra.Command {
 		Use:   "delete [manifest.yaml]",
 		Short: "delete something",
 		Long:  `Something something else...`,
-		Run: func(cobraCmd *cobra.Command, args []string) {
+		RunE: func(cobraCmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				cmd.Options.ManifestFile = args[0]
 			}
 			if err := cmd.Run(cluster.NewSession(
 				cmd.Options.KubeContext,
 				cmd.Options.KubeConfigFile)); err != nil {
-				log.Error(err)
-				os.Exit(1)
+				return err
 			}
+			return nil
 		},
 	}
 	cobraCmd.Flags().StringVar(

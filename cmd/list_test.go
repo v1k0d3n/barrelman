@@ -18,7 +18,18 @@ func TestNewListCmd(t *testing.T) {
 			})
 			So(cmd.Name(), ShouldEqual, "list")
 		})
+		Convey("Can fail Run", func() {
+			cmd := newListCmd(&listCmd{
+				Options: &cmdOptions{},
+				Config:  &Config{},
+			})
+
+			err := cmd.RunE(cmd, []string{})
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldContainSubstring, "no such file or directory")
+		})
 	})
+
 }
 
 func TestListRun(t *testing.T) {

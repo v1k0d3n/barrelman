@@ -20,6 +20,16 @@ func TestNewDeleteCmd(t *testing.T) {
 			})
 			So(cmd.Name(), ShouldEqual, "delete")
 		})
+		Convey("Can fail Run", func() {
+			cmd := newDeleteCmd(&deleteCmd{
+				Options: &cmdOptions{},
+				Config:  &Config{},
+			})
+
+			err := cmd.RunE(cmd, []string{})
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldContainSubstring, "no such file or directory")
+		})
 	})
 }
 

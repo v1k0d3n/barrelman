@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/charter-se/barrelman/cluster"
 	"github.com/charter-se/barrelman/manifest"
@@ -38,16 +37,16 @@ func newApplyCmd(cmd *applyCmd) *cobra.Command {
 		Use:   "apply [manifest.yaml]",
 		Short: "apply something",
 		Long:  `Something something else...`,
-		Run: func(cobraCmd *cobra.Command, args []string) {
+		RunE: func(cobraCmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				cmd.Options.ManifestFile = args[0]
 			}
 			if err := cmd.Run(cluster.NewSession(
 				cmd.Options.KubeContext,
 				cmd.Options.KubeConfigFile)); err != nil {
-				log.Error(err)
-				os.Exit(1)
+				return err
 			}
+			return nil
 		},
 	}
 	cobraCmd.Flags().StringVar(
@@ -160,7 +159,7 @@ func (cmd *applyCmd) Run(session cluster.Sessioner) error {
 		return err
 	}
 	if cmd.Options.Diff {
-		rt.LogDiff(session)
+		rt.LogDiff()
 		return nil
 	}
 	log.Info("Doing apply")
@@ -264,7 +263,7 @@ func (rt releaseTargets) Diff(session cluster.Sessioner) (releaseTargets, error)
 	return rt, nil
 }
 
-func (rt releaseTargets) LogDiff(session cluster.Sessioner) {
+func (rt releaseTargets) LogDiff() {
 	for _, v := range rt {
 		switch v.State {
 		case Installable:

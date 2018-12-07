@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -19,5 +20,21 @@ func TestConfig(t *testing.T) {
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "unit-test-manifest.yaml")
 		})
+		Convey("Can fail to parse", func() {
+			r := bytes.NewBufferString(badConfig)
+			bc, err := toBarrelmanConfig("/pretend/path", r)
+			So(err, ShouldBeNil)
+			_, err = GetConfigFromBarrelmanConfig(bc)
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldContainSubstring, "failed to parse")
+		})
 	})
 }
+
+var badConfig = `
+account:
+  github.com:
+     type: token
+     user: username
+     secret: 12345678901011112113114115
+`
