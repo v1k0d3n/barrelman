@@ -1,0 +1,7 @@
+---
+account:
+  - github.com:
+      type: token
+      user: demond2
+      secret: 8675309
+
