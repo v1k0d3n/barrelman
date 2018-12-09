@@ -144,7 +144,7 @@ func New(c *Config) (*Manifest, error) {
 	}
 	m.ChartSync = chartsync.New(m.Config.DataDir)
 	if err := m.load(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Error running chartsync")
 	}
 
 	return m, nil
@@ -348,10 +348,13 @@ func (m *Manifest) GetChartSpec(c *Chart) (string, []*ChartSpec, error) {
 		}
 		return ret, nil
 	}()
+	if err != nil {
+		return "", nil, errors.Wrap(err, "failed to compute dependencies")
+	}
 	return path, dependCharts, nil
 }
 
-//CreateArchives builds archives for charts configured in the manifest
+//CreateArchives creates archives for charts configured in the manifest
 func (m *Manifest) CreateArchives() (*ArchiveFiles, error) {
 	af := &ArchiveFiles{List: []*ArchiveSpec{}}
 	//Chart groups as defined by Armada YAML spec
@@ -439,6 +442,7 @@ func Package(depends []*ChartSpec, src string, writers ...io.Writer) error {
 			return errors.Wrap(err, "failed while tar.FileInfoHeader()")
 		}
 		// update the name to correctly reflect the desired destination when untaring
+		// k8s expects the chart to be in a subdir
 		header.Name = fmt.Sprintf("this/%v", strings.TrimPrefix(strings.Replace(file, src, "", -1), string(filepath.Separator)))
 		if header.Name == "" {
 			return errors.Wrap(err, "failed constructing header.Name")
