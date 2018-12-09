@@ -354,7 +354,7 @@ func (m *Manifest) GetChartSpec(c *Chart) (string, []*ChartSpec, error) {
 	return path, dependCharts, nil
 }
 
-//CreateArchives creqtes archives for charts configured in the manifest
+//CreateArchives creates archives for charts configured in the manifest
 func (m *Manifest) CreateArchives() (*ArchiveFiles, error) {
 	af := &ArchiveFiles{List: []*ArchiveSpec{}}
 	//Chart groups as defined by Armada YAML spec
