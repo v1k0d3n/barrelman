@@ -28,6 +28,7 @@ type ChartSync struct {
 type ChartMeta struct {
 	Name       string
 	Location   string
+	Type       string
 	SubPath    string
 	Depends    []string
 	Groups     []string
@@ -46,8 +47,8 @@ func (cs *ChartSync) Sync(acc AccountTable) error {
 			if err := cs.gitDownload(v, acc); err != nil {
 				return errors.WithFields(errors.Fields{"Location": v.Location}).Wrap(err, "error doing git download")
 			}
-		case sourcetype.Local:
-			fmt.Printf("Got sourcetype.Local\n")
+		case sourcetype.File:
+		case sourcetype.Dir:
 		case sourcetype.Unknown:
 			return errors.WithFields(errors.Fields{
 				"Location":   v.Location,
@@ -66,14 +67,24 @@ func (cs *ChartSync) Sync(acc AccountTable) error {
 }
 
 func (cs *ChartSync) GetPath(c *ChartMeta) (string, error) {
-	u, err := url.Parse(c.Location)
-	if err != nil {
-		return "", err
+	var target string
+
+	switch c.SourceType {
+	case sourcetype.Git:
+		u, err := url.Parse(c.Location)
+		if err != nil {
+			return "", err
+		}
+		target = fmt.Sprintf("%v/%v%v/%v", cs.Library, u.Host, u.Path, c.SubPath)
+	case sourcetype.File:
+		target = c.Location
+	case sourcetype.Dir:
+		target = c.Location
 	}
-	target := fmt.Sprintf("%v/%v%v/%v", cs.Library, u.Host, u.Path, c.SubPath)
 	if _, err := os.Stat(target); os.IsNotExist(err) {
 		return "", errors.WithFields(errors.Fields{"Path": target}).Wrap(err, "target path missing")
 	}
+
 	return target, nil
 }
 
