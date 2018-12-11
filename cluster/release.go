@@ -115,7 +115,11 @@ func (s *Session) InstallRelease(m *ReleaseMeta, chart []byte) (string, string, 
 		helm.InstallTimeout(int64(m.InstallTimeout.Seconds())),
 	)
 	if err != nil {
-		return "", "", errors.Wrap(err, "failed install")
+		return "", "", errors.WithFields(errors.Fields{
+			"File":      m.Path,
+			"Name":      m.Name,
+			"Namespace": m.Namespace,
+		}).Wrap(err, "failed install")
 	}
 	return res.Release.Info.Description, res.Release.Name, err
 }

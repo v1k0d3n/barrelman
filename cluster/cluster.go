@@ -63,8 +63,6 @@ func (s *Session) SetKubeContext(c string) {
 //Init establishes connextions to the cluster
 func (s *Session) Init() error {
 
-	fmt.Printf("NewSession Context: %v\n", s.GetKubeContext())
-
 	tillerNamespace := os.Getenv("TILLER_NAMESPACE")
 	if tillerNamespace == "" {
 		tillerNamespace = "kube-system"
