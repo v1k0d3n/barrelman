@@ -23,6 +23,8 @@ func newListCmd(cmd *listCmd) *cobra.Command {
 			if len(args) > 0 {
 				cmd.Options.ManifestFile = args[0]
 			}
+			cobraCmd.SilenceUsage = true
+			cobraCmd.SilenceErrors = true
 			if err := cmd.Run(); err != nil {
 				log.Error(err)
 				os.Exit(1)
