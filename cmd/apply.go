@@ -296,9 +296,10 @@ func (rt releaseTargets) Apply(session *cluster.Session, opt *cmdOptions) error 
 		case Installable, Replaceable:
 			if err := func() error {
 				//This closure removes a "break OUT"
-				var err error
+
+				var innerErr error
 				if v.State == Replaceable {
-					//The relase exists, it needs to be deleted
+					//The release exists, it needs to be deleted
 					dm := &cluster.DeleteMeta{
 						Name:      v.ReleaseMeta.Name,
 						Namespace: v.ReleaseMeta.Namespace,
@@ -314,6 +315,7 @@ func (rt releaseTargets) Apply(session *cluster.Session, opt *cmdOptions) error 
 				for i := 0; i < opt.InstallRetry; i++ {
 					msg, relName, err := session.InstallRelease(v.ReleaseMeta, []byte{})
 					if err != nil {
+						innerErr = err
 						continue
 					}
 					log.WithFields(log.Fields{
@@ -321,12 +323,13 @@ func (rt releaseTargets) Apply(session *cluster.Session, opt *cmdOptions) error 
 						"Namespace": v.ReleaseMeta.Namespace,
 						"Release":   relName,
 					}).Info(msg)
+					innerErr = nil
 					return nil
 				}
 				return errors.WithFields(errors.Fields{
 					"Name":      v.ReleaseMeta.Name,
 					"Namespace": v.ReleaseMeta.Namespace,
-				}).Wrap(err, "Error while installing release")
+				}).Wrap(innerErr, "Error while installing release")
 			}(); err != nil {
 				return err
 			}
