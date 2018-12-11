@@ -44,10 +44,9 @@ func newDeleteCmd(cmd *deleteCmd) *cobra.Command {
 	return cobraCmd
 }
 
-func runDeleteCmd(cmd *deleteCmd) error {
-	log.Warn("Barrelman Delete Engage!")
-
+func (cmd *deleteCmd) Run(session cluster.Sessioner) error {
 	var err error
+
 	cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
 	if err != nil {
 		return errors.Wrap(err, "got error while loading config")
@@ -58,17 +57,16 @@ func runDeleteCmd(cmd *deleteCmd) error {
 		return errors.Wrap(err, "failed to create working directory")
 	}
 
-	// Open connections to the k8s APIs
-	session := cluster.NewSession(cmd.Options.KubeContext, cmd.Options.KubeConfigFile)
 	if err = session.Init(); err != nil {
 		return errors.Wrap(err, "failed to create new cluster session")
 	}
+
 	log.WithFields(log.Fields{
-		"file": session.KubeConfig,
+		"file": session.GetKubeConfig(),
 	}).Info("Using kube config")
-	if session.KubeContext != "" {
+	if session.GetKubeContext() != "" {
 		log.WithFields(log.Fields{
-			"file": session.KubeContext,
+			"file": session.GetKubeContext(),
 		}).Info("Using kube context")
 	}
 
@@ -92,14 +90,14 @@ func runDeleteCmd(cmd *deleteCmd) error {
 	return nil
 }
 
-func DeleteByManifest(bm *manifest.Manifest, c *cluster.Session) error {
+func DeleteByManifest(bm *manifest.Manifest, session cluster.Sessioner) error {
 	deleteList := make(map[string]*cluster.DeleteMeta)
 	groups, err := bm.GetChartGroups()
 	if err != nil {
 		return errors.Wrap(err, "error resolving chart groups")
 	}
 
-	releases, err := c.ListReleases()
+	releases, err := session.ListReleases()
 	if err != nil {
 		return errors.Wrap(err, "failed to list releases")
 	}
@@ -122,7 +120,7 @@ func DeleteByManifest(bm *manifest.Manifest, c *cluster.Session) error {
 					"Name":    v.Name,
 					"Release": dm.Name,
 				}).Info("deleting release")
-				if err := c.DeleteRelease(dm); err != nil {
+				if err := session.DeleteRelease(dm); err != nil {
 					return errors.Wrap(err, "error deleting list")
 				}
 			}

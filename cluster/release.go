@@ -65,11 +65,11 @@ type ReleaseDiff struct {
 
 type Releaser interface {
 	ListReleases() ([]*Release, error)
-	InstallRelease(*ReleaseMeta, []byte, bool) (string, string, error)
+	InstallRelease(*ReleaseMeta, []byte) (string, string, error)
 	DiffRelease(m *ReleaseMeta) (bool, []byte, error)
 	UpgradeRelease(m *ReleaseMeta) (string, error)
-	DeleteReleases(dm []*DeleteMeta)
-	DeleteRelease(m *DeleteMeta)
+	DeleteReleases(dm []*DeleteMeta) error
+	DeleteRelease(m *DeleteMeta) error
 	Releases() (map[string]*ReleaseMeta, error)
 	DiffManifests(map[string]*MappingResult, map[string]*MappingResult, []string, int, io.Writer) bool
 }
@@ -115,7 +115,11 @@ func (s *Session) InstallRelease(m *ReleaseMeta, chart []byte) (string, string, 
 		helm.InstallTimeout(int64(m.InstallTimeout.Seconds())),
 	)
 	if err != nil {
-		return "", "", errors.Wrap(err, "failed install")
+		return "", "", errors.WithFields(errors.Fields{
+			"File":      m.Path,
+			"Name":      m.Name,
+			"Namespace": m.Namespace,
+		}).Wrap(err, "failed install")
 	}
 	return res.Release.Info.Description, res.Release.Name, err
 }
