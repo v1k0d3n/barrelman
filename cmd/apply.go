@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/charter-se/barrelman/cluster"
 	"github.com/charter-se/barrelman/manifest"
@@ -38,14 +37,18 @@ func newApplyCmd(cmd *applyCmd) *cobra.Command {
 		Use:   "apply [manifest.yaml]",
 		Short: "apply something",
 		Long:  `Something something else...`,
-		Run: func(cobraCmd *cobra.Command, args []string) {
+		RunE: func(cobraCmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				cmd.Options.ManifestFile = args[0]
 			}
-			if err := cmd.Run(); err != nil {
-				log.Error(err)
-				os.Exit(1)
+			cobraCmd.SilenceUsage = true
+			cobraCmd.SilenceErrors = true
+			if err := cmd.Run(cluster.NewSession(
+				cmd.Options.KubeContext,
+				cmd.Options.KubeConfigFile)); err != nil {
+				return err
 			}
+			return nil
 		},
 	}
 	cobraCmd.Flags().StringVar(
@@ -86,7 +89,7 @@ func newApplyCmd(cmd *applyCmd) *cobra.Command {
 	return cobraCmd
 }
 
-func (cmd *applyCmd) Run() error {
+func (cmd *applyCmd) Run(session cluster.Sessioner) error {
 	var err error
 	cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
 	if err != nil {
@@ -98,17 +101,15 @@ func (cmd *applyCmd) Run() error {
 		return errors.Wrap(err, "failed to create working directory")
 	}
 
-	// Open connections to the k8s APIs
-	session := cluster.NewSession(cmd.Options.KubeContext, cmd.Options.KubeConfigFile)
 	if err = session.Init(); err != nil {
 		return errors.Wrap(err, "failed to create new cluster session")
 	}
 	log.WithFields(log.Fields{
-		"file": session.KubeConfig,
+		"file": session.GetKubeConfig(),
 	}).Info("Using kube config")
-	if session.KubeContext != "" {
+	if session.GetKubeContext() != "" {
 		log.WithFields(log.Fields{
-			"file": session.KubeContext,
+			"file": session.GetKubeContext(),
 		}).Info("Using kube context")
 	}
 
@@ -160,7 +161,7 @@ func (cmd *applyCmd) Run() error {
 		return err
 	}
 	if cmd.Options.Diff {
-		rt.LogDiff(session)
+		rt.LogDiff()
 		return nil
 	}
 	log.Info("Doing apply")
@@ -184,7 +185,7 @@ func (cmd *applyCmd) isInForce(rel *cluster.ReleaseMeta) bool {
 }
 
 func (cmd *applyCmd) ComputeReleases(
-	session *cluster.Session,
+	session cluster.Sessioner,
 	archives *manifest.ArchiveFiles,
 	currentReleases map[string]*cluster.ReleaseMeta) releaseTargets {
 	rt := releaseTargets{}
@@ -230,7 +231,7 @@ func (cmd *applyCmd) ComputeReleases(
 	return rt
 }
 
-func (rt releaseTargets) dryRun(session *cluster.Session) error {
+func (rt releaseTargets) dryRun(session cluster.Sessioner) error {
 	for _, v := range rt {
 		v.ReleaseMeta.DryRun = true
 		switch v.State {
@@ -249,7 +250,7 @@ func (rt releaseTargets) dryRun(session *cluster.Session) error {
 	return nil
 }
 
-func (rt releaseTargets) Diff(session *cluster.Session) (releaseTargets, error) {
+func (rt releaseTargets) Diff(session cluster.Sessioner) (releaseTargets, error) {
 	var err error
 	for _, v := range rt {
 		v.ReleaseMeta.DryRun = true
@@ -264,7 +265,7 @@ func (rt releaseTargets) Diff(session *cluster.Session) (releaseTargets, error) 
 	return rt, nil
 }
 
-func (rt releaseTargets) LogDiff(session *cluster.Session) {
+func (rt releaseTargets) LogDiff() {
 	for _, v := range rt {
 		switch v.State {
 		case Installable:
@@ -288,7 +289,7 @@ func (rt releaseTargets) LogDiff(session *cluster.Session) {
 	}
 }
 
-func (rt releaseTargets) Apply(session *cluster.Session, opt *cmdOptions) error {
+func (rt releaseTargets) Apply(session cluster.Sessioner, opt *cmdOptions) error {
 	for _, v := range rt {
 		v.ReleaseMeta.DryRun = false
 		switch v.State {
@@ -296,9 +297,10 @@ func (rt releaseTargets) Apply(session *cluster.Session, opt *cmdOptions) error 
 		case Installable, Replaceable:
 			if err := func() error {
 				//This closure removes a "break OUT"
-				var err error
+
+				var innerErr error
 				if v.State == Replaceable {
-					//The relase exists, it needs to be deleted
+					//The release exists, it needs to be deleted
 					dm := &cluster.DeleteMeta{
 						Name:      v.ReleaseMeta.Name,
 						Namespace: v.ReleaseMeta.Namespace,
@@ -314,6 +316,7 @@ func (rt releaseTargets) Apply(session *cluster.Session, opt *cmdOptions) error 
 				for i := 0; i < opt.InstallRetry; i++ {
 					msg, relName, err := session.InstallRelease(v.ReleaseMeta, []byte{})
 					if err != nil {
+						innerErr = err
 						continue
 					}
 					log.WithFields(log.Fields{
@@ -321,12 +324,13 @@ func (rt releaseTargets) Apply(session *cluster.Session, opt *cmdOptions) error 
 						"Namespace": v.ReleaseMeta.Namespace,
 						"Release":   relName,
 					}).Info(msg)
+					innerErr = nil
 					return nil
 				}
 				return errors.WithFields(errors.Fields{
 					"Name":      v.ReleaseMeta.Name,
 					"Namespace": v.ReleaseMeta.Namespace,
-				}).Wrap(err, "Error while installing release")
+				}).Wrap(innerErr, "Error while installing release")
 			}(); err != nil {
 				return err
 			}

@@ -82,6 +82,7 @@ type ChartData struct {
 	Install      *ChartDataInstall
 	Upgrade      *ChartDataUpgrade
 	SubPath      string
+	SourceType   sourcetype.SourceType
 	Location     string
 	Values       map[string]string
 	Overrides    []byte
@@ -112,6 +113,7 @@ type ArchiveSpec struct {
 	Path      string
 	Namespace string
 	Overrides []byte
+	Purge     bool
 }
 
 type ArchiveFiles struct {
@@ -242,6 +244,11 @@ func (m *Manifest) Sync(config chartsync.AccountTable) error {
 		if err != nil {
 			return errors.WithFields(errors.Fields{"Type": typ}).Wrap(err, "failed to parse source")
 		}
+		if typ == sourcetype.Unset {
+			return errors.WithFields(errors.Fields{
+				"Name": k.GetString("metadata.name"),
+			}).New("encountered chart metadata with missing data.source.type")
+		}
 		//Add each chart to repo to download/update all charts
 		m.ChartSync.Add(&chartsync.ChartMeta{
 			Name:       k.GetString("metadata.name"),
@@ -268,6 +275,17 @@ func (m *Manifest) load() error {
 		}
 		switch schem.Type {
 		case StringChart:
+			st, err := sourcetype.Parse(k.GetString("data.source.type"))
+			if err != nil {
+				return errors.WithFields(errors.Fields{
+					"Type": st,
+				}).Wrap(err, "failed to parse source")
+			}
+			if st == sourcetype.Unset {
+				return errors.WithFields(errors.Fields{
+					"Name": k.GetString("metadata.name"),
+				}).New("encountered chart metadata with missing data.source.type")
+			}
 			chart := NewChart()
 			chart.Name = k.GetString("metadata.name")
 			chart.Version = schem.Version
@@ -276,6 +294,7 @@ func (m *Manifest) load() error {
 			chart.Data.Namespace = k.GetString("data.namespace")
 			chart.Data.SubPath = k.GetString("data.source.subpath")
 			chart.Data.Location = k.GetString("data.source.location")
+			chart.Data.SourceType = st
 			chart.Data.Overrides, err = yaml.Marshal(k.Viper.Sub("data.values").AllSettings())
 			if err != nil {
 				return errors.Wrap(err, "Error reading value overides in chart")
@@ -320,10 +339,11 @@ func parseSchema(input string) (*Schema, error) {
 func (m *Manifest) GetChartSpec(c *Chart) (string, []*ChartSpec, error) {
 
 	path, err := m.ChartSync.GetPath(&chartsync.ChartMeta{
-		Name:     c.Name,
-		Location: c.Data.Location,
-		Depends:  c.Data.Dependencies,
-		SubPath:  c.Data.SubPath,
+		Name:       c.Name,
+		Location:   c.Data.Location,
+		Depends:    c.Data.Dependencies,
+		SubPath:    c.Data.SubPath,
+		SourceType: c.Data.SourceType,
 	})
 	if err != nil {
 		return "", nil, errors.Wrap(err, "Failed to get yaml file path")
@@ -333,18 +353,25 @@ func (m *Manifest) GetChartSpec(c *Chart) (string, []*ChartSpec, error) {
 		for _, v := range c.Data.Dependencies {
 			thischart := m.GetChart(v)
 			if thischart == nil {
-				return nil, errors.WithFields(errors.Fields{"Dependancy": v}).New("failed getting depended chart")
+				return nil, errors.WithFields(errors.Fields{
+					"Dependancy": v,
+				}).New("failed getting depended chart")
 			}
 			thispath, err := m.ChartSync.GetPath(&chartsync.ChartMeta{
-				Name:     thischart.Name,
-				Location: thischart.Data.Location,
-				Depends:  thischart.Data.Dependencies,
-				SubPath:  thischart.Data.SubPath,
+				Name:       thischart.Name,
+				Location:   thischart.Data.Location,
+				Depends:    thischart.Data.Dependencies,
+				SubPath:    thischart.Data.SubPath,
+				SourceType: thischart.Data.SourceType,
 			})
 			if err != nil {
 				return nil, errors.Wrap(err, "Failed getting path")
 			}
-			ret = append(ret, &ChartSpec{Name: thischart.Name, Path: thispath})
+			absPath, err := filepath.Abs(thispath)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to get absolute path")
+			}
+			ret = append(ret, &ChartSpec{Name: thischart.Name, Path: absPath})
 		}
 		return ret, nil
 	}()
@@ -371,22 +398,55 @@ func (m *Manifest) CreateArchives() (*ArchiveFiles, error) {
 		}
 		//For each chart within the group
 		for _, chart := range charts {
-			//Get the local file path and dependancies for the chart
-			path, dependCharts, err := m.GetChartSpec(chart)
-			if err != nil {
-				return nil, errors.Wrap(err, "error getting chart path")
-			}
-			//Build the tgz archive
-			tgz, err := createChartArchive(m.Config.DataDir, path, dependCharts)
-			if err != nil {
-				return nil, errors.WithFields(errors.Fields{"Archive": tgz}).Wrap(err, "failed getting depended chart")
-			}
-			af.List = append(af.List, &ArchiveSpec{
+			as := &ArchiveSpec{
 				Name:      chart.Name,
-				Path:      tgz,
 				Namespace: chart.Data.Namespace,
 				Overrides: chart.Data.Overrides,
-			})
+			}
+			switch chart.Data.SourceType {
+			case sourcetype.Git:
+				//Get the local file path and dependancies for the chart
+				path, dependCharts, err := m.GetChartSpec(chart)
+				if err != nil {
+					return nil, errors.Wrap(err, "error getting chart path")
+				}
+				as.Purge = true
+				//Build the tgz archive
+				as.Path, err = createChartArchive(m.Config.DataDir, path, dependCharts)
+				if err != nil {
+					return nil, errors.WithFields(errors.Fields{"Archive": path}).Wrap(err, "failed getting depended chart")
+				}
+			case sourcetype.Dir:
+				//Get the local file path and dependancies for the chart
+				path, dependCharts, err := m.GetChartSpec(chart)
+				if err != nil {
+					return nil, errors.Wrap(err, "error getting chart path")
+				}
+				as.Purge = false
+				path, err = filepath.Abs(path)
+				if err != nil {
+					return nil, errors.Wrap(err, "Failed to get absolute path")
+				}
+				//Build the tgz archive
+				as.Path, err = createChartArchive(m.Config.DataDir, path, dependCharts)
+				if err != nil {
+					return nil, errors.WithFields(errors.Fields{"Archive": path}).Wrap(err, "failed getting depended chart")
+				}
+			case sourcetype.File:
+				if _, err := os.Stat(chart.Data.Location); os.IsNotExist(err) {
+					return nil, errors.WithFields(errors.Fields{
+						"Archive": chart.Data.Location,
+					}).New("chart does not exist")
+				}
+				as.Path = chart.Data.Location
+			default:
+				return nil, errors.WithFields(errors.Fields{
+					"SourceType": sourcetype.Print(chart.Data.SourceType),
+					"Name":       chart.Name,
+					"Namespace":  chart.Data.Namespace,
+				}).New("Unknown repository type")
+			}
+			af.List = append(af.List, as)
 		}
 	}
 	return af, nil
@@ -414,7 +474,6 @@ func tempFileName(prefix, suffix string) string {
 
 //Package creates an archive based on dependancies contained in []*ChartSpec
 func Package(depends []*ChartSpec, src string, writers ...io.Writer) error {
-
 	// ensure the src actually exists before trying to tar it
 	if _, err := os.Stat(src); err != nil {
 		return errors.Wrap(err, "unable to tar files")
@@ -447,6 +506,7 @@ func Package(depends []*ChartSpec, src string, writers ...io.Writer) error {
 		if header.Name == "" {
 			return errors.Wrap(err, "failed constructing header.Name")
 		}
+
 		// write the header
 		if err := tw.WriteHeader(header); err != nil {
 			return errors.Wrap(err, "failed while tw.WriteHeader()")
@@ -491,6 +551,7 @@ func Package(depends []*ChartSpec, src string, writers ...io.Writer) error {
 			if header.Name == "" {
 				return errors.Wrap(err, "failed while processing dependencies constructing header.Name")
 			}
+
 			if err := tw.WriteHeader(header); err != nil {
 				return errors.Wrap(err, "failed while processing dependencies tw.WriteHeader()")
 			}
@@ -517,8 +578,10 @@ func Package(depends []*ChartSpec, src string, writers ...io.Writer) error {
 
 func (a *ArchiveFiles) Purge() error {
 	for _, v := range a.List {
-		if err := os.Remove(v.Path); err != nil {
-			return errors.WithFields(errors.Fields{"file": v.Path}).Wrap(err, "failed while cleaning up archives")
+		if v.Purge {
+			if err := os.Remove(v.Path); err != nil {
+				return errors.WithFields(errors.Fields{"file": v.Path}).Wrap(err, "failed while cleaning up archives")
+			}
 		}
 	}
 	return nil

@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"os"
-
 	"github.com/charter-se/barrelman/cluster"
 	"github.com/charter-se/barrelman/manifest"
 	"github.com/charter-se/structured/errors"
@@ -21,14 +19,18 @@ func newDeleteCmd(cmd *deleteCmd) *cobra.Command {
 		Use:   "delete [manifest.yaml]",
 		Short: "delete something",
 		Long:  `Something something else...`,
-		Run: func(cobraCmd *cobra.Command, args []string) {
+		RunE: func(cobraCmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				cmd.Options.ManifestFile = args[0]
 			}
-			if err := runDeleteCmd(cmd); err != nil {
-				log.Error(err)
-				os.Exit(1)
+			cobraCmd.SilenceUsage = true
+			cobraCmd.SilenceErrors = true
+			if err := cmd.Run(cluster.NewSession(
+				cmd.Options.KubeContext,
+				cmd.Options.KubeConfigFile)); err != nil {
+				return err
 			}
+			return nil
 		},
 	}
 	cobraCmd.Flags().StringVar(
@@ -79,9 +81,11 @@ func (cmd *deleteCmd) Run(session cluster.Sessioner) error {
 		return errors.Wrap(err, "error while initializing manifest")
 	}
 
-	log.Info("syncronizing with remote chart repositories")
-	if err := mfest.Sync(cmd.Config.Account); err != nil {
-		return errors.Wrap(err, "error while downloading charts")
+	if !cmd.Options.NoSync {
+		log.Info("syncronizing with remote chart repositories")
+		if err := mfest.Sync(cmd.Config.Account); err != nil {
+			return errors.Wrap(err, "error while downloading charts")
+		}
 	}
 
 	if err := DeleteByManifest(mfest, session); err != nil {
@@ -103,7 +107,7 @@ func DeleteByManifest(bm *manifest.Manifest, session cluster.Sessioner) error {
 	}
 
 	for _, v := range releases {
-		deleteList[v.Chart.Metadata.Name] = &cluster.DeleteMeta{
+		deleteList[v.Name] = &cluster.DeleteMeta{
 			Name:      v.Name,
 			Namespace: "",
 		}
