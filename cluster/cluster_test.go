@@ -1,4 +1,5 @@
 //go:generate mockery -output "mockHelm" -dir ../vendor/k8s.io/helm/pkg/helm -name=Interface
+
 package cluster
 
 import (
