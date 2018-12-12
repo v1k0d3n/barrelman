@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/charter-se/barrelman/cluster"
 	"github.com/charter-se/barrelman/manifest"
@@ -38,14 +37,16 @@ func newApplyCmd(cmd *applyCmd) *cobra.Command {
 		Use:   "apply [manifest.yaml]",
 		Short: "apply something",
 		Long:  `Something something else...`,
-		Run: func(cobraCmd *cobra.Command, args []string) {
+		RunE: func(cobraCmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				cmd.Options.ManifestFile = args[0]
 			}
+			cobraCmd.SilenceUsage = true
+			cobraCmd.SilenceErrors = true
 			if err := cmd.Run(); err != nil {
-				log.Error(err)
-				os.Exit(1)
+				return err
 			}
+			return nil
 		},
 	}
 	cobraCmd.Flags().StringVar(

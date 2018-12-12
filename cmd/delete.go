@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"os"
-
 	"github.com/charter-se/barrelman/cluster"
 	"github.com/charter-se/barrelman/manifest"
 	"github.com/charter-se/structured/errors"
@@ -21,14 +19,16 @@ func newDeleteCmd(cmd *deleteCmd) *cobra.Command {
 		Use:   "delete [manifest.yaml]",
 		Short: "delete something",
 		Long:  `Something something else...`,
-		Run: func(cobraCmd *cobra.Command, args []string) {
+		RunE: func(cobraCmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				cmd.Options.ManifestFile = args[0]
 			}
-			if err := runDeleteCmd(cmd); err != nil {
-				log.Error(err)
-				os.Exit(1)
+			cobraCmd.SilenceUsage = true
+			cobraCmd.SilenceErrors = true
+			if err := cmd.Run(); err != nil {
+				return err
 			}
+			return nil
 		},
 	}
 	cobraCmd.Flags().StringVar(
@@ -44,7 +44,7 @@ func newDeleteCmd(cmd *deleteCmd) *cobra.Command {
 	return cobraCmd
 }
 
-func runDeleteCmd(cmd *deleteCmd) error {
+func (cmd *deleteCmd) Run() error {
 	log.Warn("Barrelman Delete Engage!")
 
 	var err error
