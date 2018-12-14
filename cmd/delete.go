@@ -81,6 +81,7 @@ func (cmd *deleteCmd) Run(session cluster.Sessioner) error {
 	mfest, err := manifest.New(&manifest.Config{
 		DataDir:      cmd.Options.DataDir,
 		ManifestFile: cmd.Options.ManifestFile,
+		AccountTable: cmd.Config.Account,
 	})
 	if err != nil {
 		return errors.Wrap(err, "error while initializing manifest")
@@ -88,7 +89,7 @@ func (cmd *deleteCmd) Run(session cluster.Sessioner) error {
 
 	if !cmd.Options.NoSync {
 		log.Info("syncronizing with remote chart repositories")
-		if err := mfest.Sync(cmd.Config.Account); err != nil {
+		if err := mfest.Sync(); err != nil {
 			return errors.Wrap(err, "error while downloading charts")
 		}
 	}
