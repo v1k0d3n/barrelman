@@ -11,7 +11,7 @@ type Registration struct {
 	Control Controller
 }
 
-type regFunc func(string, *ChartMeta) (interface{}, error)
+type regFunc func(string, *ChartMeta, AccountTable) (Archiver, error)
 type registrationList map[string]*Registration
 
 type reg struct {

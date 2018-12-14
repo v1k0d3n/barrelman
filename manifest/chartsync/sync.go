@@ -12,6 +12,14 @@ import (
 
 type AccountTable map[string]*Account
 
+type ArchiveConfig struct {
+	ChartMeta    *ChartMeta
+	ArchiveFunc  func(string, string, []*ChartSpec) (string, error)
+	DataDir      string
+	Path         string
+	DependCharts []*ChartSpec
+}
+
 type Account struct {
 	Typ    string
 	User   string
@@ -25,6 +33,11 @@ type ChartSync struct {
 	AccountTable AccountTable
 }
 
+type ChartSpec struct {
+	Name string
+	Path string
+}
+
 type Source struct {
 	Location  string
 	SubPath   string
@@ -36,16 +49,22 @@ type ChartMeta struct {
 	Type    string
 	Depends []string
 	Groups  []string
-	Control Controller
 }
 
 type Controller interface {
 	Syncer
 }
+
 type Syncer interface {
-	Sync() error
+	Sync(*ChartSync, AccountTable) error
 }
 
+type Archiver interface {
+	ArchiveRun(*ArchiveConfig) (string, error)
+}
+
+//Charter implements chart functions as per standard naming conventions
+//any resemblance to anything else is purely coincidental
 type Charter interface {
 	ChartMeta() *ChartMeta
 }
@@ -57,18 +76,9 @@ func New(d string, acc AccountTable) *ChartSync {
 	}
 }
 
-// func (cs *ChartSync) Sync() error {
-// 	for _, v := range cs.Charts {
-// 		if err := v.Control.Sync(); err != nil {
-// 			return errors.WithFields(errors.Fields{"Location": v.Source.Location}).Wrap(err, "error doing git download")
-// 		}
-// 	}
-// 	return nil
-// }
-
-func (cs *ChartSync) Sync() error {
+func (cs *ChartSync) Sync(acc AccountTable) error {
 	for _, control := range registry.AllControllers() {
-		if err := control.Sync(); err != nil {
+		if err := control.Sync(cs, acc); err != nil {
 			return err
 		}
 	}
@@ -76,11 +86,25 @@ func (cs *ChartSync) Sync() error {
 }
 
 func (c *ChartMeta) GetURI() (string, error) {
-	u, err := url.Parse(c.Source.Location)
-	if err != nil {
-		return "", err
+	return c.Source.Location, nil
+}
+
+func GetControl(s string) (Controller, error) {
+	if registration, ok := registry.Lookup(s); ok {
+		return registration.Control, nil
 	}
-	return fmt.Sprintf("%v/%v", u.Host, u.Path), nil
+	return nil, errors.WithFields(errors.Fields{
+		"SourceType": s,
+	}).New("failed to find handler for source")
+}
+
+func GetHandler(s string) (*Registration, error) {
+	if registration, ok := registry.Lookup(s); ok {
+		return registration, nil
+	}
+	return nil, errors.WithFields(errors.Fields{
+		"SourceType": s,
+	}).New("failed to find handler for source")
 }
 
 func (cs *ChartSync) GetPath(c *ChartMeta) (string, error) {
@@ -105,16 +129,6 @@ func (cs *ChartSync) GetPath(c *ChartMeta) (string, error) {
 }
 
 func (cs *ChartSync) Add(c *ChartMeta) error {
-	fmt.Printf("Adding %v\n", c.Name)
-	if registration, ok := registry.Lookup(c.Type); ok {
-		fmt.Printf("Registering %v as %v\n", c.Name, registration.Name)
-		c.Control = registration.Control
-	} else {
-		return errors.WithFields(errors.Fields{
-			"Name":       c.Name,
-			"SourceType": c.Type,
-		}).New("failed to find handler for source")
-	}
 	cs.Charts = append(cs.Charts, c)
 	return nil
 }

@@ -88,7 +88,6 @@ func (cmd *deleteCmd) Run(session cluster.Sessioner) error {
 	}
 
 	if !cmd.Options.NoSync {
-		log.Info("syncronizing with remote chart repositories")
 		if err := mfest.Sync(); err != nil {
 			return errors.Wrap(err, "error while downloading charts")
 		}
