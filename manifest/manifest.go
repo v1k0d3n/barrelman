@@ -329,38 +329,29 @@ func parseSchema(input string) (*Schema, error) {
 //GetChartSpec returns local chart path and dependancy information useful for building an archive
 func (m *Manifest) GetChartSpec(c *Chart) (string, []*chartsync.ChartSpec, error) {
 
-	path, err := m.ChartSync.GetPath(&chartsync.ChartMeta{
-		Name:    c.Name,
-		Depends: c.Data.Dependencies,
-		Type:    c.Data.Type,
-		Source:  c.Data.Source,
-	})
+	path, err := c.Data.Archiver.GetPath()
 	if err != nil {
 		return "", nil, errors.Wrap(err, "Failed to get yaml file path")
 	}
+
 	dependCharts, err := func() ([]*chartsync.ChartSpec, error) {
 		ret := []*chartsync.ChartSpec{}
 		for _, v := range c.Data.Dependencies {
-			thischart := m.GetChart(v)
-			if thischart == nil {
+			dependchart := m.GetChart(v)
+			if dependchart == nil {
 				return nil, errors.WithFields(errors.Fields{
 					"Dependancy": v,
 				}).New("failed getting depended chart")
 			}
-			thispath, err := m.ChartSync.GetPath(&chartsync.ChartMeta{
-				Name:    thischart.Name,
-				Depends: thischart.Data.Dependencies,
-				Type:    thischart.Data.Type,
-				Source:  thischart.Data.Source,
-			})
+			dependpath, err := dependchart.Data.Archiver.GetPath()
 			if err != nil {
 				return nil, errors.Wrap(err, "Failed getting path")
 			}
-			absPath, err := filepath.Abs(thispath)
+			absPath, err := filepath.Abs(dependpath)
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to get absolute path")
 			}
-			ret = append(ret, &chartsync.ChartSpec{Name: thischart.Name, Path: absPath})
+			ret = append(ret, &chartsync.ChartSpec{Name: dependchart.Name, Path: absPath})
 		}
 		return ret, nil
 	}()

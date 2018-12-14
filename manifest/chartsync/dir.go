@@ -44,7 +44,7 @@ func (g *SyncDir) GetChartMeta() *ChartMeta {
 }
 
 func (g *SyncDir) GetPath() (string, error) {
-	var target string
+	target := g.ChartMeta.Source.Location
 	if _, err := os.Stat(target); os.IsNotExist(err) {
 		return "", errors.WithFields(errors.Fields{"Path": target}).Wrap(err, "target path missing")
 	}

@@ -35,11 +35,19 @@ func (fh *fileHandler) Sync(cs *ChartSync, acc AccountTable) error {
 func (sf *SyncFile) ArchiveRun(ac *ArchiveConfig) (string, error) {
 	target := sf.ChartMeta.Source.Location
 	if _, err := os.Stat(target); os.IsNotExist(err) {
-		return "", errors.WithFields(errors.Fields{"Path": target}).Wrap(err, "target file missing")
+		return "", errors.WithFields(errors.Fields{"Path": target}).Wrap(err, "target path missing")
 	}
 	return target, nil
 }
 
 func (sf *SyncFile) GetChartMeta() *ChartMeta {
 	return sf.ChartMeta
+}
+
+func (sf *SyncFile) GetPath() (string, error) {
+	target := sf.ChartMeta.Source.Location
+	if _, err := os.Stat(target); os.IsNotExist(err) {
+		return "", errors.WithFields(errors.Fields{"Path": target}).Wrap(err, "target path missing")
+	}
+	return target, nil
 }

@@ -61,6 +61,7 @@ type Syncer interface {
 
 type Archiver interface {
 	ArchiveRun(*ArchiveConfig) (string, error)
+	GetPath() (string, error)
 }
 
 //Charter implements chart functions as per standard naming conventions
@@ -105,27 +106,6 @@ func GetHandler(s string) (*Registration, error) {
 	return nil, errors.WithFields(errors.Fields{
 		"SourceType": s,
 	}).New("failed to find handler for source")
-}
-
-func (cs *ChartSync) GetPath(c *ChartMeta) (string, error) {
-	var target string
-
-	switch c.Type {
-	case "git":
-		u, err := url.Parse(c.Source.Location)
-		if err != nil {
-			return "", err
-		}
-		target = fmt.Sprintf("%v/%v%v/%v", cs.DataDir, u.Host, u.Path, c.Source.SubPath)
-	case "file":
-		target = c.Source.Location
-	case "dir":
-		target = c.Source.Location
-	}
-	if _, err := os.Stat(target); os.IsNotExist(err) {
-		return "", errors.WithFields(errors.Fields{"Path": target}).Wrap(err, "target path missing")
-	}
-	return target, nil
 }
 
 func (cs *ChartSync) Add(c *ChartMeta) error {

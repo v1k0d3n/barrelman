@@ -70,7 +70,11 @@ func (g *SyncGit) GetChartMeta() *ChartMeta {
 }
 
 func (g *SyncGit) GetPath() (string, error) {
-	var target string
+	u, err := url.Parse(g.ChartMeta.Source.Location)
+	if err != nil {
+		return "", err
+	}
+	target := fmt.Sprintf("%v/%v%v/%v", g.DataDir, u.Host, u.Path, g.ChartMeta.Source.SubPath)
 	if _, err := os.Stat(target); os.IsNotExist(err) {
 		return "", errors.WithFields(errors.Fields{"Path": target}).Wrap(err, "target path missing")
 	}
