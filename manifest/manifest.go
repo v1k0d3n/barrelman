@@ -244,6 +244,7 @@ func NewChart() *Chart {
 func (m *Manifest) Sync() error {
 	for _, c := range m.AllCharts() {
 		//Add each chart to repo to download/update all charts
+		fmt.Printf("chartsync.Add: %v\n", c.Name)
 		if err := m.ChartSync.Add(&chartsync.ChartMeta{
 			Name:    c.Name,
 			Depends: c.Data.Dependencies,
@@ -289,7 +290,6 @@ func (m *Manifest) load() error {
 			if err := m.AddChart(chart); err != nil {
 				return errors.Wrap(err, "Error loading chart")
 			}
-
 		case StringChartGroup:
 			chartGroup := NewChartGroup()
 			chartGroup.Name = k.GetString("metadata.name")
@@ -347,7 +347,7 @@ func (m *Manifest) GetChartSpec(c *Chart) (string, []*ChartSpec, error) {
 				Name:    thischart.Name,
 				Depends: thischart.Data.Dependencies,
 				Type:    thischart.Data.Type,
-				Source:  c.Data.Source,
+				Source:  thischart.Data.Source,
 			})
 			if err != nil {
 				return nil, errors.Wrap(err, "Failed getting path")
