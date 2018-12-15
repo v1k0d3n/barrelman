@@ -19,28 +19,48 @@ import (
 )
 
 type Sessioner interface {
+	Clusterer
+	Releaser
+}
+type Clusterer interface {
 	Init() error
+	GetKubeConfig() string
+	SetKubeConfig(c string)
+	GetKubeContext() string
+	SetKubeContext(c string)
 }
 
 type Session struct {
 	Helm        helm.Interface
 	Tiller      *kube.Tunnel
 	Clientset   *internalclientset.Clientset
-	KubeConfig  string
-	KubeContext string
+	kubeConfig  string
+	kubeContext string
 }
 
 //NewSession returns a *Session with kubernetes connections established
 func NewSession(kubeContext string, kubeConfig string) *Session {
 	s := &Session{}
-	s.KubeConfig = kubeConfig
-	s.KubeContext = kubeContext
+	s.kubeConfig = kubeConfig
+	s.kubeContext = kubeContext
 	return &Session{}
 }
 
-func (s *Session) Init() error {
+func (s *Session) GetKubeConfig() string {
+	return s.kubeConfig
+}
+func (s *Session) SetKubeConfig(c string) {
+	s.kubeConfig = c
+}
+func (s *Session) GetKubeContext() string {
+	return s.kubeContext
+}
+func (s *Session) SetKubeContext(c string) {
+	s.kubeContext = c
+}
 
-	fmt.Printf("NewSession Context: %v\n", s.KubeContext)
+//Init establishes connextions to the cluster
+func (s *Session) Init() error {
 
 	tillerNamespace := os.Getenv("TILLER_NAMESPACE")
 	if tillerNamespace == "" {
@@ -79,11 +99,11 @@ func (s *Session) Init() error {
 
 //connect builds connections for all supported APIs
 func (s *Session) connect(namespace string) error {
-	config, err := kube.GetConfig(s.KubeContext, s.KubeConfig).ClientConfig()
+	config, err := kube.GetConfig(s.GetKubeContext(), s.GetKubeConfig()).ClientConfig()
 	if err != nil {
 		return errors.WithFields(errors.Fields{
-			"KubeConfig":  s.KubeConfig,
-			"kubeContext": s.KubeContext,
+			"KubeConfig":  s.GetKubeConfig(),
+			"kubeContext": s.GetKubeContext(),
 		}).Wrap(err, "could not get kubernetes config for context")
 	}
 	s.Clientset, err = internalclientset.NewForConfig(config)

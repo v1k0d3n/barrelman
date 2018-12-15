@@ -4,10 +4,10 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/charter-se/structured/log"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/charter-se/structured/log"
 	"github.com/spf13/cobra"
 )
 

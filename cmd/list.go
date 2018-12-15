@@ -23,7 +23,9 @@ func newListCmd(cmd *listCmd) *cobra.Command {
 			}
 			cobraCmd.SilenceUsage = true
 			cobraCmd.SilenceErrors = true
-			if err := cmd.Run(); err != nil {
+			if err := cmd.Run(cluster.NewSession(
+				cmd.Options.KubeContext,
+				cmd.Options.KubeConfigFile)); err != nil {
 				return err
 			}
 			return nil
@@ -42,7 +44,7 @@ func newListCmd(cmd *listCmd) *cobra.Command {
 	return cobraCmd
 }
 
-func (cmd *listCmd) Run() error {
+func (cmd *listCmd) Run(session cluster.Sessioner) error {
 	var err error
 	cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
 	if err != nil {
@@ -54,17 +56,16 @@ func (cmd *listCmd) Run() error {
 		return errors.Wrap(err, "failed to create working directory")
 	}
 
-	// Open connections to the k8s APIs
-	session := cluster.NewSession(cmd.Options.KubeContext, cmd.Options.KubeConfigFile)
 	if err = session.Init(); err != nil {
 		return errors.Wrap(err, "failed to create new cluster session")
 	}
+
 	log.WithFields(log.Fields{
-		"file": session.KubeConfig,
+		"file": session.GetKubeConfig(),
 	}).Info("Using kube config")
-	if session.KubeContext != "" {
+	if session.GetKubeContext() != "" {
 		log.WithFields(log.Fields{
-			"file": session.KubeContext,
+			"file": session.GetKubeContext(),
 		}).Info("Using kube context")
 	}
 	list, err := session.Releases()

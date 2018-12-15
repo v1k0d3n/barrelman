@@ -25,7 +25,9 @@ func newDeleteCmd(cmd *deleteCmd) *cobra.Command {
 			}
 			cobraCmd.SilenceUsage = true
 			cobraCmd.SilenceErrors = true
-			if err := cmd.Run(); err != nil {
+			if err := cmd.Run(cluster.NewSession(
+				cmd.Options.KubeContext,
+				cmd.Options.KubeConfigFile)); err != nil {
 				return err
 			}
 			return nil
@@ -44,10 +46,9 @@ func newDeleteCmd(cmd *deleteCmd) *cobra.Command {
 	return cobraCmd
 }
 
-func (cmd *deleteCmd) Run() error {
-	log.Warn("Barrelman Delete Engage!")
-
+func (cmd *deleteCmd) Run(session cluster.Sessioner) error {
 	var err error
+
 	cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
 	if err != nil {
 		return errors.Wrap(err, "got error while loading config")
@@ -58,17 +59,16 @@ func (cmd *deleteCmd) Run() error {
 		return errors.Wrap(err, "failed to create working directory")
 	}
 
-	// Open connections to the k8s APIs
-	session := cluster.NewSession(cmd.Options.KubeContext, cmd.Options.KubeConfigFile)
 	if err = session.Init(); err != nil {
 		return errors.Wrap(err, "failed to create new cluster session")
 	}
+
 	log.WithFields(log.Fields{
-		"file": session.KubeConfig,
+		"file": session.GetKubeConfig(),
 	}).Info("Using kube config")
-	if session.KubeContext != "" {
+	if session.GetKubeContext() != "" {
 		log.WithFields(log.Fields{
-			"file": session.KubeContext,
+			"file": session.GetKubeContext(),
 		}).Info("Using kube context")
 	}
 
@@ -81,9 +81,11 @@ func (cmd *deleteCmd) Run() error {
 		return errors.Wrap(err, "error while initializing manifest")
 	}
 
-	log.Info("syncronizing with remote chart repositories")
-	if err := mfest.Sync(cmd.Config.Account); err != nil {
-		return errors.Wrap(err, "error while downloading charts")
+	if !cmd.Options.NoSync {
+		log.Info("syncronizing with remote chart repositories")
+		if err := mfest.Sync(cmd.Config.Account); err != nil {
+			return errors.Wrap(err, "error while downloading charts")
+		}
 	}
 
 	if err := DeleteByManifest(mfest, session); err != nil {
@@ -92,20 +94,20 @@ func (cmd *deleteCmd) Run() error {
 	return nil
 }
 
-func DeleteByManifest(bm *manifest.Manifest, c *cluster.Session) error {
+func DeleteByManifest(bm *manifest.Manifest, session cluster.Sessioner) error {
 	deleteList := make(map[string]*cluster.DeleteMeta)
 	groups, err := bm.GetChartGroups()
 	if err != nil {
 		return errors.Wrap(err, "error resolving chart groups")
 	}
 
-	releases, err := c.ListReleases()
+	releases, err := session.ListReleases()
 	if err != nil {
 		return errors.Wrap(err, "failed to list releases")
 	}
 
 	for _, v := range releases {
-		deleteList[v.Chart.Metadata.Name] = &cluster.DeleteMeta{
+		deleteList[v.Name] = &cluster.DeleteMeta{
 			Name:      v.Name,
 			Namespace: "",
 		}
@@ -122,7 +124,7 @@ func DeleteByManifest(bm *manifest.Manifest, c *cluster.Session) error {
 					"Name":    v.Name,
 					"Release": dm.Name,
 				}).Info("deleting release")
-				if err := c.DeleteRelease(dm); err != nil {
+				if err := session.DeleteRelease(dm); err != nil {
 					return errors.Wrap(err, "error deleting list")
 				}
 			}

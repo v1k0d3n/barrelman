@@ -43,7 +43,9 @@ func newApplyCmd(cmd *applyCmd) *cobra.Command {
 			}
 			cobraCmd.SilenceUsage = true
 			cobraCmd.SilenceErrors = true
-			if err := cmd.Run(); err != nil {
+			if err := cmd.Run(cluster.NewSession(
+				cmd.Options.KubeContext,
+				cmd.Options.KubeConfigFile)); err != nil {
 				return err
 			}
 			return nil
@@ -87,7 +89,7 @@ func newApplyCmd(cmd *applyCmd) *cobra.Command {
 	return cobraCmd
 }
 
-func (cmd *applyCmd) Run() error {
+func (cmd *applyCmd) Run(session cluster.Sessioner) error {
 	var err error
 	cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
 	if err != nil {
@@ -99,17 +101,15 @@ func (cmd *applyCmd) Run() error {
 		return errors.Wrap(err, "failed to create working directory")
 	}
 
-	// Open connections to the k8s APIs
-	session := cluster.NewSession(cmd.Options.KubeContext, cmd.Options.KubeConfigFile)
 	if err = session.Init(); err != nil {
 		return errors.Wrap(err, "failed to create new cluster session")
 	}
 	log.WithFields(log.Fields{
-		"file": session.KubeConfig,
+		"file": session.GetKubeConfig(),
 	}).Info("Using kube config")
-	if session.KubeContext != "" {
+	if session.GetKubeContext() != "" {
 		log.WithFields(log.Fields{
-			"file": session.KubeContext,
+			"file": session.GetKubeContext(),
 		}).Info("Using kube context")
 	}
 
@@ -161,7 +161,7 @@ func (cmd *applyCmd) Run() error {
 		return err
 	}
 	if cmd.Options.Diff {
-		rt.LogDiff(session)
+		rt.LogDiff()
 		return nil
 	}
 	log.Info("Doing apply")
@@ -185,7 +185,7 @@ func (cmd *applyCmd) isInForce(rel *cluster.ReleaseMeta) bool {
 }
 
 func (cmd *applyCmd) ComputeReleases(
-	session *cluster.Session,
+	session cluster.Sessioner,
 	archives *manifest.ArchiveFiles,
 	currentReleases map[string]*cluster.ReleaseMeta) releaseTargets {
 	rt := releaseTargets{}
@@ -231,7 +231,7 @@ func (cmd *applyCmd) ComputeReleases(
 	return rt
 }
 
-func (rt releaseTargets) dryRun(session *cluster.Session) error {
+func (rt releaseTargets) dryRun(session cluster.Sessioner) error {
 	for _, v := range rt {
 		v.ReleaseMeta.DryRun = true
 		switch v.State {
@@ -250,7 +250,7 @@ func (rt releaseTargets) dryRun(session *cluster.Session) error {
 	return nil
 }
 
-func (rt releaseTargets) Diff(session *cluster.Session) (releaseTargets, error) {
+func (rt releaseTargets) Diff(session cluster.Sessioner) (releaseTargets, error) {
 	var err error
 	for _, v := range rt {
 		v.ReleaseMeta.DryRun = true
@@ -265,7 +265,7 @@ func (rt releaseTargets) Diff(session *cluster.Session) (releaseTargets, error) 
 	return rt, nil
 }
 
-func (rt releaseTargets) LogDiff(session *cluster.Session) {
+func (rt releaseTargets) LogDiff() {
 	for _, v := range rt {
 		switch v.State {
 		case Installable:
@@ -289,7 +289,7 @@ func (rt releaseTargets) LogDiff(session *cluster.Session) {
 	}
 }
 
-func (rt releaseTargets) Apply(session *cluster.Session, opt *cmdOptions) error {
+func (rt releaseTargets) Apply(session cluster.Sessioner, opt *cmdOptions) error {
 	for _, v := range rt {
 		v.ReleaseMeta.DryRun = false
 		switch v.State {
