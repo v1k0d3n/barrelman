@@ -5,13 +5,20 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/charter-se/barrelman/manifest/sourcetype"
 	"github.com/charter-se/structured/errors"
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
 )
 
 type AccountTable map[string]*Account
+
+type ArchiveConfig struct {
+	ChartMeta    *ChartMeta
+	ArchiveFunc  func(string, string, []*ChartSpec) (string, error)
+	DataDir      string
+	Path         string
+	DependCharts []*ChartSpec
+}
 
 type Account struct {
 	Typ    string
@@ -21,71 +28,84 @@ type Account struct {
 
 type ChartSync struct {
 	Charts       []*ChartMeta
-	Library      string
+	DataDir      string
 	CompletedURI []string
+	AccountTable AccountTable
 }
 
+type ChartSpec struct {
+	Name string
+	Path string
+}
+
+type Source struct {
+	Location  string
+	SubPath   string
+	Reference string
+}
 type ChartMeta struct {
-	Name       string
-	Location   string
-	Type       string
-	SubPath    string
-	Depends    []string
-	Groups     []string
-	SourceType sourcetype.SourceType
+	Name    string
+	Source  *Source
+	Type    string
+	Depends []string
+	Groups  []string
 }
 
-func New(l string) *ChartSync {
-	return &ChartSync{Library: l}
+type Controller interface {
+	Syncer
+}
+
+type Syncer interface {
+	Sync(*ChartSync, AccountTable) error
+}
+
+type Archiver interface {
+	ArchiveRun(*ArchiveConfig) (string, error)
+	GetPath() (string, error)
+}
+
+//Charter implements chart functions as per standard naming conventions
+//any resemblance to anything else is purely coincidental
+type Charter interface {
+	ChartMeta() *ChartMeta
+}
+
+func New(d string, acc AccountTable) *ChartSync {
+	return &ChartSync{
+		DataDir:      d,
+		AccountTable: acc,
+	}
 }
 
 func (cs *ChartSync) Sync(acc AccountTable) error {
-	for _, v := range cs.Charts {
-		switch v.SourceType {
-		case sourcetype.Missing:
-		case sourcetype.Git:
-			if err := cs.gitDownload(v, acc); err != nil {
-				return errors.WithFields(errors.Fields{"Location": v.Location}).Wrap(err, "error doing git download")
-			}
-		case sourcetype.File:
-		case sourcetype.Dir:
-		case sourcetype.Unknown:
-			return errors.WithFields(errors.Fields{
-				"Location":   v.Location,
-				"Name":       v.Name,
-				"SourceType": v.SourceType,
-			}).New("error syncing chart")
-		default:
-			return errors.WithFields(errors.Fields{
-				"Location":   v.Location,
-				"Name":       v.Name,
-				"SourceType": v.SourceType,
-			}).New("error syncing chart, Unhandled sourceType")
+	for _, control := range registry.AllControllers() {
+		if err := control.Sync(cs, acc); err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-func (cs *ChartSync) GetPath(c *ChartMeta) (string, error) {
-	var target string
+func (c *ChartMeta) GetURI() (string, error) {
+	return c.Source.Location, nil
+}
 
-	switch c.SourceType {
-	case sourcetype.Git:
-		u, err := url.Parse(c.Location)
-		if err != nil {
-			return "", err
-		}
-		target = fmt.Sprintf("%v/%v%v/%v", cs.Library, u.Host, u.Path, c.SubPath)
-	case sourcetype.File:
-		target = c.Location
-	case sourcetype.Dir:
-		target = c.Location
+func GetControl(s string) (Controller, error) {
+	if registration, ok := registry.Lookup(s); ok {
+		return registration.Control, nil
 	}
-	if _, err := os.Stat(target); os.IsNotExist(err) {
-		return "", errors.WithFields(errors.Fields{"Path": target}).Wrap(err, "target path missing")
-	}
+	return nil, errors.WithFields(errors.Fields{
+		"SourceType": s,
+	}).New("failed to find handler for source")
+}
 
-	return target, nil
+func GetHandler(s string) (*Registration, error) {
+	if registration, ok := registry.Lookup(s); ok {
+		return registration, nil
+	}
+	return nil, errors.WithFields(errors.Fields{
+		"SourceType": s,
+	}).New("failed to find handler for source")
 }
 
 func (cs *ChartSync) Add(c *ChartMeta) error {
@@ -94,13 +114,13 @@ func (cs *ChartSync) Add(c *ChartMeta) error {
 }
 
 func (cs *ChartSync) gitDownload(c *ChartMeta, acc AccountTable) error {
-	u, err := url.Parse(c.Location)
+	u, err := url.Parse(c.Source.Location)
 	if err != nil {
 		return err
 	}
 
 	cloneOptions := &git.CloneOptions{
-		URL:      c.Location,
+		URL:      c.Source.Location,
 		Progress: os.Stdout,
 	}
 	pullOptions := &git.PullOptions{
@@ -120,7 +140,7 @@ func (cs *ChartSync) gitDownload(c *ChartMeta, acc AccountTable) error {
 		}
 	}
 
-	target := fmt.Sprintf("%v/%v/%v", cs.Library, u.Host, u.Path)
+	target := fmt.Sprintf("%v/%v/%v", cs.DataDir, u.Host, u.Path)
 	for _, v := range cs.CompletedURI {
 		if v == target {
 			//We already downloaded this one
