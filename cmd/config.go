@@ -27,6 +27,17 @@ type BarrelmanConfig struct {
 }
 
 func GetConfigFromFile(s string) (*Config, error) {
+	config := &Config{}
+	config.Account = make(map[string]*chartsync.Account)
+
+	if _, err := os.Stat(s); os.IsNotExist(err) {
+		if s == Default().ConfigFile {
+			return config, nil
+		}
+		return nil, errors.WithFields(errors.Fields{
+			"File": s,
+		}).New("config file does not exist")
+	}
 	f, err := os.Open(s)
 	if err != nil {
 		return nil, err
@@ -39,12 +50,16 @@ func GetConfigFromFile(s string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	return GetConfigFromBarrelmanConfig(b)
+
+	return config.LoadAcc(b)
 }
 
-func GetConfigFromBarrelmanConfig(b *BarrelmanConfig) (*Config, error) {
-	config := &Config{}
-	config.Account = make(map[string]*chartsync.Account)
+//LoadAcc populates *config.Account from *BarrelmanConfig
+func (config *Config) LoadAcc(b *BarrelmanConfig) (*Config, error) {
+
+	if config.Account == nil {
+		config.Account = make(map[string]*chartsync.Account)
+	}
 
 	account := b.Viper.Get("account")
 	// This block supports the YAML format :
