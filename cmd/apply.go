@@ -91,11 +91,11 @@ func newApplyCmd(cmd *applyCmd) *cobra.Command {
 
 func (cmd *applyCmd) Run(session cluster.Sessioner) error {
 	var err error
+
 	cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
 	if err != nil {
 		return errors.Wrap(err, "got error while loading config")
 	}
-	log.WithFields(log.Fields{"file": cmd.Options.ConfigFile}).Info("Using config")
 
 	if err := ensureWorkDir(cmd.Options.DataDir); err != nil {
 		return errors.Wrap(err, "failed to create working directory")

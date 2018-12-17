@@ -58,7 +58,6 @@ func (cmd *deleteCmd) Run(session cluster.Sessioner) error {
 	if err != nil {
 		return errors.Wrap(err, "got error while loading config")
 	}
-	log.WithFields(log.Fields{"file": cmd.Options.ConfigFile}).Info("Using config")
 
 	if err := ensureWorkDir(cmd.Options.DataDir); err != nil {
 		return errors.Wrap(err, "failed to create working directory")
