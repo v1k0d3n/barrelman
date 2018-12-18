@@ -177,7 +177,7 @@ func (cmd *applyCmd) Run(session cluster.Sessioner) error {
 func (cmd *applyCmd) isInForce(rel *cluster.ReleaseMeta) bool {
 	//Checks for releases configured for Force by cmdline
 	for _, r := range *cmd.Options.Force {
-		if r == rel.MetaName {
+		if r == rel.MetaName || r == rel.ChartName || r == rel.ReleaseName {
 			return true
 		}
 	}
