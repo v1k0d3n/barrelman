@@ -63,15 +63,15 @@ type ChartGroupData struct {
 }
 
 type Chart struct {
-	Version string
-	Name    string
-	Data    *ChartData
+	Version  string
+	MetaName string
+	Data     *ChartData
 }
 
 type ChartData struct {
 	ChartName    string
 	TestEnabled  bool
-	Release      string
+	ReleaseName  string
 	Namespace    string
 	Timeout      int
 	Wait         *ChartDataWait
@@ -149,10 +149,10 @@ func (m *Manifest) GetChartGroup(s string) *ChartGroup {
 }
 
 func (m *Manifest) AddChart(c *Chart) error {
-	if _, exists := m.Lookup.Chart[c.Name]; exists {
-		return errors.WithFields(errors.Fields{"Name": c.Name}).New("Chart name already exists")
+	if _, exists := m.Lookup.Chart[c.MetaName]; exists {
+		return errors.WithFields(errors.Fields{"Name": c.MetaName}).New("Chart name already exists")
 	}
-	m.Lookup.Chart[c.Name] = c
+	m.Lookup.Chart[c.MetaName] = c
 	return nil
 }
 
@@ -176,6 +176,23 @@ func (m *Manifest) GetChartGroups() ([]*ChartGroup, error) {
 			ret = append(ret, v)
 		} else {
 			return nil, errors.WithFields(errors.Fields{"Name": name}).New("ChartGroup does not exist")
+		}
+	}
+	return ret, nil
+}
+
+func (m *Manifest) GetChartsByChartName(charts []string) ([]*Chart, error) {
+	ret := []*Chart{}
+	for _, name := range charts {
+		chartExists := false
+		for _, iv := range m.Lookup.Chart {
+			if iv.Data.ChartName == name {
+				chartExists = true
+				ret = append(ret, iv)
+			}
+		}
+		if !chartExists {
+			return nil, errors.WithFields(errors.Fields{"Name": name}).New("Chart does not exist")
 		}
 	}
 	return ret, nil
@@ -225,7 +242,7 @@ func (m *Manifest) Sync() error {
 	for _, c := range m.AllCharts() {
 		//Add each chart to repo to download/update all charts
 		if err := m.ChartSync.Add(&chartsync.ChartMeta{
-			Name:    c.Name,
+			Name:    c.MetaName,
 			Depends: c.Data.Dependencies,
 			Type:    c.Data.Type,
 			Source:  c.Data.Source,
@@ -251,9 +268,10 @@ func (m *Manifest) load() error {
 		switch schem.Type {
 		case StringChart:
 			chart := NewChart()
-			chart.Name = k.GetString("metadata.name")
+			chart.MetaName = k.GetString("metadata.name")
 			chart.Version = schem.Version
 			chart.Data.ChartName = k.GetString("data.chart_name")
+			chart.Data.ReleaseName = k.GetString("data.release")
 			chart.Data.Dependencies = k.GetStringSlice("data.dependencies")
 			chart.Data.Namespace = k.GetString("data.namespace")
 			chart.Data.Type = k.GetString("data.source.type")
@@ -271,12 +289,12 @@ func (m *Manifest) load() error {
 			if err != nil {
 				return errors.WithFields(errors.Fields{
 					"Type": chart.Data.Type,
-					"Name": chart.Name,
+					"Name": chart.MetaName,
 				}).Wrap(err, "Failed to find handler for source")
 			}
 			chart.Data.Archiver, err = handler.New(m.Config.DataDir,
 				&chartsync.ChartMeta{
-					Name:    chart.Name,
+					Name:    chart.MetaName,
 					Source:  chart.Data.Source,
 					Depends: chart.Data.Dependencies,
 					Type:    chart.Data.Type,
@@ -286,7 +304,7 @@ func (m *Manifest) load() error {
 			if err != nil {
 				return errors.WithFields(errors.Fields{
 					"Type": chart.Data.Type,
-					"Name": chart.Name,
+					"Name": chart.MetaName,
 				}).Wrap(err, "Failed to generate new handler")
 			}
 
@@ -351,7 +369,7 @@ func (m *Manifest) GetChartSpec(c *Chart) (string, []*chartsync.ChartSpec, error
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to get absolute path")
 			}
-			ret = append(ret, &chartsync.ChartSpec{Name: dependchart.Name, Path: absPath})
+			ret = append(ret, &chartsync.ChartSpec{Name: dependchart.MetaName, Path: absPath})
 		}
 		return ret, nil
 	}()
@@ -372,7 +390,7 @@ func (m *Manifest) CreateArchives() (*ArchiveFiles, error) {
 
 	for _, cg := range groups {
 		//All charts within the group
-		charts, err := m.GetChartsByName(cg.Data.ChartGroup)
+		charts, err := m.GetChartsByChartName(cg.Data.ChartGroup)
 		if err != nil {
 			return nil, errors.Wrap(err, "error resolving charts")
 		}

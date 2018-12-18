@@ -74,7 +74,7 @@ func (cmd *listCmd) Run(session cluster.Sessioner) error {
 	for k, v := range list {
 		log.WithFields(log.Fields{
 			"key":       k,
-			"Name":      v.Name,
+			"Name":      v.ReleaseName,
 			"Namespace": v.Namespace,
 		}).Warn("Meta")
 	}
