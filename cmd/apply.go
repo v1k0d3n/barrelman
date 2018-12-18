@@ -104,9 +104,11 @@ func (cmd *applyCmd) Run(session cluster.Sessioner) error {
 	if err = session.Init(); err != nil {
 		return errors.Wrap(err, "failed to create new cluster session")
 	}
-	log.WithFields(log.Fields{
-		"file": session.GetKubeConfig(),
-	}).Info("Using kube config")
+	if session.GetKubeConfig() != "" {
+		log.WithFields(log.Fields{
+			"file": session.GetKubeConfig(),
+		}).Info("Using kube config")
+	}
 	if session.GetKubeContext() != "" {
 		log.WithFields(log.Fields{
 			"file": session.GetKubeContext(),
@@ -164,7 +166,6 @@ func (cmd *applyCmd) Run(session cluster.Sessioner) error {
 		rt.LogDiff()
 		return nil
 	}
-	log.Info("Doing apply")
 	err = rt.Apply(session, cmd.Options)
 	if err != nil {
 		return errors.Wrap(err, "Manifest upgrade failed")
