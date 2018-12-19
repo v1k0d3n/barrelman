@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/charter-se/barrelman/cluster"
 	"github.com/charter-se/barrelman/manifest"
@@ -104,9 +105,11 @@ func (cmd *applyCmd) Run(session cluster.Sessioner) error {
 	if err = session.Init(); err != nil {
 		return errors.Wrap(err, "failed to create new cluster session")
 	}
-	log.WithFields(log.Fields{
-		"file": session.GetKubeConfig(),
-	}).Info("Using kube config")
+	if session.GetKubeConfig() != "" {
+		log.WithFields(log.Fields{
+			"file": session.GetKubeConfig(),
+		}).Info("Using kube config")
+	}
 	if session.GetKubeContext() != "" {
 		log.WithFields(log.Fields{
 			"file": session.GetKubeContext(),
@@ -164,7 +167,6 @@ func (cmd *applyCmd) Run(session cluster.Sessioner) error {
 		rt.LogDiff()
 		return nil
 	}
-	log.Info("Doing apply")
 	err = rt.Apply(session, cmd.Options)
 	if err != nil {
 		return errors.Wrap(err, "Manifest upgrade failed")
@@ -177,7 +179,7 @@ func (cmd *applyCmd) Run(session cluster.Sessioner) error {
 func (cmd *applyCmd) isInForce(rel *cluster.ReleaseMeta) bool {
 	//Checks for releases configured for Force by cmdline
 	for _, r := range *cmd.Options.Force {
-		if r == rel.Name {
+		if r == rel.MetaName || r == rel.ChartName || r == rel.ReleaseName {
 			return true
 		}
 	}
@@ -191,37 +193,42 @@ func (cmd *applyCmd) ComputeReleases(
 	rt := releaseTargets{}
 
 	for _, v := range archives.List {
-		if rel, ok := currentReleases[v.Name]; ok {
-			if cmd.isInForce(rel) || rel.Status == cluster.Status_FAILED {
-				rt = append(rt,
-					&releaseTarget{
-						State: Replaceable,
-						ReleaseMeta: &cluster.ReleaseMeta{
-							Path:           v.Path,
-							Name:           rel.Name,
-							Namespace:      v.Namespace,
-							ValueOverrides: v.Overrides,
-						},
-					})
-			} else {
-				rt = append(rt,
-					&releaseTarget{
-						State: Upgradable,
-						ReleaseMeta: &cluster.ReleaseMeta{
-							Path:           v.Path,
-							Name:           rel.Name,
-							Namespace:      v.Namespace,
-							ValueOverrides: v.Overrides,
-						},
-					})
+		releaseExists := false
+		for _, rel := range currentReleases {
+			if rel.ChartName == v.ChartName {
+				releaseExists = true
+				if cmd.isInForce(rel) || rel.Status == cluster.Status_FAILED {
+					rt = append(rt,
+						&releaseTarget{
+							State: Replaceable,
+							ReleaseMeta: &cluster.ReleaseMeta{
+								Path:           v.Path,
+								ReleaseName:    rel.ReleaseName,
+								Namespace:      v.Namespace,
+								ValueOverrides: v.Overrides,
+							},
+						})
+				} else {
+					rt = append(rt,
+						&releaseTarget{
+							State: Upgradable,
+							ReleaseMeta: &cluster.ReleaseMeta{
+								Path:           v.Path,
+								ReleaseName:    rel.ReleaseName,
+								Namespace:      v.Namespace,
+								ValueOverrides: v.Overrides,
+							},
+						})
+				}
 			}
-		} else {
+		}
+		if !releaseExists {
 			rt = append(rt,
 				&releaseTarget{
 					State: Installable,
 					ReleaseMeta: &cluster.ReleaseMeta{
 						Path:           v.Path,
-						Name:           v.Name,
+						ReleaseName:    v.ReleaseName,
 						Namespace:      v.Namespace,
 						ValueOverrides: v.Overrides,
 					},
@@ -270,19 +277,19 @@ func (rt releaseTargets) LogDiff() {
 		switch v.State {
 		case Installable:
 			log.WithFields(log.Fields{
-				"Name":      v.ReleaseMeta.Name,
+				"Name":      v.ReleaseMeta.ReleaseName,
 				"Namespace": v.ReleaseMeta.Namespace,
 			}).Info("Would install")
 		case Upgradable:
 			if v.Changed {
 				log.WithFields(log.Fields{
-					"Name": v.ReleaseMeta.Name,
+					"Name": v.ReleaseMeta.ReleaseName,
 				}).Info("Diff")
 				//Print the byte content and keep formatting, its fancy
-				fmt.Printf("----%v\n%v_____\n", v.ReleaseMeta.Name, string(v.Diff))
+				fmt.Printf("----%v\n%v_____\n", v.ReleaseMeta.MetaName, string(v.Diff))
 			} else {
 				log.WithFields(log.Fields{
-					"Name": v.ReleaseMeta.Name,
+					"Name": v.ReleaseMeta.ReleaseName,
 				}).Info("No change")
 			}
 		}
@@ -302,11 +309,11 @@ func (rt releaseTargets) Apply(session cluster.Sessioner, opt *cmdOptions) error
 				if v.State == Replaceable {
 					//The release exists, it needs to be deleted
 					dm := &cluster.DeleteMeta{
-						Name:      v.ReleaseMeta.Name,
-						Namespace: v.ReleaseMeta.Namespace,
+						ReleaseName: v.ReleaseMeta.ReleaseName,
+						Namespace:   v.ReleaseMeta.Namespace,
 					}
 					log.WithFields(log.Fields{
-						"Name":      v.ReleaseMeta.Name,
+						"Name":      v.ReleaseMeta.ReleaseName,
 						"Namespace": v.ReleaseMeta.Namespace,
 					}).Info("Deleting (force install)")
 					if err := session.DeleteRelease(dm); err != nil {
@@ -317,10 +324,28 @@ func (rt releaseTargets) Apply(session cluster.Sessioner, opt *cmdOptions) error
 					msg, relName, err := session.InstallRelease(v.ReleaseMeta, []byte{})
 					if err != nil {
 						innerErr = err
+						//The state has changed underneath us, but the release needs installed anyhow
+						//So delete and try again
+						dm := &cluster.DeleteMeta{
+							ReleaseName: v.ReleaseMeta.ReleaseName,
+							Namespace:   v.ReleaseMeta.Namespace,
+						}
+						log.WithFields(log.Fields{
+							"Name":      v.ReleaseMeta.ReleaseName,
+							"Namespace": v.ReleaseMeta.Namespace,
+						}).Info("Deleting (state change)")
+						if err := session.DeleteRelease(dm); err != nil {
+							return errors.Wrap(err, "error deleting release before install (forced)")
+						}
+						/////
+						select {
+						default:
+							_ = <-time.After(1 * time.Second)
+						}
 						continue
 					}
 					log.WithFields(log.Fields{
-						"Name":      v.ReleaseMeta.Name,
+						"Name":      v.ReleaseMeta.ReleaseName,
 						"Namespace": v.ReleaseMeta.Namespace,
 						"Release":   relName,
 					}).Info(msg)
@@ -328,7 +353,7 @@ func (rt releaseTargets) Apply(session cluster.Sessioner, opt *cmdOptions) error
 					return nil
 				}
 				return errors.WithFields(errors.Fields{
-					"Name":      v.ReleaseMeta.Name,
+					"Name":      v.ReleaseMeta.ReleaseName,
 					"Namespace": v.ReleaseMeta.Namespace,
 				}).Wrap(innerErr, "Error while installing release")
 			}(); err != nil {
@@ -338,7 +363,7 @@ func (rt releaseTargets) Apply(session cluster.Sessioner, opt *cmdOptions) error
 		case Upgradable:
 			if !v.Changed {
 				log.WithFields(log.Fields{
-					"Name":      v.ReleaseMeta.Name,
+					"Name":      v.ReleaseMeta.ReleaseName,
 					"Namespace": v.ReleaseMeta.Namespace,
 				}).Info("Skipping")
 				continue
@@ -346,12 +371,12 @@ func (rt releaseTargets) Apply(session cluster.Sessioner, opt *cmdOptions) error
 			msg, err := session.UpgradeRelease(v.ReleaseMeta)
 			if err != nil {
 				return errors.WithFields(errors.Fields{
-					"Name":      v.ReleaseMeta.Name,
+					"Name":      v.ReleaseMeta.ReleaseName,
 					"Namespace": v.ReleaseMeta.Namespace,
 				}).Wrap(err, "error while upgrading release")
 			}
 			log.WithFields(log.Fields{
-				"Name":      v.ReleaseMeta.Name,
+				"Name":      v.ReleaseMeta.ReleaseName,
 				"Namespace": v.ReleaseMeta.Namespace,
 			}).Info(msg)
 		}

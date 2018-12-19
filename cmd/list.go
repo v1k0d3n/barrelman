@@ -59,9 +59,11 @@ func (cmd *listCmd) Run(session cluster.Sessioner) error {
 		return errors.Wrap(err, "failed to create new cluster session")
 	}
 
-	log.WithFields(log.Fields{
-		"file": session.GetKubeConfig(),
-	}).Info("Using kube config")
+	if session.GetKubeConfig() != "" {
+		log.WithFields(log.Fields{
+			"file": session.GetKubeConfig(),
+		}).Info("Using kube config")
+	}
 	if session.GetKubeContext() != "" {
 		log.WithFields(log.Fields{
 			"file": session.GetKubeContext(),
@@ -74,7 +76,7 @@ func (cmd *listCmd) Run(session cluster.Sessioner) error {
 	for k, v := range list {
 		log.WithFields(log.Fields{
 			"key":       k,
-			"Name":      v.Name,
+			"Name":      v.ReleaseName,
 			"Namespace": v.Namespace,
 		}).Warn("Meta")
 	}

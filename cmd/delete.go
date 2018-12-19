@@ -67,9 +67,11 @@ func (cmd *deleteCmd) Run(session cluster.Sessioner) error {
 		return errors.Wrap(err, "failed to create new cluster session")
 	}
 
-	log.WithFields(log.Fields{
-		"file": session.GetKubeConfig(),
-	}).Info("Using kube config")
+	if session.GetKubeConfig() != "" {
+		log.WithFields(log.Fields{
+			"file": session.GetKubeConfig(),
+		}).Info("Using kube config")
+	}
 	if session.GetKubeContext() != "" {
 		log.WithFields(log.Fields{
 			"file": session.GetKubeContext(),
@@ -111,25 +113,28 @@ func DeleteByManifest(bm *manifest.Manifest, session cluster.Sessioner) error {
 	}
 
 	for _, v := range releases {
-		deleteList[v.Name] = &cluster.DeleteMeta{
-			Name:      v.Name,
-			Namespace: "",
+		deleteList[v.Chart.GetMetadata().Name] = &cluster.DeleteMeta{
+			ReleaseName: v.ReleaseName,
+			Namespace:   "",
 		}
 	}
 
 	for _, cg := range groups {
-		charts, err := bm.GetChartsByName(cg.Data.ChartGroup)
+		charts, err := bm.GetChartsByChartName(cg.Data.ChartGroup)
 		if err != nil {
 			return errors.Wrap(err, "error resolving charts")
 		}
 		for _, v := range charts {
-			if dm, exists := deleteList[v.Name]; exists {
-				log.WithFields(log.Fields{
-					"Name":    v.Name,
-					"Release": dm.Name,
-				}).Info("deleting release")
-				if err := session.DeleteRelease(dm); err != nil {
-					return errors.Wrap(err, "error deleting list")
+			for chartName, rel := range deleteList {
+				if chartName == v.Data.ChartName {
+					//if dm, exists := deleteList[v.Data.ReleaseName]; exists {
+					log.WithFields(log.Fields{
+						"Name":    v.MetaName,
+						"Release": rel.ReleaseName,
+					}).Info("deleting release")
+					if err := session.DeleteRelease(rel); err != nil {
+						return errors.Wrap(err, "error deleting list")
+					}
 				}
 			}
 		}

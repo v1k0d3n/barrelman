@@ -14,12 +14,14 @@ import (
 )
 
 type ArchiveSpec struct {
-	Name      string
-	Path      string
-	DataDir   string
-	Namespace string
-	Overrides []byte
-	Purge     bool
+	MetaName    string
+	ChartName   string
+	ReleaseName string
+	Path        string
+	DataDir     string
+	Namespace   string
+	Overrides   []byte
+	Purge       bool
 }
 
 type ArchiveFiles struct {
@@ -34,10 +36,12 @@ func Archive(
 	archiver chartsync.Archiver) (*ArchiveSpec, error) {
 
 	as := &ArchiveSpec{
-		Name:      chart.Name,
-		Namespace: chart.Data.Namespace,
-		Overrides: chart.Data.Overrides,
-		Purge:     true,
+		MetaName:    chart.MetaName,
+		ChartName:   chart.Data.ChartName,
+		ReleaseName: chart.Data.ReleaseName,
+		Namespace:   chart.Data.Namespace,
+		Overrides:   chart.Data.Overrides,
+		Purge:       true,
 	}
 	var err error
 
@@ -48,7 +52,7 @@ func Archive(
 
 	as.Path, err = archiver.ArchiveRun(&chartsync.ArchiveConfig{
 		ChartMeta: &chartsync.ChartMeta{
-			Name:    chart.Name,
+			Name:    chart.MetaName,
 			Source:  chart.Data.Source,
 			Depends: chart.Data.Dependencies,
 		},

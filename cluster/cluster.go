@@ -87,7 +87,7 @@ func (s *Session) Init() error {
 		"tillerVersion":          tillerVersion.Version.SemVer,
 		"clientServerCompatible": compatible,
 		"Host":                   fmt.Sprintf(":%v", s.Tiller.Local),
-	}).Info("Connected to Tiller")
+	}).Debug("Connected to Tiller")
 	if !compatible {
 		return errors.WithFields(errors.Fields{
 			"tillerVersion":          tillerVersion.Version.SemVer,
