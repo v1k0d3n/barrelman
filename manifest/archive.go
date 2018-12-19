@@ -41,7 +41,7 @@ func Archive(
 		ReleaseName: chart.Data.ReleaseName,
 		Namespace:   chart.Data.Namespace,
 		Overrides:   chart.Data.Overrides,
-		Purge:       true,
+		Purge:       false,
 	}
 	var err error
 
