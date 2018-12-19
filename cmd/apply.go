@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/charter-se/barrelman/cluster"
 	"github.com/charter-se/barrelman/manifest"
@@ -323,6 +324,24 @@ func (rt releaseTargets) Apply(session cluster.Sessioner, opt *cmdOptions) error
 					msg, relName, err := session.InstallRelease(v.ReleaseMeta, []byte{})
 					if err != nil {
 						innerErr = err
+						//The state has changed underneath us, but the release needs installed anyhow
+						//So delete and try again
+						dm := &cluster.DeleteMeta{
+							ReleaseName: v.ReleaseMeta.ReleaseName,
+							Namespace:   v.ReleaseMeta.Namespace,
+						}
+						log.WithFields(log.Fields{
+							"Name":      v.ReleaseMeta.ReleaseName,
+							"Namespace": v.ReleaseMeta.Namespace,
+						}).Info("Deleting (state change)")
+						if err := session.DeleteRelease(dm); err != nil {
+							return errors.Wrap(err, "error deleting release before install (forced)")
+						}
+						/////
+						select {
+						default:
+							_ = <-time.After(1 * time.Second)
+						}
 						continue
 					}
 					log.WithFields(log.Fields{

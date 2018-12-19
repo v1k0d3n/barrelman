@@ -81,6 +81,8 @@ func (s *Session) ListReleases() ([]*Release, error) {
 	var res []*Release
 	r, err := s.Helm.ListReleases(
 		helm.ReleaseListStatuses([]release.Status_Code{
+			release.Status_DELETED,
+			release.Status_SUPERSEDED,
 			release.Status_DEPLOYED,
 			release.Status_FAILED,
 			release.Status_PENDING_INSTALL,
