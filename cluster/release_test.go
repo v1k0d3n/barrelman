@@ -160,8 +160,8 @@ func TestDeleteRelease(t *testing.T) {
 				grpc.Errorf(grpc.Code(grpc.ErrServerStopped), "Failure sucessful")).Once()
 			err := s.DeleteReleases([]*DeleteMeta{
 				{
-					Name:      "this",
-					Namespace: "here",
+					ReleaseName: "this",
+					Namespace:   "here",
 				},
 			})
 			So(err, ShouldNotBeNil)
@@ -184,12 +184,12 @@ func TestDeleteRelease(t *testing.T) {
 			).Return(r, nil).Twice()
 			err := s.DeleteReleases([]*DeleteMeta{
 				{
-					Name:      "this1",
-					Namespace: "here1",
+					ReleaseName: "this1",
+					Namespace:   "here1",
 				},
 				{
-					Name:      "this2",
-					Namespace: "here2",
+					ReleaseName: "this2",
+					Namespace:   "here2",
 				},
 			})
 			So(err, ShouldBeNil)
@@ -283,8 +283,8 @@ func TestDiffRelease(t *testing.T) {
 				Release: nil,
 			}, errors.New("ReleaseContent should fail")).Once()
 			_, _, err := s.DiffRelease(&ReleaseMeta{
-				Name:      "something",
-				Namespace: "that_namespace",
+				ReleaseName: "something",
+				Namespace:   "that_namespace",
 			})
 			So(err, ShouldNotBeNil)
 		})
@@ -302,8 +302,8 @@ func TestDiffRelease(t *testing.T) {
 			).Return(nil, errors.New("UpdateRelease should fail")).Once()
 
 			_, _, err := s.DiffRelease(&ReleaseMeta{
-				Name:      "something",
-				Namespace: "that_namespace",
+				ReleaseName: "something",
+				Namespace:   "that_namespace",
 			})
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "Failed to get results")
@@ -329,8 +329,8 @@ func TestDiffRelease(t *testing.T) {
 				mock.Anything,
 			).Return(updateReleaseResp, nil).Once()
 			changed, bytes, err := s.DiffRelease(&ReleaseMeta{
-				Name:      "something",
-				Namespace: "that_namespace",
+				ReleaseName: "something",
+				Namespace:   "that_namespace",
 			})
 			So(err, ShouldBeNil)
 			So(changed, ShouldBeTrue)

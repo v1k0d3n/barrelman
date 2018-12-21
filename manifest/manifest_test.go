@@ -1,3 +1,4 @@
+//go:generate
 package manifest
 
 import (
@@ -7,26 +8,32 @@ import (
 	"testing"
 
 	"github.com/charter-se/barrelman/manifest/chartsync"
+	mock_chartsync "github.com/charter-se/barrelman/manifest/chartsync/mocks"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestNewManifest(t *testing.T) {
 	Convey("Manifest", t, func() {
-		config := &Config{
-			ManifestFile: getTestDataDir() + "/unit-test-manifest.yaml",
-		}
 		Convey("New can create new manifest instance", func() {
+			config := &Config{
+				ManifestFile: getTestDataDir() + "/unit-test-manifest.yaml",
+				AccountTable: make(chartsync.AccountTable),
+			}
 			_, err := New(config)
 			So(err, ShouldBeNil)
 		})
 		Convey("New can fail to open file", func() {
-			_, err := New(&Config{ManifestFile: "somefile"})
+			_, err := New(&Config{
+				ManifestFile: "somefile",
+				AccountTable: make(chartsync.AccountTable),
+			})
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "no such file or directory")
 		})
 		Convey("New can fail to import", func() {
 			_, err := New(&Config{
 				ManifestFile: getTestDataDir() + "/non-yaml",
+				AccountTable: make(chartsync.AccountTable),
 			})
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "error importing manifest")
@@ -34,6 +41,7 @@ func TestNewManifest(t *testing.T) {
 		Convey("New can fail to chartsync", func() {
 			_, err := New(&Config{
 				ManifestFile: getTestDataDir() + "/config",
+				AccountTable: make(chartsync.AccountTable),
 			})
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "Error running chartsync")
@@ -75,13 +83,13 @@ func TestManifest(t *testing.T) {
 	Convey("AddChart", t, func() {
 		Convey("Can add", func() {
 			err := m.AddChart(&Chart{
-				Name: "storage-minio",
+				MetaName: "storage-minio",
 			})
 			So(err, ShouldBeNil)
 		})
 		Convey("Can fail to add", func() {
 			err := m.AddChart(&Chart{
-				Name: "storage-minio",
+				MetaName: "storage-minio",
 			})
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "name already exists")
@@ -138,7 +146,7 @@ func TestManifest(t *testing.T) {
 			charts, err := m.GetChartsByName([]string{"storage-minio"})
 			So(err, ShouldBeNil)
 			So(charts, ShouldHaveLength, 1)
-			So(charts[0].Name, ShouldEqual, "storage-minio")
+			So(charts[0].MetaName, ShouldEqual, "storage-minio")
 		})
 		Convey("Can fail", func() {
 			charts, err := m.GetChartsByName([]string{"no-exist"})
@@ -156,43 +164,58 @@ func TestManifest(t *testing.T) {
 		Convey("Can succeed", func() {
 			charts := m.AllCharts()
 			So(charts, ShouldHaveLength, 1)
-			So(charts[0].Name, ShouldEqual, "storage-minio")
+			So(charts[0].MetaName, ShouldEqual, "storage-minio")
 		})
 	})
 	Convey("GetChartSpec", t, func() {
+		archiver := &mock_chartsync.Archiver{}
+		archiver.On("GetPath").Return("charts/test-minio", nil).Maybe()
 		m.Data = &ManifestData{
 			ChartGroups: []string{
 				"storage-minio",
 			},
 		}
 		Convey("Can succeed", func() {
-			m.ChartSync = chartsync.New(getTestDataDir())
+			m.ChartSync = chartsync.New(getTestDataDir(), make(chartsync.AccountTable))
 			path, charts, err := m.GetChartSpec(&Chart{
-				Name: "storage-minio",
+				MetaName: "storage-minio",
 				Data: &ChartData{
+					Archiver:     archiver,
+					Type:         "git",
 					ChartName:    "storage-minio",
-					Location:     "charts",
 					Dependencies: []string{},
 					SubPath:      "test-minio",
+					Source: &chartsync.Source{
+						Location: "charts",
+					},
 				},
 			})
+
 			So(err, ShouldBeNil)
 			So(path, ShouldContainSubstring, "charts/test-minio")
 			So(charts, ShouldHaveLength, 0) // no depends in this test
 		})
 		Convey("Can process dependencies", func() {
-			m.ChartSync = chartsync.New(getTestDataDir())
+			m.ChartSync = chartsync.New(getTestDataDir(), make(chartsync.AccountTable))
 			m.AddChart(&Chart{
-				Name: "test-chart",
+				MetaName: "test-chart",
 				Data: &ChartData{
-					Location: "charts",
+					Archiver: archiver,
+					Type:     "git",
+					Source: &chartsync.Source{
+						Location: "charts",
+					},
 				},
 			})
 			path, charts, err := m.GetChartSpec(&Chart{
-				Name: "storage-minio",
+				MetaName: "storage-minio",
 				Data: &ChartData{
-					ChartName:    "storage-minio",
-					Location:     "charts",
+					Archiver:  archiver,
+					Type:      "git",
+					ChartName: "storage-minio",
+					Source: &chartsync.Source{
+						Location: "charts",
+					},
 					Dependencies: []string{"test-chart"},
 					SubPath:      "test-minio",
 				},

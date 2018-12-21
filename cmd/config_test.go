@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/charter-se/barrelman/manifest/chartsync"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -21,10 +22,12 @@ func TestConfig(t *testing.T) {
 			So(err.Error(), ShouldContainSubstring, "unit-test-manifest.yaml")
 		})
 		Convey("Can fail to parse", func() {
+			config := &Config{}
+			config.Account = make(map[string]*chartsync.Account)
 			r := bytes.NewBufferString(badConfig)
 			bc, err := toBarrelmanConfig("/pretend/path", r)
 			So(err, ShouldBeNil)
-			_, err = GetConfigFromBarrelmanConfig(bc)
+			_, err = config.LoadAcc(bc)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "failed to parse")
 		})
