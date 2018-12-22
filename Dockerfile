@@ -13,7 +13,7 @@ RUN go get -d -v ./...
 
 RUN CGO_ENABLED=0 go build -ldflags '-w -s' -a -installsuffix cgo -o /barrelman
 
-FROM scratch
+FROM scratch AS build
 COPY --from=0 /barrelman /barrelman
 
 VOLUME /data
