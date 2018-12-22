@@ -36,7 +36,7 @@ data:
     no_hooks: false
   upgrade:
     no_hooks: false
-  values: 
+  values:
     elasticsearch: openstack-minus
   source:
     type: git
