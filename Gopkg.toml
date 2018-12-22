@@ -34,25 +34,25 @@
 
 [[override]]
   name = "k8s.io/helm"
-  revision = "58be8e461c9ab8e86ea2ad519601e1a288f21e8c"
+  revision = "02a47c7249b1fc6d8fd3b94e6b4babf9d818144e"
 [[override]]
   name = "k8s.io/client-go"
-  version = "kubernetes-1.13.0"
+  version = "kubernetes-1.13.1"
 [[override]]
   name = "k8s.io/kubernetes"
-  version = "v1.13.0"
+  version = "v1.13.1"
 [[override]]
   name = "k8s.io/api"
-  version = "kubernetes-1.13.0"
+  version = "kubernetes-1.13.1"
 [[override]]
   name = "k8s.io/apiextensions-apiserver"
-  version = "kubernetes-1.13.0"
+  version = "kubernetes-1.13.1"
 [[override]]
   name = "k8s.io/apiserver"
-  version = "kubernetes-1.13.0"
+  version = "kubernetes-1.13.1"
 [[override]]
   name = "k8s.io/apimachinery"
-  version = "kubernetes-1.13.0"
+  version = "kubernetes-1.13.1"
 [[override]]
   name = "k8s.io/utils"
   revision = "011bbbe3b2878d9b1d484312f186826acd7e78cc"

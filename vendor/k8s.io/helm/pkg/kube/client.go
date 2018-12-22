@@ -48,6 +48,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/get"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/validation"
@@ -206,7 +207,9 @@ func (c *Client) Get(namespace string, reader io.Reader) (string, error) {
 	//here, we will add the objPods to the objs
 	for key, podItems := range objPods {
 		for i := range podItems {
-			objs[key+"(related)"] = append(objs[key+"(related)"], &podItems[i])
+			pod := &core.Pod{}
+			legacyscheme.Scheme.Convert(&podItems[i], pod, nil)
+			objs[key+"(related)"] = append(objs[key+"(related)"], pod)
 		}
 	}
 
@@ -215,18 +218,14 @@ func (c *Client) Get(namespace string, reader io.Reader) (string, error) {
 	// an object type changes, so we can just rely on that. Problem is it doesn't seem to keep
 	// track of tab widths.
 	buf := new(bytes.Buffer)
-	p, _ := get.NewHumanPrintFlags().ToPrinter("")
-	index := 0
+	printFlags := get.NewHumanPrintFlags()
 	for t, ot := range objs {
-		kindHeader := fmt.Sprintf("==> %s", t)
-		if index == 0 {
-			kindHeader = kindHeader + "\n"
-		}
-		if _, err = buf.WriteString(kindHeader); err != nil {
+		if _, err = fmt.Fprintf(buf, "==> %s\n", t); err != nil {
 			return "", err
 		}
+		typePrinter, _ := printFlags.ToPrinter("")
 		for _, o := range ot {
-			if err := p.PrintObj(o, buf); err != nil {
+			if err := typePrinter.PrintObj(o, buf); err != nil {
 				c.Log("failed to print object type %s, object: %q :\n %v", t, o, err)
 				return "", err
 			}
@@ -234,7 +233,6 @@ func (c *Client) Get(namespace string, reader io.Reader) (string, error) {
 		if _, err := buf.WriteString("\n"); err != nil {
 			return "", err
 		}
-		index += 1
 	}
 	if len(missing) > 0 {
 		buf.WriteString(MissingGetHeader)

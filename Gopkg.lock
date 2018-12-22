@@ -315,6 +315,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:a674a495dd0b522b9f6d4339e0fc4f1424ac3177ceca2c0882af85e65be05499"
+  name = "github.com/gopherjs/gopherjs"
+  packages = ["js"]
+  pruneopts = ""
+  revision = "d547d1d9531ed93dbdebcbff7f83e7c876a1e0ee"
+
+[[projects]]
+  branch = "master"
   digest = "1:5e345eb75d8bfb2b91cfbfe02a82a79c0b2ea55cf06c5a4d180a9321f36973b4"
   name = "github.com/gregjones/httpcache"
   packages = [
@@ -409,6 +417,14 @@
   pruneopts = ""
   revision = "1624edc4454b8682399def8740d46db5e4362ba4"
   version = "v1.1.5"
+
+[[projects]]
+  digest = "1:387bc9c583e744c448f77cd90d0551634fc682d0af505d2fa955243a73f37c24"
+  name = "github.com/jtolds/gls"
+  packages = ["."]
+  pruneopts = ""
+  revision = "b4936e06046bbecbb94cae9c18127ebe510a2cb9"
+  version = "v4.20"
 
 [[projects]]
   digest = "1:41e0bed5df4f9fd04c418bf9b6b7179b3671e416ad6175332601ca1c8dc74606"
@@ -551,6 +567,14 @@
   version = "v2.0.1"
 
 [[projects]]
+  digest = "1:256484dbbcd271f9ecebc6795b2df8cad4c458dd0f5fd82a8c2fa0c29f233411"
+  name = "github.com/pmezard/go-difflib"
+  packages = ["difflib"]
+  pruneopts = ""
+  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:2761e287c811d0948d47d0252b82281eca3801eb3c9d5f9530956643d5b9f430"
   name = "github.com/russross/blackfriday"
   packages = ["."]
@@ -573,6 +597,30 @@
   pruneopts = ""
   revision = "bcd833dfe83d3cebad139e4a29ed79cb2318bf95"
   version = "v1.2.0"
+
+[[projects]]
+  digest = "1:c686b5040ec4be5005e10020ce3d1d7f888bfae796a039addf7d9071d8776be8"
+  name = "github.com/smartystreets/assertions"
+  packages = [
+    ".",
+    "internal/go-render/render",
+    "internal/oglematchers",
+  ]
+  pruneopts = ""
+  revision = "7678a5452ebea5b7090a6b163f844c133f523da2"
+  version = "1.8.3"
+
+[[projects]]
+  digest = "1:dd808f0f1628ff85a1b54424d3e6a61c54a87353d5063b9b5c82ad360f0346d5"
+  name = "github.com/smartystreets/goconvey"
+  packages = [
+    "convey",
+    "convey/gotest",
+    "convey/reporting",
+  ]
+  pruneopts = ""
+  revision = "9e8dc3f972df6c8fcc0375ef492c24d0bb204857"
+  version = "1.6.3"
 
 [[projects]]
   digest = "1:d0431c2fd72e39ee43ea7742322abbc200c3e704c9102c5c3c2e2e667095b0ca"
@@ -637,6 +685,25 @@
   pruneopts = ""
   revision = "1ac3a1ac202429a54835fe8408a92880156b489d"
   version = "v1.4.0"
+
+[[projects]]
+  digest = "1:711eebe744c0151a9d09af2315f0bb729b2ec7637ef4c410fa90a18ef74b65b6"
+  name = "github.com/stretchr/objx"
+  packages = ["."]
+  pruneopts = ""
+  revision = "477a77ecc69700c7cdeb1fa9e129548e1c1c393c"
+  version = "v0.1.1"
+
+[[projects]]
+  digest = "1:c587772fb8ad29ad4db67575dad25ba17a51f072ff18a22b4f0257a4d9c24f75"
+  name = "github.com/stretchr/testify"
+  packages = [
+    "assert",
+    "mock",
+  ]
+  pruneopts = ""
+  revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
+  version = "v1.2.2"
 
 [[projects]]
   digest = "1:afc0b8068986a01e2d8f449917829753a54f6bd4d1265c2b4ad9cba75560020f"
@@ -951,16 +1018,16 @@
     "storage/v1beta1",
   ]
   pruneopts = ""
-  revision = "89a74a8d264df0e993299876a8cde88379b940ee"
-  version = "kubernetes-1.13.0"
+  revision = "05914d821849570fba9eacfb29466f2d8d3cd229"
+  version = "kubernetes-1.13.1"
 
 [[projects]]
-  digest = "1:956191f0722897b65075356663b0cdee0b68afeb9546bd539f32309a31c87250"
+  digest = "1:2133e488e6db5701ef295c39cbc0836855c02af677e8707e539ebf605a4211ca"
   name = "k8s.io/apiextensions-apiserver"
   packages = ["pkg/features"]
   pruneopts = ""
-  revision = "20c909e7c8c3fec1a0e345b1d4e57f1c1623c368"
-  version = "kubernetes-1.13.0"
+  revision = "0fe22c71c47604641d9aa352c785b7912c200562"
+  version = "kubernetes-1.13.1"
 
 [[projects]]
   digest = "1:66b0292f815d508d11ed5fe94fdeb0bcc5a988703a08e73bf3cb3a415de676cf"
@@ -1021,10 +1088,10 @@
   ]
   pruneopts = ""
   revision = "2b1284ed4c93a43499e781493253e2ac5959c4fd"
-  version = "kubernetes-1.13.0"
+  version = "kubernetes-1.13.1"
 
 [[projects]]
-  digest = "1:f2333764374be9cff9789a067acd08529229bb10e9472cc6be9e7479b6b70d15"
+  digest = "1:f0477b8445d93dad030710550c912392ad4ba93d9061d4f0186aa507f357436a"
   name = "k8s.io/apiserver"
   packages = [
     "pkg/authentication/authenticator",
@@ -1034,8 +1101,8 @@
     "pkg/util/feature",
   ]
   pruneopts = ""
-  revision = "9caa0299108fbdf51d3d9b8e8956834ae84dac75"
-  version = "kubernetes-1.13.0"
+  revision = "3ccfe8365421eb08e334b195786a2973460741d8"
+  version = "kubernetes-1.13.1"
 
 [[projects]]
   branch = "master"
@@ -1050,7 +1117,7 @@
   revision = "2f0d1d0a58f22eae7a0ec3d6cf01f4a122a57dae"
 
 [[projects]]
-  digest = "1:96ab89894f66b77a0137bba12e607c6a9be992acadfb075b5602939e8519a157"
+  digest = "1:d603c9957fa66c90792d45fe0205d484da2ea364a01069c20890f2640b4a0fd5"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
@@ -1132,11 +1199,11 @@
     "util/retry",
   ]
   pruneopts = ""
-  revision = "e64494209f554a6723674bd494d69445fb76a1d4"
-  version = "kubernetes-1.13.0"
+  revision = "8d9ed539ba3134352c586810e749e58df4e94e4f"
+  version = "kubernetes-1.13.1"
 
 [[projects]]
-  digest = "1:8c8cb2200a1bbfc41d5b2d9aca904b3736006202d0568e87d06b7c6a8bd02451"
+  digest = "1:c292bfddfb7b0c71d8f63095026b3cdd059b43b20670689aa697d13fd9281724"
   name = "k8s.io/helm"
   packages = [
     "pkg/chartutil",
@@ -1156,7 +1223,7 @@
     "pkg/version",
   ]
   pruneopts = ""
-  revision = "58be8e461c9ab8e86ea2ad519601e1a288f21e8c"
+  revision = "02a47c7249b1fc6d8fd3b94e6b4babf9d818144e"
 
 [[projects]]
   digest = "1:4f5eb833037cc0ba0bf8fe9cae6be9df62c19dd1c869415275c708daa8ccfda5"
@@ -1178,7 +1245,7 @@
   revision = "0317810137be915b9cf888946c6e115c1bfac693"
 
 [[projects]]
-  digest = "1:a53c39a815a31aceb509f9987d7d8c65e74fcb1fcd5077eaf723a8defec1af90"
+  digest = "1:abf4524767db373f5535e5b8278c7974d7a1365943d5a209ae31c42b292756d9"
   name = "k8s.io/kubernetes"
   packages = [
     "pkg/api/legacyscheme",
@@ -1314,8 +1381,8 @@
     "pkg/version",
   ]
   pruneopts = ""
-  revision = "ddf47ac13c1a9483ea035a79cd7c10005ff21a6d"
-  version = "v1.13.0"
+  revision = "eec55b9ba98609a46fee712359c7b5b365bdd920"
+  version = "v1.13.1"
 
 [[projects]]
   digest = "1:0efd5f9ea94a2c4e38c286c88411509407b441256576a33a7712fd4913c96333"
@@ -1352,8 +1419,10 @@
     "github.com/charter-se/structured/log",
     "github.com/cirrocloud/yamlpack",
     "github.com/mgutz/ansi",
+    "github.com/smartystreets/goconvey/convey",
     "github.com/spf13/cobra",
     "github.com/spf13/viper",
+    "github.com/stretchr/testify/mock",
     "google.golang.org/grpc",
     "gopkg.in/src-d/go-git.v4",
     "gopkg.in/src-d/go-git.v4/plumbing/transport/http",
@@ -1366,6 +1435,7 @@
     "k8s.io/helm/pkg/kube",
     "k8s.io/helm/pkg/proto/hapi/chart",
     "k8s.io/helm/pkg/proto/hapi/release",
+    "k8s.io/helm/pkg/proto/hapi/services",
     "k8s.io/helm/pkg/version",
     "k8s.io/kubernetes/pkg/api/pod",
     "k8s.io/kubernetes/pkg/apis/core",
