@@ -26,7 +26,7 @@ func TestNewListCmd(t *testing.T) {
 
 			err := cmd.RunE(cmd, []string{})
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "no such file or directory")
+			So(err.Error(), ShouldContainSubstring, "config file does not exist")
 		})
 	})
 
@@ -43,7 +43,7 @@ func TestListRun(t *testing.T) {
 			session := &mocks.Sessioner{}
 			err := c.Run(session)
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "no such file or directory")
+			So(err.Error(), ShouldContainSubstring, "config file does not exist")
 		})
 		Convey("Can fail to Init", func() {
 			c := &listCmd{
@@ -79,11 +79,11 @@ func TestListRun(t *testing.T) {
 			}
 			session := &mocks.Sessioner{}
 			session.On("Init").Return(nil).Once()
-			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Once()
+			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Maybe()
 			session.On("GetKubeContext").Return("").Once()
 			session.On("Releases").Return(map[string]*cluster.ReleaseMeta{
 				"storage-minio": &cluster.ReleaseMeta{
-					Name: "storage-minio",
+					ReleaseName: "storage-minio",
 				},
 			}, errors.New("simulated Releases failure")).Once()
 
@@ -106,11 +106,11 @@ func TestListRun(t *testing.T) {
 			}
 			session := &mocks.Sessioner{}
 			session.On("Init").Return(nil).Once()
-			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Once()
+			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Maybe()
 			session.On("GetKubeContext").Return("").Once()
 			session.On("Releases").Return(map[string]*cluster.ReleaseMeta{
 				"storage-minio": &cluster.ReleaseMeta{
-					Name: "storage-minio",
+					ReleaseName: "storage-minio",
 				},
 			}, nil).Once()
 

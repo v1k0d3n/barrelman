@@ -30,7 +30,7 @@ func TestNewApplyCmd(t *testing.T) {
 
 			err := cmd.RunE(cmd, []string{})
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "no such file or directory")
+			So(err.Error(), ShouldContainSubstring, "config file does not exist")
 		})
 	})
 }
@@ -42,7 +42,7 @@ func TestDiff(t *testing.T) {
 		rt := releaseTargets{
 			&releaseTarget{
 				ReleaseMeta: &cluster.ReleaseMeta{
-					Name:      "storage-minio",
+					MetaName:  "storage-minio",
 					Namespace: "scratch",
 				},
 				State: Upgradable,
@@ -70,7 +70,7 @@ func TestApplyRun(t *testing.T) {
 			session := &mocks.Sessioner{}
 			err := c.Run(session)
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "no such file or directory")
+			So(err.Error(), ShouldContainSubstring, "config file does not exist")
 		})
 
 		Convey("Can handle Init failure", func() {
@@ -108,7 +108,7 @@ func TestApplyRun(t *testing.T) {
 			}
 			session := &mocks.Sessioner{}
 			session.On("Init").Return(nil).Once()
-			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Once()
+			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Maybe()
 			session.On("GetKubeContext").Return("").Once()
 			session.On("Releases").Return(nil, errors.New("small error")).Once()
 
@@ -132,7 +132,7 @@ func TestApplyRun(t *testing.T) {
 			}
 			session := &mocks.Sessioner{}
 			session.On("Init").Return(nil).Once()
-			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Once()
+			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Maybe()
 			session.On("GetKubeContext").Return("").Once()
 			session.On("Releases").Return(map[string]*cluster.ReleaseMeta{}, nil).Once()
 
@@ -151,6 +151,9 @@ func TestApplyRun(t *testing.T) {
 				}),
 				mock.Anything,
 			).Return("Simulated install failed", "some_release", errors.New("Error injection")).Once()
+
+			//Will delete release in attempt to clear condition
+			session.On("DeleteRelease", mock.Anything).Return(nil).Once()
 
 			//This run will be the real deal
 			session.On("InstallRelease",
@@ -179,7 +182,7 @@ func TestApplyRun(t *testing.T) {
 			}
 			session := &mocks.Sessioner{}
 			session.On("Init").Return(nil).Once()
-			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Once()
+			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Maybe()
 			session.On("GetKubeContext").Return("").Once()
 			session.On("Releases").Return(map[string]*cluster.ReleaseMeta{}, nil).Once()
 
@@ -199,6 +202,7 @@ func TestApplyRun(t *testing.T) {
 				mock.Anything,
 			).Return("Simulated install failed", "some_release", errors.New("Error injection")).Times(3)
 
+			session.On("DeleteRelease", mock.Anything).Return(nil).Times(3)
 			err := c.Run(session)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "Error injection")
@@ -220,11 +224,11 @@ func TestApplyRun(t *testing.T) {
 			}
 			session := &mocks.Sessioner{}
 			session.On("Init").Return(nil).Once()
-			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Once()
+			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Maybe()
 			session.On("GetKubeContext").Return("").Once()
 			session.On("Releases").Return(map[string]*cluster.ReleaseMeta{
 				"storage-minio": &cluster.ReleaseMeta{
-					Name: "storage-minio",
+					ChartName: "storage-minio",
 				},
 			}, nil).Once()
 
@@ -235,7 +239,7 @@ func TestApplyRun(t *testing.T) {
 					return true
 				}),
 				mock.Anything,
-			).Return("Simulated install succeeded", "some_release", nil).Once()
+			).Return("Simulated install succeeded", "some_release", nil)
 
 			err := c.Run(session)
 			So(err, ShouldBeNil)
@@ -257,11 +261,11 @@ func TestApplyRun(t *testing.T) {
 			}
 			session := &mocks.Sessioner{}
 			session.On("Init").Return(nil).Once()
-			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Once()
+			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Maybe()
 			session.On("GetKubeContext").Return("").Once()
 			session.On("Releases").Return(map[string]*cluster.ReleaseMeta{
 				"storage-minio": &cluster.ReleaseMeta{
-					Name: "storage-minio",
+					ChartName: "storage-minio",
 				},
 			}, nil).Once()
 
@@ -290,11 +294,11 @@ func TestApplyRun(t *testing.T) {
 			}
 			session := &mocks.Sessioner{}
 			session.On("Init").Return(nil).Once()
-			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Once()
+			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Maybe()
 			session.On("GetKubeContext").Return("").Once()
 			session.On("Releases").Return(map[string]*cluster.ReleaseMeta{
 				"storage-minio": &cluster.ReleaseMeta{
-					Name: "storage-minio",
+					ChartName: "storage-minio",
 				},
 			}, nil).Once()
 
@@ -329,11 +333,11 @@ func TestApplyRun(t *testing.T) {
 			}
 			session := &mocks.Sessioner{}
 			session.On("Init").Return(nil).Once()
-			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Once()
+			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Maybe()
 			session.On("GetKubeContext").Return("").Once()
 			session.On("Releases").Return(map[string]*cluster.ReleaseMeta{
 				"storage-minio": &cluster.ReleaseMeta{
-					Name: "storage-minio",
+					ChartName: "storage-minio",
 				},
 			}, nil).Once()
 			session.On("UpgradeRelease",
@@ -375,11 +379,11 @@ func TestApplyRun(t *testing.T) {
 			}
 			session := &mocks.Sessioner{}
 			session.On("Init").Return(nil).Once()
-			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Once()
+			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Maybe()
 			session.On("GetKubeContext").Return("").Once()
 			session.On("Releases").Return(map[string]*cluster.ReleaseMeta{
 				"storage-minio": &cluster.ReleaseMeta{
-					Name: "storage-minio",
+					ChartName: "storage-minio",
 				},
 			}, nil).Once()
 

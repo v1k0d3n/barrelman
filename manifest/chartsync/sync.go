@@ -1,3 +1,4 @@
+//go:generate mockery -name=Archiver
 package chartsync
 
 import (

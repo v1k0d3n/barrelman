@@ -28,7 +28,7 @@ func TestNewDeleteCmd(t *testing.T) {
 
 			err := cmd.RunE(cmd, []string{})
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "no such file or directory")
+			So(err.Error(), ShouldContainSubstring, "config file does not exist")
 		})
 	})
 }
@@ -44,7 +44,7 @@ func TestDeleteRun(t *testing.T) {
 			session := &mocks.Sessioner{}
 			err := c.Run(session)
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "no such file or directory")
+			So(err.Error(), ShouldContainSubstring, "config file does not exist")
 		})
 
 		Convey("Can fail to Init", func() {
@@ -82,12 +82,12 @@ func TestDeleteRun(t *testing.T) {
 			}
 			session := &mocks.Sessioner{}
 			session.On("Init").Return(nil).Once()
-			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Once()
+			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Maybe()
 			session.On("GetKubeContext").Return("").Once()
 			session.On("ListReleases").Return([]*cluster.Release{
 				&cluster.Release{
-					Name:      "storage-minio",
-					Namespace: "scratch",
+					ReleaseName: "storage-minio",
+					Namespace:   "scratch",
 					Chart: &cluster.Chart{
 						Metadata: &chart.Metadata{
 							Name: "storage-minio",
@@ -116,12 +116,12 @@ func TestDeleteRun(t *testing.T) {
 			}
 			session := &mocks.Sessioner{}
 			session.On("Init").Return(nil).Once()
-			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Once()
+			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Maybe()
 			session.On("GetKubeContext").Return("").Once()
 			session.On("ListReleases").Return([]*cluster.Release{
 				&cluster.Release{
-					Name:      "storage-minio",
-					Namespace: "scratch",
+					ReleaseName: "storage-minio",
+					Namespace:   "scratch",
 					Chart: &cluster.Chart{
 						Metadata: &chart.Metadata{
 							Name: "storage-minio",
@@ -151,12 +151,12 @@ func TestDeleteRun(t *testing.T) {
 			}
 			session := &mocks.Sessioner{}
 			session.On("Init").Return(nil).Once()
-			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Once()
+			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Maybe()
 			session.On("GetKubeContext").Return("").Once()
 			session.On("ListReleases").Return([]*cluster.Release{
 				&cluster.Release{
-					Name:      "storage-minio",
-					Namespace: "scratch",
+					ReleaseName: "storage-minio",
+					Namespace:   "scratch",
 					Chart: &cluster.Chart{
 						Metadata: &chart.Metadata{
 							Name: "storage-minio",
