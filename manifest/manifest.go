@@ -346,7 +346,6 @@ func parseSchema(input string) (*Schema, error) {
 
 //GetChartSpec returns local chart path and dependancy information useful for building an archive
 func (m *Manifest) GetChartSpec(c *Chart) (string, []*chartsync.ChartSpec, error) {
-
 	path, err := c.Data.Archiver.GetPath()
 	if err != nil {
 		return "", nil, errors.Wrap(err, "Failed to get yaml file path")
