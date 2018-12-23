@@ -7,10 +7,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/ghodss/yaml"
+
 	"github.com/charter-se/barrelman/manifest/chartsync"
 	"github.com/charter-se/structured/errors"
 	"github.com/cirrocloud/yamlpack"
-	gyaml "github.com/ghodss/yaml"
 )
 
 const (
@@ -276,7 +277,7 @@ func (m *Manifest) load() error {
 			chart.Data.Namespace = k.GetString("data.namespace")
 			chart.Data.Type = k.GetString("data.source.type")
 
-			chart.Data.Overrides, err = gyaml.Marshal(k.Viper.Sub("data.values").AllSettings())
+			chart.Data.Overrides, err = yaml.Marshal(k.Viper.Sub("data.values").AllSettings())
 			if err != nil {
 				return errors.WithFields(errors.Fields{
 					"Type": chart.Data.Type,
