@@ -1,4 +1,5 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/charter-se/barrelman/badge)](https://www.codefactor.io/repository/github/charter-se/barrelman)
+[![Barrelman Container on Quay](https://quay.io/repository/charter-se/barrelman/status "Docker Repository on Quay")](https://quay.io/repository/charter-se/barrelman)
 # barrelman
 *A project to deploy extremely atomic Helm charts as more complex application release groups.*
 
