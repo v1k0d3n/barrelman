@@ -90,9 +90,9 @@ func (s *Session) Init() error {
 	}).Debug("Connected to Tiller")
 	if !compatible {
 		return errors.WithFields(errors.Fields{
-			"tillerVersion":          tillerVersion.Version.SemVer,
-			"clientServerCompatible": compatible,
-			"Host":                   fmt.Sprintf(":%v", s.Tiller.Local),
+			"tillerVersion": tillerVersion.Version.SemVer,
+			"helmVersion":   version.Version,
+			"Host":          fmt.Sprintf(":%v", s.Tiller.Local),
 		}).New("incompatible version numbers")
 	}
 	return nil

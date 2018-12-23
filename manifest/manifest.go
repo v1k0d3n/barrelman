@@ -10,7 +10,7 @@ import (
 	"github.com/charter-se/barrelman/manifest/chartsync"
 	"github.com/charter-se/structured/errors"
 	"github.com/cirrocloud/yamlpack"
-	yaml "gopkg.in/yaml.v2"
+	gyaml "github.com/ghodss/yaml"
 )
 
 const (
@@ -275,14 +275,18 @@ func (m *Manifest) load() error {
 			chart.Data.Dependencies = k.GetStringSlice("data.dependencies")
 			chart.Data.Namespace = k.GetString("data.namespace")
 			chart.Data.Type = k.GetString("data.source.type")
-			chart.Data.Overrides, err = yaml.Marshal(k.Viper.Sub("data.values").AllSettings())
+
+			chart.Data.Overrides, err = gyaml.Marshal(k.Viper.Sub("data.values").AllSettings())
+			if err != nil {
+				return errors.WithFields(errors.Fields{
+					"Type": chart.Data.Type,
+					"Name": chart.MetaName,
+				}).Wrap(err, "Failed to marshal Override Values")
+			}
 			chart.Data.Source = &chartsync.Source{
 				Location:  k.GetString("data.source.location"),
 				SubPath:   k.GetString("data.source.subpath"),
 				Reference: k.GetString("data.source.reference"),
-			}
-			if err != nil {
-				return errors.Wrap(err, "Error reading value overides in chart")
 			}
 
 			handler, err := chartsync.GetHandler(chart.Data.Type)
