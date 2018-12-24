@@ -7,10 +7,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/ghodss/yaml"
+
 	"github.com/charter-se/barrelman/manifest/chartsync"
 	"github.com/charter-se/structured/errors"
 	"github.com/cirrocloud/yamlpack"
-	yaml "gopkg.in/yaml.v2"
 )
 
 const (
@@ -275,14 +276,26 @@ func (m *Manifest) load() error {
 			chart.Data.Dependencies = k.GetStringSlice("data.dependencies")
 			chart.Data.Namespace = k.GetString("data.namespace")
 			chart.Data.Type = k.GetString("data.source.type")
-			chart.Data.Overrides, err = yaml.Marshal(k.Viper.Sub("data.values").AllSettings())
+
+			//JSON can't handle nested maps
+			//flatten to dotted notation before sending
+			converted := make(map[string]interface{})
+			for _, ik := range k.Viper.Sub("data.values").AllKeys() {
+				converted[ik] = k.Viper.Sub("data.values").GetString(ik)
+			}
+
+			chart.Data.Overrides, err = yaml.Marshal(converted)
+			if err != nil {
+				return errors.WithFields(errors.Fields{
+					"Type": chart.Data.Type,
+					"Name": chart.MetaName,
+				}).Wrap(err, "Failed to marshal Override Values")
+			}
+
 			chart.Data.Source = &chartsync.Source{
 				Location:  k.GetString("data.source.location"),
 				SubPath:   k.GetString("data.source.subpath"),
 				Reference: k.GetString("data.source.reference"),
-			}
-			if err != nil {
-				return errors.Wrap(err, "Error reading value overides in chart")
 			}
 
 			handler, err := chartsync.GetHandler(chart.Data.Type)
