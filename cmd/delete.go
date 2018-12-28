@@ -40,12 +40,12 @@ func newDeleteCmd(cmd *deleteCmd) *cobra.Command {
 		"disable remote sync")
 	cobraCmd.Flags().StringVar(
 		&cmd.Options.KubeConfigFile,
-		"kube-config",
+		"kubeconfig",
 		Default().KubeConfigFile,
 		"use alternate kube config file")
 	cobraCmd.Flags().StringVar(
 		&cmd.Options.KubeContext,
-		"kube-context",
+		"kubecontext",
 		Default().KubeContext,
 		"use alternate kube context")
 	return cobraCmd
