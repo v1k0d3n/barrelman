@@ -125,6 +125,10 @@ func (s *Session) InstallRelease(m *ReleaseMeta, chart []byte) (string, string, 
 			"Namespace": m.Namespace,
 		}).Wrap(err, "failed install")
 	}
+	rel := res.GetRelease()
+	if rel != nil {
+		printRelease(rel)
+	}
 	return res.Release.Info.Description, res.Release.Name, err
 }
 
