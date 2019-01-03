@@ -29,6 +29,10 @@ func TestListReleases(t *testing.T) {
 							Code: release.Status_DEPLOYED,
 						},
 					},
+					Config: &hapi_chart3.Config{
+						Raw:    "this: that\n",
+						Values: make(map[string]*hapi_chart3.Value),
+					},
 				},
 			}
 
@@ -47,6 +51,10 @@ func TestListReleases(t *testing.T) {
 						Status: &release.Status{
 							Code: release.Status_DEPLOYED,
 						},
+					},
+					Config: &hapi_chart3.Config{
+						Raw:    "this: that\n",
+						Values: make(map[string]*hapi_chart3.Value),
 					},
 				},
 			}
@@ -93,6 +101,10 @@ func TestInstallRelease(t *testing.T) {
 							Code: release.Status_DEPLOYED,
 						},
 					},
+					Config: &hapi_chart3.Config{
+						Raw:    "this: that\n",
+						Values: make(map[string]*hapi_chart3.Value),
+					},
 				},
 			}
 			TestHelm.On("InstallRelease",
@@ -134,6 +146,10 @@ func TestUpgradeRelease(t *testing.T) {
 						Status: &release.Status{
 							Code: release.Status_DEPLOYED,
 						},
+					},
+					Config: &hapi_chart3.Config{
+						Raw:    "this: that\n",
+						Values: make(map[string]*hapi_chart3.Value),
 					},
 				},
 			}
@@ -275,6 +291,10 @@ func TestDiffRelease(t *testing.T) {
 				Code: release.Status_DEPLOYED,
 			},
 		},
+		Config: &hapi_chart3.Config{
+			Raw:    "this: that\n",
+			Values: make(map[string]*hapi_chart3.Value),
+		},
 	}
 
 	Convey("DiffRelease", t, func() {
@@ -315,6 +335,10 @@ func TestDiffRelease(t *testing.T) {
 				Release: &hapi_release5.Release{
 					Name:     "something",
 					Manifest: "\n---\n" + string(newRelease),
+					Config: &hapi_chart3.Config{
+						Raw:    "this: that\n",
+						Values: make(map[string]*hapi_chart3.Value),
+					},
 				},
 			}
 

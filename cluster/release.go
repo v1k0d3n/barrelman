@@ -125,23 +125,17 @@ func (s *Session) InstallRelease(m *ReleaseMeta, chart []byte) (string, string, 
 			"Namespace": m.Namespace,
 		}).Wrap(err, "failed install")
 	}
-	rel := res.GetRelease()
-	if rel != nil {
-		printRelease(rel)
-	}
 	return res.Release.Info.Description, res.Release.Name, err
 }
 
 //DiffRelease compares the differences between a running release and a proposed release
 func (s *Session) DiffRelease(m *ReleaseMeta) (bool, []byte, error) {
-	var changed bool
 	buf := bytes.NewBufferString("")
 	currentR, err := s.Helm.ReleaseContent(m.ReleaseName)
 	if err != nil {
 		return false, nil, errors.Wrap(err, "Upgrade failed to get current release")
 	}
 	currentParsed := ParseRelease(currentR.Release)
-
 	res, err := s.Helm.UpdateRelease(
 		m.ReleaseName,
 		m.Path,
@@ -153,8 +147,9 @@ func (s *Session) DiffRelease(m *ReleaseMeta) (bool, []byte, error) {
 	}
 	newParsed := ParseRelease(res.Release)
 
-	changed = DiffManifests(currentParsed, newParsed, []string{}, int(10), buf)
-	return changed, buf.Bytes(), err
+	manifestsChanged := DiffManifests(currentParsed, newParsed, []string{}, int(10), buf)
+	valuesChanged := DiffOverrides(currentR.Release.Config.Raw, res.Release.Config.Raw, buf)
+	return manifestsChanged || valuesChanged, buf.Bytes(), err
 }
 
 //UpgradeRelease applies changes to an already running release, potentially triggering a restart
@@ -263,6 +258,18 @@ func splitSpec(token string) (string, string) {
 	return "", ""
 }
 
+func DiffOverrides(current string, proposed string, to io.Writer) (changed bool) {
+	if current != proposed {
+		fmt.Fprintf(to, ansi.Color("Override Values has changed:", "yellow")+"\n")
+		diffs := diffStrings(current, proposed)
+		if len(diffs) > 0 {
+			changed = true
+		}
+		printDiffRecords([]string{}, "values", 0, diffs, to)
+	}
+	return changed
+}
+
 func ParseRelease(release *release.Release) map[string]*MappingResult {
 	manifest := release.Manifest
 	for _, hook := range release.Hooks {
@@ -292,6 +299,7 @@ func Parse(manifest string, defaultNamespace string) map[string]*MappingResult {
 		if err := yaml.Unmarshal([]byte(content), &metadata); err != nil {
 			log.Fatalf("YAML unmarshal error: %s\nCan't unmarshal %s", err, content)
 		}
+
 		if metadata.Metadata.Namespace == "" {
 			metadata.Metadata.Namespace = defaultNamespace
 		}
@@ -307,7 +315,6 @@ func Parse(manifest string, defaultNamespace string) map[string]*MappingResult {
 		}
 	}
 	return result
-
 }
 
 func (s *Session) DiffManifests(oldIndex, newIndex map[string]*MappingResult, suppressedKinds []string, context int, to io.Writer) bool {
