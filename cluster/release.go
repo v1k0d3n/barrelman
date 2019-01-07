@@ -47,8 +47,9 @@ type ReleaseMeta struct {
 }
 
 type DeleteMeta struct {
-	ReleaseName string
-	Namespace   string
+	ReleaseName   string
+	Namespace     string
+	DeleteTimeout time.Duration
 }
 
 type Status release.Status_Code
@@ -179,7 +180,11 @@ func (s *Session) DeleteReleases(dm []*DeleteMeta) error {
 
 //DeleteRelease runs a DeleteRelease command based on a release name
 func (s *Session) DeleteRelease(m *DeleteMeta) error {
-	_, err := s.Helm.DeleteRelease(m.ReleaseName, helm.DeletePurge(true))
+	_, err := s.Helm.DeleteRelease(
+		m.ReleaseName,
+		helm.DeletePurge(true),
+		helm.DeleteTimeout(int64(m.DeleteTimeout.Seconds())),
+	)
 	if err != nil {
 		return errors.New(grpc.ErrorDesc(err))
 	}
