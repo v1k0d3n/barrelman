@@ -299,6 +299,7 @@ func (rt releaseTargets) LogDiff() {
 func (rt releaseTargets) Apply(session cluster.Sessioner, opt *cmdOptions) error {
 	for _, v := range rt {
 		v.ReleaseMeta.DryRun = false
+		v.ReleaseMeta.InstallTimeout = 120
 		switch v.State {
 
 		case Installable, Replaceable:
@@ -309,8 +310,9 @@ func (rt releaseTargets) Apply(session cluster.Sessioner, opt *cmdOptions) error
 				if v.State == Replaceable {
 					//The release exists, it needs to be deleted
 					dm := &cluster.DeleteMeta{
-						ReleaseName: v.ReleaseMeta.ReleaseName,
-						Namespace:   v.ReleaseMeta.Namespace,
+						ReleaseName:   v.ReleaseMeta.ReleaseName,
+						Namespace:     v.ReleaseMeta.Namespace,
+						DeleteTimeout: v.ReleaseMeta.InstallTimeout,
 					}
 					log.WithFields(log.Fields{
 						"Name":      v.ReleaseMeta.ReleaseName,
@@ -327,8 +329,9 @@ func (rt releaseTargets) Apply(session cluster.Sessioner, opt *cmdOptions) error
 						//The state has changed underneath us, but the release needs installed anyhow
 						//So delete and try again
 						dm := &cluster.DeleteMeta{
-							ReleaseName: v.ReleaseMeta.ReleaseName,
-							Namespace:   v.ReleaseMeta.Namespace,
+							ReleaseName:   v.ReleaseMeta.ReleaseName,
+							Namespace:     v.ReleaseMeta.Namespace,
+							DeleteTimeout: v.ReleaseMeta.InstallTimeout,
 						}
 						log.WithFields(log.Fields{
 							"Name":      v.ReleaseMeta.ReleaseName,
