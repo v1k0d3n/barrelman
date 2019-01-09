@@ -129,7 +129,7 @@ func DeleteByManifest(bm *manifest.Manifest, session cluster.Sessioner) error {
 				if chartName == v.Data.ChartName {
 					//if dm, exists := deleteList[v.Data.ReleaseName]; exists {
 					log.WithFields(log.Fields{
-						"Name":    v.MetaName,
+						"Name":    v.Metadata.Name,
 						"Release": rel.ReleaseName,
 					}).Info("deleting release")
 					if err := session.DeleteRelease(rel); err != nil {

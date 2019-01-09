@@ -36,7 +36,7 @@ func Archive(
 	archiver chartsync.Archiver) (*ArchiveSpec, error) {
 
 	as := &ArchiveSpec{
-		MetaName:    chart.MetaName,
+		MetaName:    chart.Metadata.Name,
 		ChartName:   chart.Data.ChartName,
 		ReleaseName: chart.Data.ReleaseName,
 		Namespace:   chart.Data.Namespace,
@@ -52,8 +52,8 @@ func Archive(
 
 	as.Path, err = archiver.ArchiveRun(&chartsync.ArchiveConfig{
 		ChartMeta: &chartsync.ChartMeta{
-			Name:    chart.MetaName,
-			Source:  chart.Data.Source,
+			Name:    chart.Metadata.Name,
+			Source:  chart.Data.SyncSource,
 			Depends: chart.Data.Dependencies,
 		},
 		ArchiveFunc:  createArchive,
