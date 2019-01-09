@@ -56,7 +56,7 @@ func TestManifest(t *testing.T) {
 			Chart:      make(map[string]*Chart),
 		},
 	}
-	newCG := &ChartGroup{Name: "storage-minio"}
+	newCG := &ChartGroup{Metadata: &Metadata{Name: "storage-minio"}}
 
 	Convey("AddChartGroup", t, func() {
 		Convey("New can create new manifest instance", func() {
@@ -83,13 +83,13 @@ func TestManifest(t *testing.T) {
 	Convey("AddChart", t, func() {
 		Convey("Can add", func() {
 			err := m.AddChart(&Chart{
-				MetaName: "storage-minio",
+				Metadata: &Metadata{Name: "storage-minio"},
 			})
 			So(err, ShouldBeNil)
 		})
 		Convey("Can fail to add", func() {
 			err := m.AddChart(&Chart{
-				MetaName: "storage-minio",
+				Metadata: &Metadata{Name: "storage-minio"},
 			})
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "name already exists")
@@ -110,7 +110,7 @@ func TestManifest(t *testing.T) {
 			thisCG := m.AllChartGroups()
 			So(thisCG, ShouldNotBeNil)
 			So(thisCG, ShouldHaveLength, 1)
-			So(thisCG[0].Name, ShouldEqual, "storage-minio")
+			So(thisCG[0].Metadata.Name, ShouldEqual, "storage-minio")
 		})
 	})
 	Convey("GetChartGroups", t, func() {
@@ -146,7 +146,7 @@ func TestManifest(t *testing.T) {
 			charts, err := m.GetChartsByName([]string{"storage-minio"})
 			So(err, ShouldBeNil)
 			So(charts, ShouldHaveLength, 1)
-			So(charts[0].MetaName, ShouldEqual, "storage-minio")
+			So(charts[0].Metadata.Name, ShouldEqual, "storage-minio")
 		})
 		Convey("Can fail", func() {
 			charts, err := m.GetChartsByName([]string{"no-exist"})
@@ -164,7 +164,7 @@ func TestManifest(t *testing.T) {
 		Convey("Can succeed", func() {
 			charts := m.AllCharts()
 			So(charts, ShouldHaveLength, 1)
-			So(charts[0].MetaName, ShouldEqual, "storage-minio")
+			So(charts[0].Metadata.Name, ShouldEqual, "storage-minio")
 		})
 	})
 	Convey("GetChartSpec", t, func() {
@@ -178,14 +178,16 @@ func TestManifest(t *testing.T) {
 		Convey("Can succeed", func() {
 			m.ChartSync = chartsync.New(getTestDataDir(), make(chartsync.AccountTable))
 			path, charts, err := m.GetChartSpec(&Chart{
-				MetaName: "storage-minio",
+				Metadata: &Metadata{Name: "storage-minio"},
 				Data: &ChartData{
 					Archiver:     archiver,
-					Type:         "git",
 					ChartName:    "storage-minio",
 					Dependencies: []string{},
-					SubPath:      "test-minio",
-					Source: &chartsync.Source{
+					Source: &ChartSource{
+						Subpath: "test-minio",
+						Type:    "git",
+					},
+					SyncSource: &chartsync.Source{
 						Location: "charts",
 					},
 				},
@@ -198,26 +200,28 @@ func TestManifest(t *testing.T) {
 		Convey("Can process dependencies", func() {
 			m.ChartSync = chartsync.New(getTestDataDir(), make(chartsync.AccountTable))
 			m.AddChart(&Chart{
-				MetaName: "test-chart",
+				Metadata: &Metadata{Name: "test-chart"},
 				Data: &ChartData{
 					Archiver: archiver,
-					Type:     "git",
-					Source: &chartsync.Source{
+					Source:   &ChartSource{Type: "git"},
+					SyncSource: &chartsync.Source{
 						Location: "charts",
 					},
 				},
 			})
 			path, charts, err := m.GetChartSpec(&Chart{
-				MetaName: "storage-minio",
+				Metadata: &Metadata{Name: "storage-minio"},
 				Data: &ChartData{
-					Archiver:  archiver,
-					Type:      "git",
+					Archiver: archiver,
+					Source: &ChartSource{
+						Type:    "git",
+						Subpath: "test-minio",
+					},
 					ChartName: "storage-minio",
-					Source: &chartsync.Source{
+					SyncSource: &chartsync.Source{
 						Location: "charts",
 					},
 					Dependencies: []string{"test-chart"},
-					SubPath:      "test-minio",
 				},
 			})
 			So(err, ShouldBeNil)
@@ -227,7 +231,7 @@ func TestManifest(t *testing.T) {
 	})
 }
 
-//getTestDataDir returns a string representing the location of the testdata directory as derived from THIS source file
+//getTestDataDir returns a string representing the location of the testdata dir ectory as derived from THIS source file
 //our tests are run in temporary directories, so finding the testdata can be a little troublesome
 func getTestDataDir() string {
 	_, filename, _, _ := runtime.Caller(0)

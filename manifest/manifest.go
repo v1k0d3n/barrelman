@@ -137,7 +137,7 @@ func New(c *Config) (*Manifest, error) {
 	m.Lookup.ChartGroup = make(map[string]*ChartGroup)
 
 	if c.AccountTable == nil {
-		return nil, errors.New("manifest.New() called without accoutn table")
+		return nil, errors.New("manifest.New() called without account table")
 	}
 	m.Config = c
 	file := m.Config.ManifestFile
@@ -186,13 +186,17 @@ func importYaml(r io.Reader) ([]*YamlSection, error) {
 		var base map[string]interface{}
 		err = yaml.Unmarshal(b, &base)
 		if err != nil {
-			return nil, fmt.Errorf(fmt.Sprintf("unable to marshal yaml %v", err))
+			return nil, fmt.Errorf(fmt.Sprintf("Failed to parse schema %v", err))
 		}
-		schema, err := parseSchema(base["schema"].(string))
-		if err != nil {
-			return nil, fmt.Errorf(fmt.Sprintf("unable to parse schema %v", err))
+		if base["schema"] == nil {
+
+		} else {
+			schema, err := parseSchema(base["schema"].(string))
+			if err != nil {
+				return nil, fmt.Errorf(fmt.Sprintf("unable to parse schema %v", err))
+			}
+			sections = append(sections, &YamlSection{Bytes: b, Schema: schema})
 		}
-		sections = append(sections, &YamlSection{Bytes: b, Schema: schema})
 
 	}
 	return sections, nil
