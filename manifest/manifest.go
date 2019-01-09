@@ -189,7 +189,7 @@ func importYaml(r io.Reader) ([]*YamlSection, error) {
 			return nil, fmt.Errorf(fmt.Sprintf("Failed to parse schema %v", err))
 		}
 		if base["schema"] == nil {
-
+			return nil, fmt.Errorf(fmt.Sprintf("unable to parse schema %v", err))
 		} else {
 			schema, err := parseSchema(base["schema"].(string))
 			if err != nil {

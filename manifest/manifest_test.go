@@ -44,7 +44,7 @@ func TestNewManifest(t *testing.T) {
 				AccountTable: make(chartsync.AccountTable),
 			})
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "Error running chartsync")
+			So(err.Error(), ShouldContainSubstring, "unable to parse schema")
 		})
 	})
 }
