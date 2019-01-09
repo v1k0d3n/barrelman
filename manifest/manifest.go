@@ -1,17 +1,19 @@
 package manifest
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
+	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/ghodss/yaml"
 
 	"github.com/charter-se/barrelman/manifest/chartsync"
 	"github.com/charter-se/structured/errors"
-	"github.com/cirrocloud/yamlpack"
 )
 
 const (
@@ -31,60 +33,68 @@ type LookupTable struct {
 	Chart      map[string]*Chart
 	ChartGroup map[string]*ChartGroup
 }
+
 type Config struct {
 	DataDir      string
 	ManifestFile string
 	AccountTable chartsync.AccountTable
 }
+
 type Manifest struct {
-	yp        *yamlpack.Yp
 	ChartSync *chartsync.ChartSync
 	Config    *Config
 	Version   string
 	Name      string
 	Data      *ManifestData
 	Lookup    *LookupTable
+	YamlSec   []*YamlSection
 }
 
 type ManifestData struct {
-	ReleasePrefix string
-	ChartGroups   []string
+	ReleasePrefix string   `json:"release_prefix" yaml:"release_prefix"`
+	ChartGroups   []string `json:"chart_groups" yaml:"chart_groups"`
 }
 
 type ChartGroup struct {
-	Version string
-	Name    string
-	Data    *ChartGroupData
+	Version  string
+	Metadata *Metadata
+	Data     *ChartGroupData
 }
 
 type ChartGroupData struct {
 	Description string
 	Sequenced   bool
-	ChartGroup  []string
+	ChartGroup  []string `json:"chart_group" yaml:"chart_group"`
 }
 
 type Chart struct {
 	Version  string
-	MetaName string
+	Metadata *Metadata
 	Data     *ChartData
 }
 
 type ChartData struct {
-	ChartName    string
+	Archiver     chartsync.Archiver
+	SyncSource   *chartsync.Source
 	TestEnabled  bool
-	ReleaseName  string
+	Overrides    []byte
+	ChartName    string `json:"chart_name" yaml:"chart_name"`
+	ReleaseName  string `json:"release" yaml:"release"`
 	Namespace    string
 	Timeout      int
 	Wait         *ChartDataWait
 	Install      *ChartDataInstall
 	Upgrade      *ChartDataUpgrade
-	SubPath      string
-	Type         string
-	Source       *chartsync.Source
-	Values       map[string]string
-	Overrides    []byte
+	Source       *ChartSource
 	Dependencies []string
-	Archiver     chartsync.Archiver
+	Values       map[string]interface{}
+}
+
+type ChartSource struct {
+	Type      string
+	Location  string
+	Subpath   string
+	Reference string
 }
 
 type ChartDataWait struct {
@@ -107,6 +117,16 @@ type RemoteAccount struct {
 	Secret string
 }
 
+type Metadata struct {
+	Schema string
+	Name   string
+}
+
+type YamlSection struct {
+	Bytes  []byte
+	Schema *Schema
+}
+
 //New creates an initializes a *Manifest instance
 func New(c *Config) (*Manifest, error) {
 	m := &Manifest{}
@@ -116,16 +136,16 @@ func New(c *Config) (*Manifest, error) {
 	m.Lookup.ChartGroup = make(map[string]*ChartGroup)
 
 	if c.AccountTable == nil {
-		return nil, errors.New("manifest.New() called without accoutn table")
+		return nil, errors.New("manifest.New() called without account table")
 	}
 	m.Config = c
-	m.yp = yamlpack.New()
 	file := m.Config.ManifestFile
 	fileR, err := os.Open(file)
 	if err != nil {
 		return &Manifest{}, errors.WithFields(errors.Fields{"file": file}).Wrap(err, "error opening file")
 	}
-	if err := m.yp.Import(file, fileR); err != nil {
+	m.YamlSec, err = importYaml(fileR)
+	if err != nil {
 		return &Manifest{}, errors.WithFields(errors.Fields{"file": file}).Wrap(err, "error importing manifest")
 	}
 	m.ChartSync = chartsync.New(m.Config.DataDir, c.AccountTable)
@@ -136,11 +156,56 @@ func New(c *Config) (*Manifest, error) {
 	return m, nil
 }
 
-func (m *Manifest) AddChartGroup(cg *ChartGroup) error {
-	if _, exists := m.Lookup.ChartGroup[cg.Name]; exists {
-		return errors.WithFields(errors.Fields{"Name": cg.Name}).New("ChartGroup name already exists")
+// Takes a yaml file and chunks each document into bytes. Each chunk will then have a label on what kind of document
+// the bytes belong to
+func importYaml(r io.Reader) ([]*YamlSection, error) {
+	var sections []*YamlSection
+	buf := new(bytes.Buffer)
+	_, err := buf.ReadFrom(r)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not read data")
 	}
-	m.Lookup.ChartGroup[cg.Name] = cg
+	data := buf.Bytes()
+	rxChunks := regexp.MustCompile(`---`)
+	chunks := rxChunks.FindAllIndex(data, -1)
+	if len(chunks) == 0 {
+		//This is missing the end delimiter ('---') or both,
+		//either way we are treating the whole file as 1 section
+		chunks = [][]int{[]int{
+			int(0), int(len(data)),
+		}}
+	}
+	for i := range chunks {
+		var b []byte
+		if i < len(chunks)-1 {
+			b = data[chunks[i][1]:chunks[i+1][0]]
+		} else {
+			b = data[chunks[i][1]:]
+		}
+		var base map[string]interface{}
+		err = yaml.Unmarshal(b, &base)
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to unmarshal schema")
+		}
+		if base["schema"] == nil {
+			return nil, errors.Wrap(errors.New("no schema detected"), "unable to parse schema")
+		} else {
+			schema, err := parseSchema(base["schema"].(string))
+			if err != nil {
+				return nil, errors.Wrap(err, "unable to parse schema")
+			}
+			sections = append(sections, &YamlSection{Bytes: b, Schema: schema})
+		}
+
+	}
+	return sections, nil
+}
+
+func (m *Manifest) AddChartGroup(cg *ChartGroup) error {
+	if _, exists := m.Lookup.ChartGroup[cg.Metadata.Name]; exists {
+		return errors.WithFields(errors.Fields{"Name": cg.Metadata.Name}).New("ChartGroup name already exists")
+	}
+	m.Lookup.ChartGroup[cg.Metadata.Name] = cg
 	return nil
 }
 
@@ -150,10 +215,10 @@ func (m *Manifest) GetChartGroup(s string) *ChartGroup {
 }
 
 func (m *Manifest) AddChart(c *Chart) error {
-	if _, exists := m.Lookup.Chart[c.MetaName]; exists {
-		return errors.WithFields(errors.Fields{"Name": c.MetaName}).New("Chart name already exists")
+	if _, exists := m.Lookup.Chart[c.Metadata.Name]; exists {
+		return errors.WithFields(errors.Fields{"Name": c.Metadata.Name}).New("Chart name already exists")
 	}
-	m.Lookup.Chart[c.MetaName] = c
+	m.Lookup.Chart[c.Metadata.Name] = c
 	return nil
 }
 
@@ -232,9 +297,9 @@ func NewChart() *Chart {
 	chart.Data.Wait.Labels = make(map[string]string)
 	chart.Data.Install = &ChartDataInstall{}
 	chart.Data.Upgrade = &ChartDataUpgrade{}
-	chart.Data.Values = make(map[string]string)
+	chart.Data.Values = make(map[string]interface{})
 	chart.Data.Dependencies = []string{}
-	chart.Data.Source = &chartsync.Source{}
+	chart.Data.SyncSource = &chartsync.Source{}
 	return chart
 }
 
@@ -243,10 +308,10 @@ func (m *Manifest) Sync() error {
 	for _, c := range m.AllCharts() {
 		//Add each chart to repo to download/update all charts
 		if err := m.ChartSync.Add(&chartsync.ChartMeta{
-			Name:    c.MetaName,
+			Name:    c.Metadata.Name,
 			Depends: c.Data.Dependencies,
-			Type:    c.Data.Type,
-			Source:  c.Data.Source,
+			Type:    c.Data.Source.Type,
+			Source:  c.Data.SyncSource,
 		}); err != nil {
 			return err
 		}
@@ -259,79 +324,75 @@ func (m *Manifest) Sync() error {
 }
 
 func (m *Manifest) load() error {
-	for _, k := range m.yp.AllSections() {
-		schem, err := parseSchema(k.GetString("schema"))
-		if err != nil {
-			return errors.WithFields(errors.Fields{
-				"Schema": k.GetString("metatdata.name"),
-			}).Wrap(err, "Failed to parse schema")
-		}
-		switch schem.Type {
-		case StringChart:
-			chart := NewChart()
-			chart.MetaName = k.GetString("metadata.name")
-			chart.Version = schem.Version
-			chart.Data.ChartName = k.GetString("data.chart_name")
-			chart.Data.ReleaseName = k.GetString("data.release")
-			chart.Data.Dependencies = k.GetStringSlice("data.dependencies")
-			chart.Data.Namespace = k.GetString("data.namespace")
-			chart.Data.Type = k.GetString("data.source.type")
-
-			chart.Data.Overrides, err = yaml.Marshal(k.Viper.Sub("data.values").AllSettings())
+	for _, k := range m.YamlSec {
+		switch k.Schema.Type {
+		case StringManifest:
+			m.Version = k.Schema.Version
+			err := yaml.Unmarshal(k.Bytes, m)
 			if err != nil {
+				return errors.Wrap(err, "Error loading manifest")
+			}
+		case StringChartGroup:
+			chartGroup := NewChartGroup()
+			chartGroup.Version = k.Schema.Version
+			err := yaml.Unmarshal(k.Bytes, &chartGroup)
+			if err != nil {
+				return err
+			}
+			if err := m.AddChartGroup(chartGroup); err != nil {
 				return errors.WithFields(errors.Fields{
-					"Type": chart.Data.Type,
-					"Name": chart.MetaName,
+					"Type": chartGroup.Metadata.Name,
+					"Name": chartGroup.Metadata.Name,
 				}).Wrap(err, "Failed to marshal Override Values")
 			}
-
-			chart.Data.Source = &chartsync.Source{
-				Location:  k.GetString("data.source.location"),
-				SubPath:   k.GetString("data.source.subpath"),
-				Reference: k.GetString("data.source.reference"),
+		case StringChart:
+			chart := NewChart()
+			chart.Version = k.Schema.Version
+			err := yaml.Unmarshal(k.Bytes, &chart)
+			if err != nil {
+				return err
 			}
 
-			handler, err := chartsync.GetHandler(chart.Data.Type)
+			chart.Data.Overrides, err = yaml.Marshal(chart.Data.Values)
 			if err != nil {
 				return errors.WithFields(errors.Fields{
-					"Type": chart.Data.Type,
-					"Name": chart.MetaName,
+					"Type": chart.Data.Source.Type,
+					"Name": chart.Metadata.Name,
+				}).Wrap(err, "Failed to marshal Override Values")
+			}
+			chart.Data.SyncSource = &chartsync.Source{
+				Location:  chart.Data.Source.Location,
+				SubPath:   chart.Data.Source.Subpath,
+				Reference: chart.Data.Source.Reference,
+			}
+
+			handler, err := chartsync.GetHandler(chart.Data.Source.Type)
+			if err != nil {
+				return errors.WithFields(errors.Fields{
+					"Type": chart.Data.Source.Type,
+					"Name": chart.Metadata.Name,
 				}).Wrap(err, "Failed to find handler for source")
 			}
+
 			chart.Data.Archiver, err = handler.New(m.Config.DataDir,
 				&chartsync.ChartMeta{
-					Name:    chart.MetaName,
-					Source:  chart.Data.Source,
+					Name:    chart.Metadata.Name,
+					Source:  chart.Data.SyncSource,
 					Depends: chart.Data.Dependencies,
-					Type:    chart.Data.Type,
+					Type:    chart.Data.Source.Type,
 				},
 				m.Config.AccountTable,
 			)
 			if err != nil {
 				return errors.WithFields(errors.Fields{
-					"Type": chart.Data.Type,
-					"Name": chart.MetaName,
+					"Type": chart.Data.Source.Type,
+					"Name": chart.Metadata.Name,
 				}).Wrap(err, "Failed to generate new handler")
 			}
 
 			if err := m.AddChart(chart); err != nil {
 				return errors.Wrap(err, "Error loading chart")
 			}
-
-		case StringChartGroup:
-			chartGroup := NewChartGroup()
-			chartGroup.Name = k.GetString("metadata.name")
-			chartGroup.Version = schem.Version
-			chartGroup.Data.Description = k.GetString("data.description")
-			chartGroup.Data.Sequenced = k.GetBool("data.sequenced")
-			chartGroup.Data.ChartGroup = k.GetStringSlice("data.chart_group")
-			m.AddChartGroup(chartGroup)
-
-		case StringManifest:
-			m.Name = k.GetString("metadata.name")
-			m.Version = schem.Version
-			m.Data.ChartGroups = k.GetStringSlice("data.chart_groups")
-			m.Data.ReleasePrefix = k.GetString("data.release_prefix")
 		}
 	}
 	return nil
@@ -374,7 +435,7 @@ func (m *Manifest) GetChartSpec(c *Chart) (string, []*chartsync.ChartSpec, error
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to get absolute path")
 			}
-			ret = append(ret, &chartsync.ChartSpec{Name: dependchart.MetaName, Path: absPath})
+			ret = append(ret, &chartsync.ChartSpec{Name: dependchart.Metadata.Name, Path: absPath})
 		}
 		return ret, nil
 	}()
