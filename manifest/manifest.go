@@ -188,7 +188,7 @@ func importYaml(r io.Reader) ([]*YamlSection, error) {
 			return nil, errors.Wrap(err, "Failed to unmarshal schema")
 		}
 		if base["schema"] == nil {
-			return nil, errors.Wrap(err, "unable to parse schema")
+			return nil, errors.Wrap(errors.New("no schema detected"), "unable to parse schema")
 		} else {
 			schema, err := parseSchema(base["schema"].(string))
 			if err != nil {

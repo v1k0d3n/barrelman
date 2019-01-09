@@ -36,7 +36,7 @@ func TestNewManifest(t *testing.T) {
 				AccountTable: make(chartsync.AccountTable),
 			})
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "Failed to parse schema")
+			So(err.Error(), ShouldContainSubstring, "Failed to unmarshal schema")
 		})
 		Convey("New can fail to chartsync", func() {
 			_, err := New(&Config{
