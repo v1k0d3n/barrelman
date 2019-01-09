@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/hex"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -164,7 +163,7 @@ func importYaml(r io.Reader) ([]*YamlSection, error) {
 	buf := new(bytes.Buffer)
 	_, err := buf.ReadFrom(r)
 	if err != nil {
-		return nil, fmt.Errorf(fmt.Sprintf("could not read data %v", err))
+		return nil, errors.Wrap(err, "could not read data")
 	}
 	data := buf.Bytes()
 	rxChunks := regexp.MustCompile(`---`)
@@ -186,14 +185,14 @@ func importYaml(r io.Reader) ([]*YamlSection, error) {
 		var base map[string]interface{}
 		err = yaml.Unmarshal(b, &base)
 		if err != nil {
-			return nil, fmt.Errorf(fmt.Sprintf("Failed to parse schema %v", err))
+			return nil, errors.Wrap(err, "Failed to unmarshal schema")
 		}
 		if base["schema"] == nil {
-			return nil, fmt.Errorf(fmt.Sprintf("unable to parse schema %v", err))
+			return nil, errors.Wrap(err, "unable to parse schema")
 		} else {
 			schema, err := parseSchema(base["schema"].(string))
 			if err != nil {
-				return nil, fmt.Errorf(fmt.Sprintf("unable to parse schema %v", err))
+				return nil, errors.Wrap(err, "unable to parse schema")
 			}
 			sections = append(sections, &YamlSection{Bytes: b, Schema: schema})
 		}
