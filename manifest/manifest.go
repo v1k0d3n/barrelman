@@ -186,11 +186,11 @@ func importYaml(r io.Reader) ([]*YamlSection, error) {
 		var base map[string]interface{}
 		err = yaml.Unmarshal(b, &base)
 		if err != nil {
-			fmt.Println(err)
+			return nil, fmt.Errorf(fmt.Sprintf("unable to marshal yaml %v", err))
 		}
 		schema, err := parseSchema(base["schema"].(string))
 		if err != nil {
-			fmt.Println(err)
+			return nil, fmt.Errorf(fmt.Sprintf("unable to parse schema %v", err))
 		}
 		sections = append(sections, &YamlSection{Bytes: b, Schema: schema})
 
