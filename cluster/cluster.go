@@ -5,6 +5,9 @@ package cluster
 import (
 	"fmt"
 	"os"
+	"os/user"
+	"path/filepath"
+	"strings"
 
 	"github.com/charter-se/structured/errors"
 	"github.com/charter-se/structured/log"
@@ -42,9 +45,9 @@ type Session struct {
 //NewSession returns a *Session with kubernetes connections established
 func NewSession(kubeContext string, kubeConfig string) *Session {
 	s := &Session{}
-	s.kubeConfig = kubeConfig
+	s.kubeConfig = fullPath(kubeConfig)
 	s.kubeContext = kubeContext
-	return &Session{}
+	return s
 }
 
 func (s *Session) GetKubeConfig() string {
@@ -153,4 +156,12 @@ func getFirstRunningPod(client internalversion.PodsGetter, namespace string, sel
 		}
 	}
 	return nil, errors.New("could not find a ready tiller pod")
+}
+
+func fullPath(path string) string {
+	if strings.HasPrefix(path, "~/") {
+		usr, _ := user.Current()
+		path = filepath.Join(usr.HomeDir, path[2:])
+	}
+	return path
 }
