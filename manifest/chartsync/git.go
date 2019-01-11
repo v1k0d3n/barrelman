@@ -2,13 +2,16 @@ package chartsync
 
 import (
 	"fmt"
+	"github.com/charter-se/structured/log"
+	"gopkg.in/src-d/go-git.v4/plumbing"
 	"net/url"
 	"os"
 	"sync"
 
 	"github.com/charter-se/structured/errors"
 	"github.com/charter-se/structured/log"
-	git "gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4"
+
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
 )
 
@@ -55,6 +58,7 @@ func (r *gitRepoList) Sync(cs *ChartSync, acc AccountTable) error {
 		r.Unlock()
 	}()
 	for k := range r.list {
+		log.Info("syncing git repo ", k)
 		if err := r.Download(cs, acc, k); err != nil {
 			return err
 		}
@@ -67,7 +71,7 @@ func (g *SyncGit) ArchiveRun(ac *ArchiveConfig) (string, error) {
 		"DataDir":     ac.DataDir,
 		"AcrhivePath": ac.Path,
 	}).Debug("Git handler running archiveFunc")
-	return ac.ArchiveFunc(ac.DataDir, ac.Path, ac.DependCharts)
+	return ac.ArchiveFunc(ac.DataDir, ac.Path, ac.DependCharts, g.ChartMeta)
 }
 
 func (g *SyncGit) GetChartMeta() *ChartMeta {
@@ -91,6 +95,8 @@ func (r *gitRepoList) Download(cs *ChartSync, acc AccountTable, location string)
 	if err != nil {
 		return err
 	}
+
+	//ref := plumbing.NewBranchReferenceName("helm_chart_for_mongo")
 
 	cloneOptions := &git.CloneOptions{
 		URL:      location,
@@ -158,8 +164,61 @@ func (r *gitRepoList) Download(cs *ChartSync, acc AccountTable, location string)
 					"Repository": cloneOptions.URL,
 				}).Wrap(err, "could not pull from repository")
 			}
+			log.Info("repo is already up to date")
 		}
 	}
 	cs.CompletedURI = append(cs.CompletedURI, target)
+	return nil
+}
+
+func Checkout(path string, source *Source) error {
+	branch := plumbing.NewRemoteReferenceName("origin", source.Reference)
+
+	chk := &git.CheckoutOptions{
+		Branch: branch,
+	}
+	gitOpt := git.PlainOpenOptions{
+		DetectDotGit: true,
+	}
+
+	r, err := git.PlainOpenWithOptions(path, &gitOpt)
+	if err != nil {
+		return err
+	}
+
+	w, err := r.Worktree()
+	if err != nil {
+		return err
+	}
+	if err = w.Checkout(chk); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ReturnToMaster(path string) error {
+	branch := plumbing.NewBranchReferenceName("master")
+
+	chk := &git.CheckoutOptions{
+		Branch: branch,
+	}
+	gitOpt := git.PlainOpenOptions{
+		DetectDotGit: true,
+	}
+
+	r, err := git.PlainOpenWithOptions(path, &gitOpt)
+	if err != nil {
+		return err
+	}
+
+	w, err := r.Worktree()
+	if err != nil {
+		return err
+	}
+	if err = w.Checkout(chk); err != nil {
+		return err
+	}
+
 	return nil
 }

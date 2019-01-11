@@ -114,6 +114,7 @@ func (cmd *applyCmd) Run(session cluster.Sessioner) error {
 		return errors.Wrap(err, "failed to create working directory")
 	}
 
+	log.Info("connecting to cluster")
 	if err = session.Init(); err != nil {
 		return errors.Wrap(err, "failed to create new cluster session")
 	}
@@ -395,7 +396,13 @@ func (rt releaseTargets) Apply(session cluster.Sessioner, opt *cmdOptions) error
 				"Name":      v.ReleaseMeta.ReleaseName,
 				"Namespace": v.ReleaseMeta.Namespace,
 			}).Info(msg)
+		default:
+			log.WithFields(log.Fields{
+				"Name":      v.ReleaseMeta.ReleaseName,
+				"Namespace": v.ReleaseMeta.Namespace,
+			}).Info("Skipping")
 		}
+
 	}
 	return nil
 }

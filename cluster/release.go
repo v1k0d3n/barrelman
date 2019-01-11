@@ -16,7 +16,7 @@ import (
 	"github.com/aryann/difflib"
 	"github.com/mgutz/ansi"
 	"google.golang.org/grpc"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 	"k8s.io/helm/pkg/helm"
 	"k8s.io/helm/pkg/proto/hapi/chart"
 	"k8s.io/helm/pkg/proto/hapi/release"
@@ -29,6 +29,7 @@ const (
 	Status_PENDING_ROLLBACK = Status(release.Status_PENDING_ROLLBACK)
 	Status_PENDING_UPGRADE  = Status(release.Status_PENDING_UPGRADE)
 	Status_UNKNOWN          = Status(release.Status_UNKNOWN)
+	Status_DELETED          = Status(release.Status_DELETED)
 )
 
 type ReleaseMeta struct {
@@ -201,7 +202,7 @@ func (s *Session) Releases() (map[string]*ReleaseMeta, error) {
 	}
 
 	for _, v := range releaseList {
-		ret[v.Chart.Metadata.Name] = &ReleaseMeta{
+		ret[v.ReleaseName] = &ReleaseMeta{
 			ReleaseName: v.ReleaseName,
 			ChartName:   v.Chart.GetMetadata().Name,
 			Namespace:   v.Namespace,

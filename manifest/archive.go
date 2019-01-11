@@ -66,10 +66,17 @@ func Archive(
 }
 
 //Package creates an archive based on dependancies contained in []*ChartSpec
-func Package(depends []*chartsync.ChartSpec, src string, writers ...io.Writer) error {
+func Package(depends []*chartsync.ChartSpec, src string, chartMeta *chartsync.ChartMeta, writers ...io.Writer) error {
 	// ensure the src actually exists before trying to tar it
 	if _, err := os.Stat(src); err != nil {
 		return errors.Wrap(err, "unable to tar files")
+	}
+
+	if chartMeta.Type == "git" {
+		if err := chartsync.Checkout(src, chartMeta.Source); err != nil {
+			return errors.Wrap(err, "error checking out branch")
+		}
+		defer chartsync.ReturnToMaster(src)
 	}
 
 	mw := io.MultiWriter(writers...)
@@ -180,7 +187,7 @@ func (a *ArchiveFiles) Purge() error {
 	return nil
 }
 
-func createArchive(datadir string, path string, dependCharts []*chartsync.ChartSpec) (string, error) {
+func createArchive(datadir string, path string, dependCharts []*chartsync.ChartSpec, chartMeta *chartsync.ChartMeta) (string, error) {
 	randomName := fmt.Sprintf("%v/%v", datadir, tempFileName("tmp_", ".tgz"))
 	f, err := os.Create(randomName)
 	if err != nil {
@@ -190,6 +197,6 @@ func createArchive(datadir string, path string, dependCharts []*chartsync.ChartS
 		f.Close()
 	}()
 
-	err = Package(dependCharts, path, f)
+	err = Package(dependCharts, path, chartMeta, f)
 	return randomName, err
 }
