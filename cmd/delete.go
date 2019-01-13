@@ -125,8 +125,8 @@ func DeleteByManifest(bm *manifest.Manifest, session cluster.Sessioner) error {
 			return errors.Wrap(err, "error resolving charts")
 		}
 		for _, v := range charts {
-			for chartName, rel := range deleteList {
-				if chartName == v.Data.ChartName {
+			for _, rel := range deleteList {
+				if rel.ReleaseName == v.Data.ReleaseName {
 					//if dm, exists := deleteList[v.Data.ReleaseName]; exists {
 					log.WithFields(log.Fields{
 						"Name":    v.Metadata.Name,

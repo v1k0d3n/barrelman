@@ -195,7 +195,7 @@ func (cmd *applyCmd) ComputeReleases(
 	for _, v := range archives.List {
 		releaseExists := false
 		for _, rel := range currentReleases {
-			if rel.ChartName == v.ChartName {
+			if rel.ReleaseName == v.ReleaseName {
 				releaseExists = true
 				if cmd.isInForce(rel) || rel.Status == cluster.Status_FAILED {
 					rt = append(rt,
