@@ -60,10 +60,7 @@ func (r *gitRepoList) Sync(cs *ChartSync, acc AccountTable) error {
 	for k := range r.list {
 		log.Info("syncing git repo ", k)
 		// Ensure that the repo is on master before attempting to sync
-		err := ReturnToMaster(k)
-		if err != nil {
-			return err
-		}
+
 		if err := r.Download(cs, acc, k); err != nil {
 			return err
 		}
@@ -89,9 +86,7 @@ func (g *SyncGit) GetPath() (string, error) {
 		return "", err
 	}
 	target := fmt.Sprintf("%v/%v%v/%v", g.DataDir, u.Host, u.Path, g.ChartMeta.Source.SubPath)
-	//if _, err := os.Stat(target); os.IsNotExist(err) {
-	//	return "", errors.WithFields(errors.Fields{"Path": target}).Wrap(err, "target path missing")
-	//}
+
 	return target, nil
 }
 
@@ -100,8 +95,6 @@ func (r *gitRepoList) Download(cs *ChartSync, acc AccountTable, location string)
 	if err != nil {
 		return err
 	}
-
-	//ref := plumbing.NewBranchReferenceName("helm_chart_for_mongo")
 
 	cloneOptions := &git.CloneOptions{
 		URL:      location,
@@ -181,22 +174,11 @@ func NewRef(path string, source *Source) error {
 	tag := plumbing.NewTagReferenceName(source.Reference)
 	hash := plumbing.NewHash(source.Reference)
 
-	gitOpt := git.PlainOpenOptions{
-		DetectDotGit: true,
-	}
-
-	r, err := git.PlainOpenWithOptions(path, &gitOpt)
-	// searches for the .git file to open the git options
-	repo, err := git.PlainOpenWithOptions(path, &gitOpt)
+	repo, err := getRepo(path)
 	if err != nil {
 		return err
 	}
 
-	w, err := r.Worktree()
-	if err != nil {
-		return err
-	}
-	if err = w.Checkout(chk); err != nil {
 	// retrieve all the references to search through
 	allRef, err := repo.References()
 	if err != nil {
@@ -238,6 +220,21 @@ func NewRef(path string, source *Source) error {
 	}
 
 	return nil
+
+}
+
+func getRepo(path string) (*git.Repository, error) {
+
+	gitOpt := git.PlainOpenOptions{
+		DetectDotGit: true,
+	}
+
+	// searches for the .git file to open the git options
+	repo, err := git.PlainOpenWithOptions(path, &gitOpt)
+	if err != nil {
+		return nil, err
+	}
+	return repo, nil
 }
 
 func ReturnToMaster(path string) error {

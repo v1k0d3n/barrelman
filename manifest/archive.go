@@ -73,7 +73,7 @@ func Package(depends []*chartsync.ChartSpec, src string, chartMeta *chartsync.Ch
 	}
 
 	if chartMeta.Type == "git" {
-		if err := chartsync.Checkout(src, chartMeta.Source); err != nil {
+		if err := chartsync.NewRef(src, chartMeta.Source); err != nil {
 			return errors.Wrap(err, "error checking out branch")
 		}
 		defer chartsync.ReturnToMaster(src)
@@ -197,6 +197,6 @@ func createArchive(datadir string, path string, dependCharts []*chartsync.ChartS
 		f.Close()
 	}()
 
-	err = Package(dependCharts, path, chartMeta, f)
+	err = Package(dependCharts, path, meta, f)
 	return randomName, err
 }
