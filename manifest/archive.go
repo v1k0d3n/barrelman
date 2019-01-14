@@ -187,7 +187,7 @@ func (a *ArchiveFiles) Purge() error {
 	return nil
 }
 
-func createArchive(datadir string, path string, dependCharts []*chartsync.ChartSpec, chartMeta *chartsync.ChartMeta) (string, error) {
+func createArchive(datadir string, path string, dependCharts []*chartsync.ChartSpec, meta *chartsync.ChartMeta) (string, error) {
 	randomName := fmt.Sprintf("%v/%v", datadir, tempFileName("tmp_", ".tgz"))
 	f, err := os.Create(randomName)
 	if err != nil {

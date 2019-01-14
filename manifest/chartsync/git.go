@@ -59,6 +59,11 @@ func (r *gitRepoList) Sync(cs *ChartSync, acc AccountTable) error {
 	}()
 	for k := range r.list {
 		log.Info("syncing git repo ", k)
+		// Ensure that the repo is on master before attempting to sync
+		err := ReturnToMaster(k)
+		if err != nil {
+			return err
+		}
 		if err := r.Download(cs, acc, k); err != nil {
 			return err
 		}
@@ -84,9 +89,9 @@ func (g *SyncGit) GetPath() (string, error) {
 		return "", err
 	}
 	target := fmt.Sprintf("%v/%v%v/%v", g.DataDir, u.Host, u.Path, g.ChartMeta.Source.SubPath)
-	if _, err := os.Stat(target); os.IsNotExist(err) {
-		return "", errors.WithFields(errors.Fields{"Path": target}).Wrap(err, "target path missing")
-	}
+	//if _, err := os.Stat(target); os.IsNotExist(err) {
+	//	return "", errors.WithFields(errors.Fields{"Path": target}).Wrap(err, "target path missing")
+	//}
 	return target, nil
 }
 
@@ -171,17 +176,18 @@ func (r *gitRepoList) Download(cs *ChartSync, acc AccountTable, location string)
 	return nil
 }
 
-func Checkout(path string, source *Source) error {
+func NewRef(path string, source *Source) error {
 	branch := plumbing.NewRemoteReferenceName("origin", source.Reference)
+	tag := plumbing.NewTagReferenceName(source.Reference)
+	hash := plumbing.NewHash(source.Reference)
 
-	chk := &git.CheckoutOptions{
-		Branch: branch,
-	}
 	gitOpt := git.PlainOpenOptions{
 		DetectDotGit: true,
 	}
 
 	r, err := git.PlainOpenWithOptions(path, &gitOpt)
+	// searches for the .git file to open the git options
+	repo, err := git.PlainOpenWithOptions(path, &gitOpt)
 	if err != nil {
 		return err
 	}
@@ -191,6 +197,43 @@ func Checkout(path string, source *Source) error {
 		return err
 	}
 	if err = w.Checkout(chk); err != nil {
+	// retrieve all the references to search through
+	allRef, err := repo.References()
+	if err != nil {
+		return err
+	}
+
+	// iterates through all references. If the reference matches the branch or tag, then the checkout options is created.
+	var opt *git.CheckoutOptions
+	_ = allRef.ForEach(func(ref *plumbing.Reference) error {
+		if ref.Name() == branch || ref.Name() == tag {
+			opt = &git.CheckoutOptions{
+				Branch: ref.Name(),
+			}
+		}
+		return nil
+	})
+
+	// If the branch is not set and the hash is not zero, checkout the hash instead.
+	if !hash.IsZero() && opt == nil {
+		opt = &git.CheckoutOptions{
+			Hash: hash,
+		}
+	} else {
+		return errors.New("reference " + source.Reference + " does not exist")
+	}
+
+	wkTree, err := repo.Worktree()
+	if err != nil {
+		return err
+	}
+
+	if opt.Branch.IsBranch() || opt.Branch.IsTag() {
+		log.Info("checking out " + opt.Branch.String() + " on " + path)
+	} else {
+		log.Info("checking out " + opt.Hash.String() + " on " + path)
+	}
+	if err = wkTree.Checkout(opt); err != nil {
 		return err
 	}
 
@@ -198,6 +241,7 @@ func Checkout(path string, source *Source) error {
 }
 
 func ReturnToMaster(path string) error {
+	log.Debug("returning ", path, " to master reference")
 	branch := plumbing.NewBranchReferenceName("master")
 
 	chk := &git.CheckoutOptions{
