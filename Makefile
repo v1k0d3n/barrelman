@@ -16,7 +16,7 @@ GOBUILD		=$(GOCMD) build
 GOCLEAN		=$(GOCMD) clean
 GOTEST		=$(GOCMD) test
 GOGET		=$(GOCMD) get
-
+LDFLAGS         =-w -s -X main.version=$(VERSION) -X main.commit=$(COMMIT)
 
 all: test build build-linux docker-push
 
@@ -42,9 +42,9 @@ deps:
 
 # Go Cross-Compilation Tasks:
 build-linux:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(BINARY_LINUX) -v
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -ldflags "$(LDFLAGS)" -a -installsuffix cgo -o $(BINARY_LINUX) -v
 build-darwin:
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GOBUILD) -o $(BINARY_DARWIN) -v
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GOBUILD) -ldflags "$(LDFLAGS)" -a -installsuffix cgo -o $(BINARY_DARWIN) -v
 
 
 # Docker Tasks:
