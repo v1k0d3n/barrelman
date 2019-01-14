@@ -101,14 +101,6 @@
   revision = "378834ce688d5a0123dc5847eac9a38cac359797"
 
 [[projects]]
-  branch = "master"
-  digest = "1:593961c19a21f84d3856abf95bcaf70a528c08b9b63b9dac639e1842d3beb512"
-  name = "github.com/cirrocloud/yamlpack"
-  packages = ["."]
-  pruneopts = ""
-  revision = "dd23cf93896ad0e8335579438b36643228ae20bc"
-
-[[projects]]
   digest = "1:0deddd908b6b4b768cfc272c16ee61e7088a60f7fe2f06c547bd3d8e1f8b8e77"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
@@ -1417,7 +1409,7 @@
     "github.com/aryann/difflib",
     "github.com/charter-se/structured/errors",
     "github.com/charter-se/structured/log",
-    "github.com/cirrocloud/yamlpack",
+    "github.com/ghodss/yaml",
     "github.com/mgutz/ansi",
     "github.com/smartystreets/goconvey/convey",
     "github.com/spf13/cobra",
