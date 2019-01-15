@@ -72,7 +72,7 @@ func Package(depends []*chartsync.ChartSpec, src string, chartMeta *chartsync.Ch
 		return errors.Wrap(err, "unable to tar files")
 	}
 
-	if chartMeta.Type == "git" {
+	if chartMeta.Type == "git" && strings.ToLower(chartMeta.Source.Reference) != "master" {
 		if err := chartsync.NewRef(src, chartMeta.Source); err != nil {
 			return errors.Wrap(err, "error checking out branch")
 		}

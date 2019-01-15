@@ -2,17 +2,18 @@ package chartsync
 
 import (
 	"fmt"
-	"github.com/charter-se/structured/log"
-	"gopkg.in/src-d/go-git.v4/plumbing"
 	"net/url"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/charter-se/structured/errors"
 	"github.com/charter-se/structured/log"
 	"gopkg.in/src-d/go-git.v4"
-
+	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
+
+	"github.com/charter-se/structured/log"
 )
 
 type SyncGit struct {
@@ -141,14 +142,30 @@ func (r *gitRepoList) Download(cs *ChartSync, acc AccountTable, location string)
 	} else {
 		d, err := git.PlainOpen(target)
 		if err != nil {
+			return err
+		}
+
+		// if the head is not on master, checkout master before pulling
+		head, _ := d.Head()
+		if strings.ToLower(head.Name().String()) != "refs/heads/master" {
+			log.Warn(target + " not on master branch. Attempting to change reference")
+			if err := ReturnToMaster(target); err != nil {
+				return errors.WithFields(errors.Fields{
+					"LocalRepository": target,
+				}).Wrap(err, "failed to revert ", target, "to master")
+			}
+		}
+		if err != nil {
 			return errors.WithFields(errors.Fields{
 				"LocalRepository": target,
 			}).Wrap(err, "could not open local repository")
 		}
+
 		wt, err := d.Worktree()
 		if err != nil {
 			return errors.Wrap(err, "could not create working tree")
 		}
+
 		err = wt.Pull(pullOptions)
 		if err != nil {
 			if err != git.NoErrAlreadyUpToDate {
@@ -176,7 +193,7 @@ func NewRef(path string, source *Source) error {
 
 	repo, err := getRepo(path)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "could not get git repository")
 	}
 
 	// retrieve all the references to search through
@@ -202,12 +219,12 @@ func NewRef(path string, source *Source) error {
 			Hash: hash,
 		}
 	} else {
-		return errors.New("reference " + source.Reference + " does not exist")
+		return errors.Wrap(nil, "reference ", source.Reference, " does not exist")
 	}
 
 	wkTree, err := repo.Worktree()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to create work tree")
 	}
 
 	if opt.Branch.IsBranch() || opt.Branch.IsTag() {
@@ -216,7 +233,7 @@ func NewRef(path string, source *Source) error {
 		log.Info("checking out " + opt.Hash.String() + " on " + path)
 	}
 	if err = wkTree.Checkout(opt); err != nil {
-		return err
+		return errors.Wrap(err, "failed to checkout git reference")
 	}
 
 	return nil
