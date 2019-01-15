@@ -1,6 +1,7 @@
 package chartsync
 
 import (
+	"github.com/charter-se/structured/log"
 	"os"
 
 	"github.com/charter-se/structured/errors"
@@ -34,6 +35,8 @@ func (fh *fileHandler) Sync(cs *ChartSync, acc AccountTable) error {
 
 func (sf *SyncFile) ArchiveRun(ac *ArchiveConfig) (string, error) {
 	target := sf.ChartMeta.Source.Location
+
+	log.Info("creating archive for " + sf.ChartMeta.Name)
 	if _, err := os.Stat(target); os.IsNotExist(err) {
 		return "", errors.WithFields(errors.Fields{"Path": target}).Wrap(err, "target path missing")
 	}

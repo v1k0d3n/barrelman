@@ -227,7 +227,7 @@ func NewRef(path string, source *Source) error {
 		return errors.Wrap(err, "failed to create work tree")
 	}
 
-	if opt.Branch.IsBranch() || opt.Branch.IsTag() {
+	if opt.Branch.IsRemote() || opt.Branch.IsTag() {
 		log.Info("checking out " + opt.Branch.String() + " on " + path)
 	} else {
 		log.Info("checking out " + opt.Hash.String() + " on " + path)

@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"fmt"
+	"github.com/charter-se/structured/log"
 	"io"
 	"os"
 	"path/filepath"
@@ -68,15 +69,16 @@ func Archive(
 //Package creates an archive based on dependancies contained in []*ChartSpec
 func Package(depends []*chartsync.ChartSpec, src string, chartMeta *chartsync.ChartMeta, writers ...io.Writer) error {
 	// ensure the src actually exists before trying to tar it
-	if _, err := os.Stat(src); err != nil {
-		return errors.Wrap(err, "unable to tar files")
-	}
 
 	if chartMeta.Type == "git" && strings.ToLower(chartMeta.Source.Reference) != "master" {
 		if err := chartsync.NewRef(src, chartMeta.Source); err != nil {
 			return errors.Wrap(err, "error checking out branch")
 		}
 		defer chartsync.ReturnToMaster(src)
+	}
+
+	if _, err := os.Stat(src); err != nil {
+		return errors.Wrap(err, "unable to tar files")
 	}
 
 	mw := io.MultiWriter(writers...)
@@ -197,6 +199,7 @@ func createArchive(datadir string, path string, dependCharts []*chartsync.ChartS
 		f.Close()
 	}()
 
+	log.Info("creating archive for " + meta.Name)
 	err = Package(dependCharts, path, meta, f)
 	return randomName, err
 }
