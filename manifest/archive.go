@@ -62,7 +62,7 @@ func Archive(
 		DependCharts: dependCharts,
 	})
 
-	return as, nil
+	return as, err
 }
 
 //Package creates an archive based on dependancies contained in []*ChartSpec

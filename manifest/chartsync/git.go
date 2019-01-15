@@ -218,8 +218,8 @@ func NewRef(path string, source *Source) error {
 		opt = &git.CheckoutOptions{
 			Hash: hash,
 		}
-	} else {
-		return errors.Wrap(nil, "reference ", source.Reference, " does not exist")
+	} else if opt == nil {
+		return errors.New("reference " + source.Reference + " does not exist")
 	}
 
 	wkTree, err := repo.Worktree()
