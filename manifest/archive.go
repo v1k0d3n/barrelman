@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"fmt"
-	"github.com/charter-se/structured/log"
 	"io"
 	"os"
 	"path/filepath"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/charter-se/barrelman/manifest/chartsync"
 	"github.com/charter-se/structured/errors"
+	"github.com/charter-se/structured/log"
 )
 
 type ArchiveSpec struct {
@@ -70,11 +70,10 @@ func Archive(
 func Package(depends []*chartsync.ChartSpec, src string, chartMeta *chartsync.ChartMeta, writers ...io.Writer) error {
 	// ensure the src actually exists before trying to tar it
 
-	if chartMeta.Type == "git" && strings.ToLower(chartMeta.Source.Reference) != "master" {
+	if chartMeta.Type == "git" {
 		if err := chartsync.NewRef(src, chartMeta.Source); err != nil {
 			return errors.Wrap(err, "error checking out branch")
 		}
-		defer chartsync.ReturnToMaster(src)
 	}
 
 	if _, err := os.Stat(src); err != nil {
@@ -199,7 +198,10 @@ func createArchive(datadir string, path string, dependCharts []*chartsync.ChartS
 		f.Close()
 	}()
 
-	log.Info("creating archive for " + meta.Name)
+	log.WithFields(log.Fields{
+		"Chart": meta.Name,
+		"File":  randomName,
+	}).Debug("creating archive")
 	err = Package(dependCharts, path, meta, f)
 	return randomName, err
 }

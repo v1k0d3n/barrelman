@@ -59,7 +59,7 @@ func (r *gitRepoList) Sync(cs *ChartSync, acc AccountTable) error {
 		r.Unlock()
 	}()
 	for k := range r.list {
-		log.Info("syncing git repo ", k)
+		log.Debug("syncing git repo ", k)
 		// Ensure that the repo is on master before attempting to sync
 
 		if err := r.Download(cs, acc, k); err != nil {
@@ -179,7 +179,9 @@ func (r *gitRepoList) Download(cs *ChartSync, acc AccountTable, location string)
 					"Repository": cloneOptions.URL,
 				}).Wrap(err, "could not pull from repository")
 			}
-			log.Info("repo is already up to date")
+			log.WithFields(log.Fields{
+				"Repo": target,
+			}).Debug("repo is already up to date")
 		}
 	}
 	cs.CompletedURI = append(cs.CompletedURI, target)
@@ -228,9 +230,13 @@ func NewRef(path string, source *Source) error {
 	}
 
 	if opt.Branch.IsRemote() || opt.Branch.IsTag() {
-		log.Info("checking out " + opt.Branch.String() + " on " + path)
+		log.WithFields(log.Fields{
+			"Refrence": opt.Branch.String(),
+		}).Debug("checkout out reference")
 	} else {
-		log.Info("checking out " + opt.Hash.String() + " on " + path)
+		log.WithFields(log.Fields{
+			"Refrence": opt.Branch.String(),
+		}).Debug("checkout out reference")
 	}
 	if err = wkTree.Checkout(opt); err != nil {
 		return errors.Wrap(err, "failed to checkout git reference")
@@ -255,7 +261,8 @@ func getRepo(path string) (*git.Repository, error) {
 }
 
 func ReturnToMaster(path string) error {
-	log.Debug("returning ", path, " to master reference")
+
+	log.Debug("returning ", path, " to master branch")
 	branch := plumbing.NewBranchReferenceName("master")
 
 	chk := &git.CheckoutOptions{
