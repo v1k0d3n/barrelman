@@ -3,14 +3,18 @@ package cmd
 import (
 	"github.com/charter-se/barrelman/cluster"
 	"github.com/charter-se/barrelman/manifest"
+	"github.com/charter-se/barrelman/version"
+	"github.com/charter-se/structured"
 	"github.com/charter-se/structured/errors"
 	"github.com/charter-se/structured/log"
 	"github.com/spf13/cobra"
 )
 
 type deleteCmd struct {
-	Options *cmdOptions
-	Config  *Config
+	Options    *cmdOptions
+	Config     *Config
+	Log        structured.Logger
+	LogOptions *[]string
 }
 
 func newDeleteCmd(cmd *deleteCmd) *cobra.Command {
@@ -25,9 +29,11 @@ func newDeleteCmd(cmd *deleteCmd) *cobra.Command {
 			}
 			cobraCmd.SilenceUsage = true
 			cobraCmd.SilenceErrors = true
-			if err := cmd.Run(cluster.NewSession(
+			cmd.Log = log.New(logSettings(cmd.LogOptions)...)
+			session := cluster.NewSession(
 				cmd.Options.KubeContext,
-				cmd.Options.KubeConfigFile)); err != nil {
+				cmd.Options.KubeConfigFile)
+			if err := cmd.Run(session); err != nil {
 				return err
 			}
 			return nil
@@ -54,6 +60,13 @@ func newDeleteCmd(cmd *deleteCmd) *cobra.Command {
 func (cmd *deleteCmd) Run(session cluster.Sessioner) error {
 	var err error
 
+	ver := version.Get()
+	cmd.Log.WithFields(log.Fields{
+		"Version": ver.Version,
+		"Commit":  ver.Commit,
+		"Branch":  ver.Branch,
+	}).Info("Barrelman")
+
 	cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
 	if err != nil {
 		return errors.Wrap(err, "got error while loading config")
@@ -68,12 +81,12 @@ func (cmd *deleteCmd) Run(session cluster.Sessioner) error {
 	}
 
 	if session.GetKubeConfig() != "" {
-		log.WithFields(log.Fields{
+		cmd.Log.WithFields(log.Fields{
 			"file": session.GetKubeConfig(),
 		}).Info("Using kube config")
 	}
 	if session.GetKubeContext() != "" {
-		log.WithFields(log.Fields{
+		cmd.Log.WithFields(log.Fields{
 			"file": session.GetKubeContext(),
 		}).Info("Using kube context")
 	}
@@ -83,6 +96,7 @@ func (cmd *deleteCmd) Run(session cluster.Sessioner) error {
 		DataDir:      cmd.Options.DataDir,
 		ManifestFile: cmd.Options.ManifestFile,
 		AccountTable: cmd.Config.Account,
+		Log:          cmd.Log,
 	})
 	if err != nil {
 		return errors.Wrap(err, "error while initializing manifest")
@@ -94,13 +108,13 @@ func (cmd *deleteCmd) Run(session cluster.Sessioner) error {
 		}
 	}
 
-	if err := DeleteByManifest(mfest, session); err != nil {
+	if err := DeleteByManifest(cmd.Log, mfest, session); err != nil {
 		return errors.Wrap(err, "failed to delete by manifest")
 	}
 	return nil
 }
 
-func DeleteByManifest(bm *manifest.Manifest, session cluster.Sessioner) error {
+func DeleteByManifest(logger structured.Logger, bm *manifest.Manifest, session cluster.Sessioner) error {
 	deleteList := make(map[string]*cluster.DeleteMeta)
 	groups, err := bm.GetChartGroups()
 	if err != nil {
@@ -128,7 +142,7 @@ func DeleteByManifest(bm *manifest.Manifest, session cluster.Sessioner) error {
 			for _, rel := range deleteList {
 				if rel.ReleaseName == v.Data.ReleaseName {
 					//if dm, exists := deleteList[v.Data.ReleaseName]; exists {
-					log.WithFields(log.Fields{
+					logger.WithFields(log.Fields{
 						"Name":    v.Metadata.Name,
 						"Release": rel.ReleaseName,
 					}).Info("deleting release")

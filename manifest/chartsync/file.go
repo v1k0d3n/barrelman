@@ -3,12 +3,14 @@ package chartsync
 import (
 	"os"
 
+	"github.com/charter-se/structured"
 	"github.com/charter-se/structured/errors"
 )
 
 type SyncFile struct {
 	ChartMeta *ChartMeta
 	DataDir   string
+	Log       structured.Logger
 }
 
 type fileHandler struct {
@@ -18,10 +20,11 @@ func init() {
 	r := &fileHandler{}
 	Register(&Registration{
 		Name: "file",
-		New: func(dataDir string, cm *ChartMeta, acc AccountTable) (Archiver, error) {
+		New: func(logger structured.Logger, dataDir string, cm *ChartMeta, acc AccountTable) (Archiver, error) {
 			return &SyncFile{
 				ChartMeta: cm,
 				DataDir:   dataDir,
+				Log:       logger,
 			}, nil
 		},
 		Control: r,

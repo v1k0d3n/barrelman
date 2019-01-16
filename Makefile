@@ -3,6 +3,7 @@ REGISTRY	?=quay.io
 NAMESPACE	?=charter-se
 VERSION		?=latest
 COMMIT		?=$(shell git rev-parse --short HEAD)
+BRANCH      ?=$(shell git symbolic-ref -q --short HEAD)
 
 # GoLang Environment:
 GOCMD		?=go
@@ -16,12 +17,16 @@ GOBUILD		=$(GOCMD) build
 GOCLEAN		=$(GOCMD) clean
 GOTEST		=$(GOCMD) test
 GOGET		=$(GOCMD) get
-LDFLAGS         =-w -s -X main.version=$(VERSION) -X main.commit=$(COMMIT)
+SET_VERSION =github.com/charter-se/barrelman/version.version=$(VERSION)
+SET_COMMIT  =github.com/charter-se/barrelman/version.commit=$(COMMIT)
+SET_BRANCH  =github.com/charter-se/barrelman/version.branch=$(BRANCH)
+
+LDFLAGS         =-w -s -X $(SET_VERSION) -X $(SET_COMMIT) -X $(SET_BRANCH)
 
 all: test build build-linux docker-push
 
 build:
-	$(GOBUILD) -o $(BINARY_NAME) -v
+	$(GOBUILD) -ldflags "$(LDFLAGS)" -o $(BINARY_NAME) -v
 
 test:
 	$(GOTEST) -v ./...

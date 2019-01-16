@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/charter-se/structured"
 	"github.com/charter-se/structured/errors"
 	"github.com/charter-se/structured/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,6 +33,7 @@ type Clusterer interface {
 	SetKubeConfig(c string)
 	GetKubeContext() string
 	SetKubeContext(c string)
+	SetLogger(logger structured.Logger)
 }
 
 type Session struct {
@@ -40,6 +42,7 @@ type Session struct {
 	Clientset   *internalclientset.Clientset
 	kubeConfig  string
 	kubeContext string
+	Log         structured.Logger
 }
 
 //NewSession returns a *Session with kubernetes connections established
@@ -47,7 +50,11 @@ func NewSession(kubeContext string, kubeConfig string) *Session {
 	s := &Session{}
 	s.kubeConfig = fullPath(kubeConfig)
 	s.kubeContext = kubeContext
+	s.Log = log.New()
 	return s
+}
+func (s *Session) SetLogger(logger structured.Logger) {
+	s.Log = logger
 }
 
 func (s *Session) GetKubeConfig() string {
@@ -86,7 +93,7 @@ func (s *Session) Init() error {
 	}
 
 	compatible := version.IsCompatible(version.Version, tillerVersion.Version.SemVer)
-	log.WithFields(log.Fields{
+	s.Log.WithFields(log.Fields{
 		"tillerVersion":          tillerVersion.Version.SemVer,
 		"clientServerCompatible": compatible,
 		"Host":                   fmt.Sprintf(":%v", s.Tiller.Local),
@@ -126,7 +133,13 @@ func (s *Session) connect(namespace string) error {
 	}
 
 	s.Helm = helm.NewClient(helm.Host(fmt.Sprintf(":%v", s.Tiller.Local)), helm.ConnectTimeout(5))
-	log.WithField("client", s.Helm).Debug("Helm client")
+	clientVersion, err := s.Helm.GetVersion()
+	if err != nil {
+		return errors.Wrap(err, "failed to get helm client version")
+	}
+	s.Log.WithFields(log.Fields{
+		"Version": clientVersion.Version,
+	}).Debug("Helm client")
 
 	return nil
 }

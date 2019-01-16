@@ -38,7 +38,7 @@ type Entry struct {
 }
 
 type Logger struct {
-	Logger *logrus.Logger
+	Handler *logrus.Logger
 }
 
 type Fields map[string]interface{}
@@ -47,6 +47,44 @@ type errorer interface {
 	Error() string
 }
 
+func New(funcArgs ...func(*Logger) error) *Logger {
+	logger := &Logger{
+		Handler: logrus.New(),
+	}
+	for _, f := range funcArgs {
+		if err := f(logger); err != nil {
+			//Returning an error here becomes too much to handle down the stack
+			panic(err)
+		}
+	}
+	return logger
+}
+
+func (l *Logger) Debug(args ...interface{}) {
+	l.Handler.Debug(args...)
+}
+
+func (l *Logger) Info(args ...interface{}) {
+	l.Handler.Info(args...)
+}
+
+func (l *Logger) Warn(args ...interface{}) {
+	l.Handler.Warn(args...)
+}
+
+func (l *Logger) Error(args ...interface{}) {
+	msg, fields := getFields(args)
+	l.Handler.WithFields(logrus.Fields(fields)).Error(msg)
+}
+
+func (l *Logger) WithFields(f Fields) *Entry {
+	return &Entry{
+		Logger: l,
+		Data:   f,
+	}
+}
+
+// *************
 func Debug(args ...interface{}) {
 	logrus.Debug(args...)
 }
@@ -55,24 +93,8 @@ func Info(args ...interface{}) {
 	logrus.Info(args...)
 }
 
-func (e *Entry) Info(args ...interface{}) {
-	logrus.WithFields(logrus.Fields(e.getFields())).Info(args...)
-}
-
 func Warn(args ...interface{}) {
 	logrus.Warn(args...)
-}
-
-func (e *Entry) Warn(args ...interface{}) {
-	logrus.WithFields(logrus.Fields(e.getFields())).Warn(args...)
-}
-
-func (e *Entry) Debug(args ...interface{}) {
-	logrus.WithFields(logrus.Fields(e.getFields())).Debug(args...)
-}
-
-func (e *Entry) Error(args ...interface{}) {
-	logrus.WithFields(logrus.Fields(e.getFields())).Error(args...)
 }
 
 func Error(args ...interface{}) {
@@ -83,8 +105,21 @@ func Error(args ...interface{}) {
 func Errorf(format string, args ...interface{}) {
 	logrus.Errorf(format, args...)
 }
-func WithField(k string, v interface{}) *Entry {
-	return &Entry{Data: Fields{k: v}}
+
+func (e *Entry) Info(args ...interface{}) {
+	e.Logger.Handler.WithFields(logrus.Fields(e.getFields())).Info(args...)
+}
+
+func (e *Entry) Warn(args ...interface{}) {
+	e.Logger.Handler.WithFields(logrus.Fields(e.getFields())).Warn(args...)
+}
+
+func (e *Entry) Debug(args ...interface{}) {
+	e.Logger.Handler.WithFields(logrus.Fields(e.getFields())).Debug(args...)
+}
+
+func (e *Entry) Error(args ...interface{}) {
+	e.Logger.Handler.WithFields(logrus.Fields(e.getFields())).Error(args...)
 }
 
 func (e *Entry) WithFields(f Fields) *Entry {
@@ -99,7 +134,10 @@ func (e *Entry) WithFields(f Fields) *Entry {
 }
 
 func WithFields(f Fields) *Entry {
-	return &Entry{Data: f}
+	return &Entry{
+		Logger: New(),
+		Data:   f,
+	}
 }
 
 type keyvalser interface {

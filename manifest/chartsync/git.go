@@ -6,7 +6,9 @@ import (
 	"os"
 	"sync"
 
+	"github.com/charter-se/structured"
 	"github.com/charter-se/structured/errors"
+	"github.com/charter-se/structured/log"
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
 )
@@ -15,6 +17,7 @@ type SyncGit struct {
 	ChartMeta *ChartMeta
 	Repo      *gitRepo
 	DataDir   string
+	Log       structured.Logger
 }
 
 type repoList map[string]gitRepo
@@ -29,7 +32,7 @@ func init() {
 	r := &gitRepoList{list: make(repoList)}
 	Register(&Registration{
 		Name: "git",
-		New: func(dataDir string, cm *ChartMeta, acc AccountTable) (Archiver, error) {
+		New: func(logger structured.Logger, dataDir string, cm *ChartMeta, acc AccountTable) (Archiver, error) {
 			uri, err := cm.GetURI()
 			if err != nil {
 				return nil, errors.WithFields(errors.Fields{
@@ -42,6 +45,7 @@ func init() {
 			return &SyncGit{
 				ChartMeta: cm,
 				DataDir:   dataDir,
+				Log:       logger,
 			}, nil
 		},
 		Control: r,
@@ -62,6 +66,10 @@ func (r *gitRepoList) Sync(cs *ChartSync, acc AccountTable) error {
 }
 
 func (g *SyncGit) ArchiveRun(ac *ArchiveConfig) (string, error) {
+	g.Log.WithFields(log.Fields{
+		"DataDir":     ac.DataDir,
+		"AcrhivePath": ac.Path,
+	}).Debug("Git handler running archiveFunc")
 	return ac.ArchiveFunc(ac.DataDir, ac.Path, ac.DependCharts)
 }
 
@@ -105,11 +113,6 @@ func (r *gitRepoList) Download(cs *ChartSync, acc AccountTable, location string)
 		pullOptions.Auth = &http.BasicAuth{
 			Username: v.User,
 			Password: v.Secret,
-		}
-	} else {
-		fmt.Printf("Not found, ACC Hosts in catalog: ")
-		for k, v := range acc {
-			fmt.Printf("\t[%v] k: %v, v: %v\n", u.Host, k, v)
 		}
 	}
 

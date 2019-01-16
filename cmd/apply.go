@@ -6,6 +6,8 @@ import (
 
 	"github.com/charter-se/barrelman/cluster"
 	"github.com/charter-se/barrelman/manifest"
+	"github.com/charter-se/barrelman/version"
+	"github.com/charter-se/structured"
 	"github.com/charter-se/structured/errors"
 	"github.com/charter-se/structured/log"
 	"github.com/spf13/cobra"
@@ -20,8 +22,10 @@ const (
 )
 
 type applyCmd struct {
-	Options *cmdOptions
-	Config  *Config
+	Options    *cmdOptions
+	Config     *Config
+	Log        structured.Logger
+	LogOptions *[]string
 }
 
 type releaseTarget struct {
@@ -44,14 +48,18 @@ func newApplyCmd(cmd *applyCmd) *cobra.Command {
 			}
 			cobraCmd.SilenceUsage = true
 			cobraCmd.SilenceErrors = true
-			if err := cmd.Run(cluster.NewSession(
+			cmd.Log = log.New(logSettings(cmd.LogOptions)...)
+			session := cluster.NewSession(
 				cmd.Options.KubeContext,
-				cmd.Options.KubeConfigFile)); err != nil {
+				cmd.Options.KubeConfigFile)
+			session.SetLogger(cmd.Log)
+			if err := cmd.Run(session); err != nil {
 				return err
 			}
 			return nil
 		},
 	}
+
 	cobraCmd.Flags().StringVar(
 		&cmd.Options.KubeConfigFile,
 		"kubeconfig",
@@ -93,6 +101,13 @@ func newApplyCmd(cmd *applyCmd) *cobra.Command {
 func (cmd *applyCmd) Run(session cluster.Sessioner) error {
 	var err error
 
+	ver := version.Get()
+	cmd.Log.WithFields(log.Fields{
+		"Version": ver.Version,
+		"Commit":  ver.Commit,
+		"Branch":  ver.Branch,
+	}).Info("Barrelman")
+
 	cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
 	if err != nil {
 		return errors.Wrap(err, "got error while loading config")
@@ -105,13 +120,14 @@ func (cmd *applyCmd) Run(session cluster.Sessioner) error {
 	if err = session.Init(); err != nil {
 		return errors.Wrap(err, "failed to create new cluster session")
 	}
+
 	if session.GetKubeConfig() != "" {
-		log.WithFields(log.Fields{
+		cmd.Log.WithFields(log.Fields{
 			"file": session.GetKubeConfig(),
 		}).Info("Using kube config")
 	}
 	if session.GetKubeContext() != "" {
-		log.WithFields(log.Fields{
+		cmd.Log.WithFields(log.Fields{
 			"file": session.GetKubeContext(),
 		}).Info("Using kube context")
 	}
@@ -121,6 +137,7 @@ func (cmd *applyCmd) Run(session cluster.Sessioner) error {
 		DataDir:      cmd.Options.DataDir,
 		ManifestFile: cmd.Options.ManifestFile,
 		AccountTable: cmd.Config.Account,
+		Log:          cmd.Log,
 	})
 	if err != nil {
 		return errors.Wrap(err, "error while initializing manifest")
@@ -155,7 +172,7 @@ func (cmd *applyCmd) Run(session cluster.Sessioner) error {
 		return err
 	}
 	if cmd.Options.DryRun {
-		log.Info("No errors")
+		cmd.Log.Info("No errors")
 		return nil
 	}
 
@@ -164,10 +181,10 @@ func (cmd *applyCmd) Run(session cluster.Sessioner) error {
 		return err
 	}
 	if cmd.Options.Diff {
-		rt.LogDiff()
+		rt.LogDiff(cmd.Log)
 		return nil
 	}
-	err = rt.Apply(session, cmd.Options)
+	err = rt.Apply(cmd.Log, session, cmd.Options)
 	if err != nil {
 		return errors.Wrap(err, "Manifest upgrade failed")
 	}
@@ -272,23 +289,23 @@ func (rt releaseTargets) Diff(session cluster.Sessioner) (releaseTargets, error)
 	return rt, nil
 }
 
-func (rt releaseTargets) LogDiff() {
+func (rt releaseTargets) LogDiff(logger structured.Logger) {
 	for _, v := range rt {
 		switch v.State {
 		case Installable:
-			log.WithFields(log.Fields{
+			logger.WithFields(log.Fields{
 				"Name":      v.ReleaseMeta.ReleaseName,
 				"Namespace": v.ReleaseMeta.Namespace,
 			}).Info("Would install")
 		case Upgradable:
 			if v.Changed {
-				log.WithFields(log.Fields{
+				logger.WithFields(log.Fields{
 					"Name": v.ReleaseMeta.ReleaseName,
 				}).Info("Diff")
 				//Print the byte content and keep formatting, its fancy
 				fmt.Printf("----%v\n%v_____\n", v.ReleaseMeta.MetaName, string(v.Diff))
 			} else {
-				log.WithFields(log.Fields{
+				logger.WithFields(log.Fields{
 					"Name": v.ReleaseMeta.ReleaseName,
 				}).Info("No change")
 			}
@@ -296,7 +313,7 @@ func (rt releaseTargets) LogDiff() {
 	}
 }
 
-func (rt releaseTargets) Apply(session cluster.Sessioner, opt *cmdOptions) error {
+func (rt releaseTargets) Apply(logger structured.Logger, session cluster.Sessioner, opt *cmdOptions) error {
 	for _, v := range rt {
 		v.ReleaseMeta.DryRun = false
 		v.ReleaseMeta.InstallTimeout = 120
@@ -314,7 +331,7 @@ func (rt releaseTargets) Apply(session cluster.Sessioner, opt *cmdOptions) error
 						Namespace:     v.ReleaseMeta.Namespace,
 						DeleteTimeout: v.ReleaseMeta.InstallTimeout,
 					}
-					log.WithFields(log.Fields{
+					logger.WithFields(log.Fields{
 						"Name":      v.ReleaseMeta.ReleaseName,
 						"Namespace": v.ReleaseMeta.Namespace,
 					}).Info("Deleting (force install)")
@@ -333,7 +350,7 @@ func (rt releaseTargets) Apply(session cluster.Sessioner, opt *cmdOptions) error
 							Namespace:     v.ReleaseMeta.Namespace,
 							DeleteTimeout: v.ReleaseMeta.InstallTimeout,
 						}
-						log.WithFields(log.Fields{
+						logger.WithFields(log.Fields{
 							"Name":      v.ReleaseMeta.ReleaseName,
 							"Namespace": v.ReleaseMeta.Namespace,
 						}).Info("Deleting (state change)")
@@ -347,7 +364,7 @@ func (rt releaseTargets) Apply(session cluster.Sessioner, opt *cmdOptions) error
 						}
 						continue
 					}
-					log.WithFields(log.Fields{
+					logger.WithFields(log.Fields{
 						"Name":      v.ReleaseMeta.ReleaseName,
 						"Namespace": v.ReleaseMeta.Namespace,
 						"Release":   relName,
@@ -365,7 +382,7 @@ func (rt releaseTargets) Apply(session cluster.Sessioner, opt *cmdOptions) error
 
 		case Upgradable:
 			if !v.Changed {
-				log.WithFields(log.Fields{
+				logger.WithFields(log.Fields{
 					"Name":      v.ReleaseMeta.ReleaseName,
 					"Namespace": v.ReleaseMeta.Namespace,
 				}).Info("Skipping")
@@ -378,7 +395,7 @@ func (rt releaseTargets) Apply(session cluster.Sessioner, opt *cmdOptions) error
 					"Namespace": v.ReleaseMeta.Namespace,
 				}).Wrap(err, "error while upgrading release")
 			}
-			log.WithFields(log.Fields{
+			logger.WithFields(log.Fields{
 				"Name":      v.ReleaseMeta.ReleaseName,
 				"Namespace": v.ReleaseMeta.Namespace,
 			}).Info(msg)

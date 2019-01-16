@@ -3,7 +3,11 @@ package chartsync
 //registry.go provides a mechanism for chart source handlers to self register
 //and for consumers to find and use those handlers
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/charter-se/structured"
+)
 
 type Registration struct {
 	Name    string
@@ -11,7 +15,7 @@ type Registration struct {
 	Control Controller
 }
 
-type regFunc func(string, *ChartMeta, AccountTable) (Archiver, error)
+type regFunc func(structured.Logger, string, *ChartMeta, AccountTable) (Archiver, error)
 type registrationList map[string]*Registration
 
 type reg struct {
