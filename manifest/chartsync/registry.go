@@ -5,8 +5,6 @@ package chartsync
 
 import (
 	"sync"
-
-	"github.com/charter-se/structured"
 )
 
 type Registration struct {
@@ -15,7 +13,7 @@ type Registration struct {
 	Control Controller
 }
 
-type regFunc func(structured.Logger, string, *ChartMeta, AccountTable) (Archiver, error)
+type regFunc func(string, *ChartMeta, AccountTable) (Archiver, error)
 type registrationList map[string]*Registration
 
 type reg struct {

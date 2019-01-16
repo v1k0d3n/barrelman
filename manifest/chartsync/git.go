@@ -6,7 +6,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/charter-se/structured"
 	"github.com/charter-se/structured/errors"
 	"github.com/charter-se/structured/log"
 	git "gopkg.in/src-d/go-git.v4"
@@ -17,7 +16,6 @@ type SyncGit struct {
 	ChartMeta *ChartMeta
 	Repo      *gitRepo
 	DataDir   string
-	Log       structured.Logger
 }
 
 type repoList map[string]gitRepo
@@ -32,7 +30,7 @@ func init() {
 	r := &gitRepoList{list: make(repoList)}
 	Register(&Registration{
 		Name: "git",
-		New: func(logger structured.Logger, dataDir string, cm *ChartMeta, acc AccountTable) (Archiver, error) {
+		New: func(dataDir string, cm *ChartMeta, acc AccountTable) (Archiver, error) {
 			uri, err := cm.GetURI()
 			if err != nil {
 				return nil, errors.WithFields(errors.Fields{
@@ -45,7 +43,6 @@ func init() {
 			return &SyncGit{
 				ChartMeta: cm,
 				DataDir:   dataDir,
-				Log:       logger,
 			}, nil
 		},
 		Control: r,
@@ -66,7 +63,7 @@ func (r *gitRepoList) Sync(cs *ChartSync, acc AccountTable) error {
 }
 
 func (g *SyncGit) ArchiveRun(ac *ArchiveConfig) (string, error) {
-	g.Log.WithFields(log.Fields{
+	log.WithFields(log.Fields{
 		"DataDir":     ac.DataDir,
 		"AcrhivePath": ac.Path,
 	}).Debug("Git handler running archiveFunc")

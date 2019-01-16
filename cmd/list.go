@@ -27,7 +27,7 @@ func newListCmd(cmd *listCmd) *cobra.Command {
 			}
 			cobraCmd.SilenceUsage = true
 			cobraCmd.SilenceErrors = true
-			cmd.Log = log.New(logSettings(cmd.LogOptions)...)
+			log.Configure(logSettings(cmd.LogOptions)...)
 			session := cluster.NewSession(
 				cmd.Options.KubeContext,
 				cmd.Options.KubeConfigFile)
@@ -53,7 +53,7 @@ func newListCmd(cmd *listCmd) *cobra.Command {
 func (cmd *listCmd) Run(session cluster.Sessioner) error {
 	var err error
 	ver := version.Get()
-	cmd.Log.WithFields(log.Fields{
+	log.WithFields(log.Fields{
 		"Version": ver.Version,
 		"Commit":  ver.Commit,
 		"Branch":  ver.Branch,
@@ -73,12 +73,12 @@ func (cmd *listCmd) Run(session cluster.Sessioner) error {
 	}
 
 	if session.GetKubeConfig() != "" {
-		cmd.Log.WithFields(log.Fields{
+		log.WithFields(log.Fields{
 			"file": session.GetKubeConfig(),
 		}).Info("Using kube config")
 	}
 	if session.GetKubeContext() != "" {
-		cmd.Log.WithFields(log.Fields{
+		log.WithFields(log.Fields{
 			"file": session.GetKubeContext(),
 		}).Info("Using kube context")
 	}
@@ -87,7 +87,7 @@ func (cmd *listCmd) Run(session cluster.Sessioner) error {
 		return errors.Wrap(err, "Failed to get releases")
 	}
 	for k, v := range list {
-		cmd.Log.WithFields(log.Fields{
+		log.WithFields(log.Fields{
 			"key":       k,
 			"Name":      v.ReleaseName,
 			"Namespace": v.Namespace,

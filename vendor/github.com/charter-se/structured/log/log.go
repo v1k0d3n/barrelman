@@ -47,17 +47,33 @@ type errorer interface {
 	Error() string
 }
 
+//While this is not universally a good idea, it greatly simplifies usage
+var defaultLogger *Logger
+
+//init initializes the default handler
+func init() {
+	defaultLogger = New()
+}
+
 func New(funcArgs ...func(*Logger) error) *Logger {
 	logger := &Logger{
 		Handler: logrus.New(),
 	}
+	logger.Configure(funcArgs...)
+	return logger
+}
+
+func Configure(funcArgs ...func(*Logger) error) {
+	defaultLogger.Configure(funcArgs...)
+}
+
+func (l *Logger) Configure(funcArgs ...func(*Logger) error) {
 	for _, f := range funcArgs {
-		if err := f(logger); err != nil {
+		if err := f(l); err != nil {
 			//Returning an error here becomes too much to handle down the stack
 			panic(err)
 		}
 	}
-	return logger
 }
 
 func (l *Logger) Debug(args ...interface{}) {
@@ -86,24 +102,24 @@ func (l *Logger) WithFields(f Fields) *Entry {
 
 // *************
 func Debug(args ...interface{}) {
-	logrus.Debug(args...)
+	defaultLogger.Handler.Debug(args...)
 }
 
 func Info(args ...interface{}) {
-	logrus.Info(args...)
+	defaultLogger.Handler.Info(args...)
 }
 
 func Warn(args ...interface{}) {
-	logrus.Warn(args...)
+	defaultLogger.Handler.Warn(args...)
 }
 
 func Error(args ...interface{}) {
 	msg, fields := getFields(args)
-	logrus.WithFields(logrus.Fields(fields)).Error(msg)
+	defaultLogger.Handler.WithFields(logrus.Fields(fields)).Error(msg)
 }
 
 func Errorf(format string, args ...interface{}) {
-	logrus.Errorf(format, args...)
+	defaultLogger.Handler.Errorf(format, args...)
 }
 
 func (e *Entry) Info(args ...interface{}) {
@@ -135,7 +151,7 @@ func (e *Entry) WithFields(f Fields) *Entry {
 
 func WithFields(f Fields) *Entry {
 	return &Entry{
-		Logger: New(),
+		Logger: defaultLogger,
 		Data:   f,
 	}
 }

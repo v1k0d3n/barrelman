@@ -91,7 +91,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:5ce79372016a756eb6d802ac9611cf023ef48486aabbc751bdce1c402b955036"
+  digest = "1:d572d52782cefe8a523551ca74715c582821581ecb247675ca86a8b94de074b2"
   name = "github.com/charter-se/structured"
   packages = [
     ".",
@@ -99,7 +99,7 @@
     "log",
   ]
   pruneopts = ""
-  revision = "919a18289eb16e0759e5493ec7c12e6f361cc44c"
+  revision = "bcf24ba019c12981ad16009aa5bdb3af7482333f"
 
 [[projects]]
   digest = "1:0deddd908b6b4b768cfc272c16ee61e7088a60f7fe2f06c547bd3d8e1f8b8e77"

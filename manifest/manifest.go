@@ -382,7 +382,6 @@ func (m *Manifest) load() error {
 				}).Wrap(err, "Failed to find handler for source")
 			}
 			chart.Data.Archiver, err = handler.New(
-				m.Config.Log,
 				m.Config.DataDir,
 				&chartsync.ChartMeta{
 					Name:    chart.Metadata.Name,
