@@ -114,7 +114,7 @@ func (cmd *applyCmd) Run(session cluster.Sessioner) error {
 		return errors.Wrap(err, "failed to create working directory")
 	}
 
-	log.Info("connecting to cluster")
+	log.Debug("connecting to cluster")
 	if err = session.Init(); err != nil {
 		return errors.Wrap(err, "failed to create new cluster session")
 	}

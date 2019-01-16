@@ -148,7 +148,7 @@ func (r *gitRepoList) Download(cs *ChartSync, acc AccountTable, location string)
 		// if the head is not on master, checkout master before pulling
 		head, _ := d.Head()
 		if strings.ToLower(head.Name().String()) != "refs/heads/master" {
-			log.Warn(target + " not on master branch. Attempting to change reference")
+			log.Debug(target + " not on master branch. Attempting to change reference")
 			if err := ReturnToMaster(target); err != nil {
 				return errors.WithFields(errors.Fields{
 					"LocalRepository": target,
