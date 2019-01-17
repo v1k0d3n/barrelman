@@ -3,7 +3,9 @@ package chartsync
 //registry.go provides a mechanism for chart source handlers to self register
 //and for consumers to find and use those handlers
 
-import "sync"
+import (
+	"sync"
+)
 
 type Registration struct {
 	Name    string

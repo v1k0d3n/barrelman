@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/charter-se/structured/errors"
+	"github.com/charter-se/structured/log"
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
 )
@@ -62,6 +63,10 @@ func (r *gitRepoList) Sync(cs *ChartSync, acc AccountTable) error {
 }
 
 func (g *SyncGit) ArchiveRun(ac *ArchiveConfig) (string, error) {
+	log.WithFields(log.Fields{
+		"DataDir":     ac.DataDir,
+		"AcrhivePath": ac.Path,
+	}).Debug("Git handler running archiveFunc")
 	return ac.ArchiveFunc(ac.DataDir, ac.Path, ac.DependCharts)
 }
 
@@ -105,11 +110,6 @@ func (r *gitRepoList) Download(cs *ChartSync, acc AccountTable, location string)
 		pullOptions.Auth = &http.BasicAuth{
 			Username: v.User,
 			Password: v.Secret,
-		}
-	} else {
-		fmt.Printf("Not found, ACC Hosts in catalog: ")
-		for k, v := range acc {
-			fmt.Printf("\t[%v] k: %v, v: %v\n", u.Host, k, v)
 		}
 	}
 

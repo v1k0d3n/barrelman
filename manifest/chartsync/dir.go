@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/charter-se/structured/errors"
+	"github.com/charter-se/structured/log"
 )
 
 type SyncDir struct {
@@ -36,6 +37,10 @@ func (r *dirControl) Sync(cs *ChartSync, acc AccountTable) error {
 }
 
 func (g *SyncDir) ArchiveRun(ac *ArchiveConfig) (string, error) {
+	log.WithFields(log.Fields{
+		"DataDir":     ac.DataDir,
+		"AcrhivePath": ac.Path,
+	}).Debug("Dir handler running archiveFunc")
 	return ac.ArchiveFunc(ac.DataDir, ac.Path, ac.DependCharts)
 }
 

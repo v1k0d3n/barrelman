@@ -2,14 +2,18 @@ package cmd
 
 import (
 	"github.com/charter-se/barrelman/cluster"
+	"github.com/charter-se/barrelman/version"
+	"github.com/charter-se/structured"
 	"github.com/charter-se/structured/errors"
 	"github.com/charter-se/structured/log"
 	"github.com/spf13/cobra"
 )
 
 type listCmd struct {
-	Options *cmdOptions
-	Config  *Config
+	Options    *cmdOptions
+	Config     *Config
+	Log        structured.Logger
+	LogOptions *[]string
 }
 
 func newListCmd(cmd *listCmd) *cobra.Command {
@@ -23,9 +27,11 @@ func newListCmd(cmd *listCmd) *cobra.Command {
 			}
 			cobraCmd.SilenceUsage = true
 			cobraCmd.SilenceErrors = true
-			if err := cmd.Run(cluster.NewSession(
+			log.Configure(logSettings(cmd.LogOptions)...)
+			session := cluster.NewSession(
 				cmd.Options.KubeContext,
-				cmd.Options.KubeConfigFile)); err != nil {
+				cmd.Options.KubeConfigFile)
+			if err := cmd.Run(session); err != nil {
 				return err
 			}
 			return nil
@@ -46,6 +52,13 @@ func newListCmd(cmd *listCmd) *cobra.Command {
 
 func (cmd *listCmd) Run(session cluster.Sessioner) error {
 	var err error
+	ver := version.Get()
+	log.WithFields(log.Fields{
+		"Version": ver.Version,
+		"Commit":  ver.Commit,
+		"Branch":  ver.Branch,
+	}).Info("Barrelman")
+
 	cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
 	if err != nil {
 		return errors.Wrap(err, "got error while loading config")

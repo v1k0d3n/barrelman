@@ -91,14 +91,15 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:8702b53464bd956ad862b1f8a6d7ab0033a0b1025766301ff5b2fcf03eff434f"
+  digest = "1:d572d52782cefe8a523551ca74715c582821581ecb247675ca86a8b94de074b2"
   name = "github.com/charter-se/structured"
   packages = [
+    ".",
     "errors",
     "log",
   ]
   pruneopts = ""
-  revision = "378834ce688d5a0123dc5847eac9a38cac359797"
+  revision = "bcf24ba019c12981ad16009aa5bdb3af7482333f"
 
 [[projects]]
   digest = "1:0deddd908b6b4b768cfc272c16ee61e7088a60f7fe2f06c547bd3d8e1f8b8e77"
@@ -1407,6 +1408,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/aryann/difflib",
+    "github.com/charter-se/structured",
     "github.com/charter-se/structured/errors",
     "github.com/charter-se/structured/log",
     "github.com/ghodss/yaml",

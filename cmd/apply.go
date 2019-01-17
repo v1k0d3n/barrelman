@@ -6,6 +6,7 @@ import (
 
 	"github.com/charter-se/barrelman/cluster"
 	"github.com/charter-se/barrelman/manifest"
+	"github.com/charter-se/barrelman/version"
 	"github.com/charter-se/structured/errors"
 	"github.com/charter-se/structured/log"
 	"github.com/spf13/cobra"
@@ -20,8 +21,9 @@ const (
 )
 
 type applyCmd struct {
-	Options *cmdOptions
-	Config  *Config
+	Options    *cmdOptions
+	Config     *Config
+	LogOptions *[]string
 }
 
 type releaseTarget struct {
@@ -44,14 +46,17 @@ func newApplyCmd(cmd *applyCmd) *cobra.Command {
 			}
 			cobraCmd.SilenceUsage = true
 			cobraCmd.SilenceErrors = true
-			if err := cmd.Run(cluster.NewSession(
+			log.Configure(logSettings(cmd.LogOptions)...)
+			session := cluster.NewSession(
 				cmd.Options.KubeContext,
-				cmd.Options.KubeConfigFile)); err != nil {
+				cmd.Options.KubeConfigFile)
+			if err := cmd.Run(session); err != nil {
 				return err
 			}
 			return nil
 		},
 	}
+
 	cobraCmd.Flags().StringVar(
 		&cmd.Options.KubeConfigFile,
 		"kubeconfig",
@@ -93,6 +98,13 @@ func newApplyCmd(cmd *applyCmd) *cobra.Command {
 func (cmd *applyCmd) Run(session cluster.Sessioner) error {
 	var err error
 
+	ver := version.Get()
+	log.WithFields(log.Fields{
+		"Version": ver.Version,
+		"Commit":  ver.Commit,
+		"Branch":  ver.Branch,
+	}).Info("Barrelman")
+
 	cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
 	if err != nil {
 		return errors.Wrap(err, "got error while loading config")
@@ -105,6 +117,7 @@ func (cmd *applyCmd) Run(session cluster.Sessioner) error {
 	if err = session.Init(); err != nil {
 		return errors.Wrap(err, "failed to create new cluster session")
 	}
+
 	if session.GetKubeConfig() != "" {
 		log.WithFields(log.Fields{
 			"file": session.GetKubeConfig(),

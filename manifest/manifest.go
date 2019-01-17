@@ -13,7 +13,9 @@ import (
 	"github.com/ghodss/yaml"
 
 	"github.com/charter-se/barrelman/manifest/chartsync"
+	"github.com/charter-se/structured"
 	"github.com/charter-se/structured/errors"
+	"github.com/charter-se/structured/log"
 )
 
 const (
@@ -38,6 +40,7 @@ type Config struct {
 	DataDir      string
 	ManifestFile string
 	AccountTable chartsync.AccountTable
+	Log          structured.Logger
 }
 
 type Manifest struct {
@@ -134,12 +137,17 @@ func New(c *Config) (*Manifest, error) {
 	m.Lookup = &LookupTable{}
 	m.Lookup.Chart = make(map[string]*Chart)
 	m.Lookup.ChartGroup = make(map[string]*ChartGroup)
-
+	if c.Log == nil {
+		c.Log = log.New()
+	}
 	if c.AccountTable == nil {
 		return nil, errors.New("manifest.New() called without account table")
 	}
 	m.Config = c
 	file := m.Config.ManifestFile
+	m.Config.Log.WithFields(log.Fields{
+		"File": file,
+	}).Debug("opening file")
 	fileR, err := os.Open(file)
 	if err != nil {
 		return &Manifest{}, errors.WithFields(errors.Fields{"file": file}).Wrap(err, "error opening file")
@@ -373,8 +381,8 @@ func (m *Manifest) load() error {
 					"Name": chart.Metadata.Name,
 				}).Wrap(err, "Failed to find handler for source")
 			}
-
-			chart.Data.Archiver, err = handler.New(m.Config.DataDir,
+			chart.Data.Archiver, err = handler.New(
+				m.Config.DataDir,
 				&chartsync.ChartMeta{
 					Name:    chart.Metadata.Name,
 					Source:  chart.Data.SyncSource,

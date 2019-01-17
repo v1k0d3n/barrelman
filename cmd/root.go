@@ -4,11 +4,10 @@ import (
 	"os"
 	"runtime"
 
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-
 	"github.com/charter-se/structured/log"
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 type cmdOptions struct {
@@ -41,22 +40,35 @@ func newRootCmd(args []string) *cobra.Command {
 		Default().ConfigFile,
 		"specify manifest (YAML) file or a URL")
 
+	logOptions := &[]string{}
+	tmpLogOptions := flags.StringSliceP(
+		"log",
+		"l",
+		nil,
+		"log options (e.g. --log=debug,JSON")
+
 	cobraCmd.AddCommand(newDeleteCmd(&deleteCmd{
-		Options: options,
-		Config:  config,
+		Options:    options,
+		Config:     config,
+		LogOptions: logOptions,
 	}))
 
 	cobraCmd.AddCommand(newApplyCmd(&applyCmd{
-		Options: options,
-		Config:  config,
+		Options:    options,
+		Config:     config,
+		LogOptions: logOptions,
 	}))
 
 	cobraCmd.AddCommand(newListCmd(&listCmd{
-		Options: options,
-		Config:  config,
+		Options:    options,
+		Config:     config,
+		LogOptions: logOptions,
 	}))
 
 	flags.Parse(args)
+	//We are triggering Cobra to set that value twice somewhere
+	//This snapshots the values before we pass them to the command
+	*logOptions = *tmpLogOptions
 	return cobraCmd
 }
 
@@ -66,6 +78,19 @@ func Execute() {
 		log.Error(err)
 		os.Exit(1)
 	}
+}
+
+func logSettings(args *[]string) []func(*log.Logger) error {
+	ret := []func(*log.Logger) error{}
+	for _, v := range *args {
+		switch v {
+		case "debug", "info", "warn", "error":
+			ret = append(ret, log.OptSetLevel(v))
+		case "JSON":
+			ret = append(ret, log.OptSetJSON())
+		}
+	}
+	return ret
 }
 
 func ensureWorkDir(datadir string) error {

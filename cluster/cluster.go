@@ -49,7 +49,6 @@ func NewSession(kubeContext string, kubeConfig string) *Session {
 	s.kubeContext = kubeContext
 	return s
 }
-
 func (s *Session) GetKubeConfig() string {
 	return s.kubeConfig
 }
@@ -126,7 +125,13 @@ func (s *Session) connect(namespace string) error {
 	}
 
 	s.Helm = helm.NewClient(helm.Host(fmt.Sprintf(":%v", s.Tiller.Local)), helm.ConnectTimeout(5))
-	log.WithField("client", s.Helm).Debug("Helm client")
+	clientVersion, err := s.Helm.GetVersion()
+	if err != nil {
+		return errors.Wrap(err, "failed to get helm client version")
+	}
+	log.WithFields(log.Fields{
+		"Version": clientVersion.Version,
+	}).Debug("Helm client")
 
 	return nil
 }
