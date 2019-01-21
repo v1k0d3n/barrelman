@@ -65,6 +65,8 @@ func newRootCmd(args []string) *cobra.Command {
 		LogOptions: logOptions,
 	}))
 
+	cobraCmd.AddCommand(newVersionCmd(&versionCmd{}))
+
 	flags.Parse(args)
 	//We are triggering Cobra to set that value twice somewhere
 	//This snapshots the values before we pass them to the command
