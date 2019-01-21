@@ -260,7 +260,7 @@ func (m *Manifest) GetChartsByChartName(charts []string) ([]*Chart, error) {
 	for _, name := range charts {
 		chartExists := false
 		for _, iv := range m.Lookup.Chart {
-			if iv.Data.ChartName == name {
+			if iv.Metadata.Name == name {
 				chartExists = true
 				ret = append(ret, iv)
 			}

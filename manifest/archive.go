@@ -11,6 +11,7 @@ import (
 
 	"github.com/charter-se/barrelman/manifest/chartsync"
 	"github.com/charter-se/structured/errors"
+	"github.com/charter-se/structured/log"
 )
 
 type ArchiveSpec struct {
@@ -62,12 +63,19 @@ func Archive(
 		DependCharts: dependCharts,
 	})
 
-	return as, nil
+	return as, err
 }
 
 //Package creates an archive based on dependancies contained in []*ChartSpec
-func Package(depends []*chartsync.ChartSpec, src string, writers ...io.Writer) error {
+func Package(depends []*chartsync.ChartSpec, src string, chartMeta *chartsync.ChartMeta, writers ...io.Writer) error {
 	// ensure the src actually exists before trying to tar it
+
+	if chartMeta.Type == "git" {
+		if err := chartsync.NewRef(src, chartMeta.Source); err != nil {
+			return errors.Wrap(err, "error checking out branch")
+		}
+	}
+
 	if _, err := os.Stat(src); err != nil {
 		return errors.Wrap(err, "unable to tar files")
 	}
@@ -180,7 +188,7 @@ func (a *ArchiveFiles) Purge() error {
 	return nil
 }
 
-func createArchive(datadir string, path string, dependCharts []*chartsync.ChartSpec) (string, error) {
+func createArchive(datadir string, path string, dependCharts []*chartsync.ChartSpec, meta *chartsync.ChartMeta) (string, error) {
 	randomName := fmt.Sprintf("%v/%v", datadir, tempFileName("tmp_", ".tgz"))
 	f, err := os.Create(randomName)
 	if err != nil {
@@ -190,6 +198,10 @@ func createArchive(datadir string, path string, dependCharts []*chartsync.ChartS
 		f.Close()
 	}()
 
-	err = Package(dependCharts, path, f)
+	log.WithFields(log.Fields{
+		"Chart": meta.Name,
+		"File":  randomName,
+	}).Debug("creating archive")
+	err = Package(dependCharts, path, meta, f)
 	return randomName, err
 }

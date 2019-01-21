@@ -41,7 +41,7 @@ func (g *SyncDir) ArchiveRun(ac *ArchiveConfig) (string, error) {
 		"DataDir":     ac.DataDir,
 		"AcrhivePath": ac.Path,
 	}).Debug("Dir handler running archiveFunc")
-	return ac.ArchiveFunc(ac.DataDir, ac.Path, ac.DependCharts)
+	return ac.ArchiveFunc(ac.DataDir, ac.Path, ac.DependCharts, nil)
 }
 
 func (g *SyncDir) GetChartMeta() *ChartMeta {

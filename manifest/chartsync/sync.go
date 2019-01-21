@@ -3,6 +3,7 @@ package chartsync
 
 import (
 	"fmt"
+	"gopkg.in/src-d/go-git.v4/plumbing"
 	"net/url"
 	"os"
 
@@ -15,7 +16,7 @@ type AccountTable map[string]*Account
 
 type ArchiveConfig struct {
 	ChartMeta    *ChartMeta
-	ArchiveFunc  func(string, string, []*ChartSpec) (string, error)
+	ArchiveFunc  func(string, string, []*ChartSpec, *ChartMeta) (string, error)
 	DataDir      string
 	Path         string
 	DependCharts []*ChartSpec
@@ -120,9 +121,12 @@ func (cs *ChartSync) gitDownload(c *ChartMeta, acc AccountTable) error {
 		return err
 	}
 
+	ref := plumbing.NewBranchReferenceName(c.Source.Reference)
+
 	cloneOptions := &git.CloneOptions{
-		URL:      c.Source.Location,
-		Progress: os.Stdout,
+		URL:           c.Source.Location,
+		Progress:      os.Stdout,
+		ReferenceName: ref,
 	}
 	pullOptions := &git.PullOptions{
 		RemoteName:   "origin",
