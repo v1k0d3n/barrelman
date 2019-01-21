@@ -53,7 +53,7 @@ build-darwin:
 
 
 # Docker Tasks:
-## Use: make docker-build BINARY_NAME=barrelman REGISTRY=quay.io NAMESPACE=charter-se VERSION=v0.2.5 COMMIT=$(git rev-parse --short HEAD) BRANCH=$(git symbolic-ref -q --short HEAD) GOOS=darwin GOARCH=amd64
+## Use: make docker-build BINARY_NAME=barrelman REGISTRY=quay.io NAMESPACE=charter-se VERSION=v0.2.5 COMMIT=$(git rev-parse --short HEAD) BRANCH=$(git symbolic-ref -q --short HEAD) GOOS=linux GOARCH=amd64
 docker-build:
 	docker build --build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) --build-arg BRANCH=$(BRANCH) --build-arg GOOS=$(GOOS) --build-arg GOARCH=$(GOARCH) -t $(REGISTRY)/$(NAMESPACE)/$(BINARY_NAME):$(VERSION) .
 
