@@ -1,25 +1,25 @@
 # Build Environment:
-REGISTRY	?=quay.io
-NAMESPACE	?=charter-se
-VERSION		?=latest
-COMMIT		?=$(shell git rev-parse --short HEAD)
-BRANCH      ?=$(shell git symbolic-ref -q --short HEAD)
+REGISTRY        ?=quay.io
+NAMESPACE       ?=charter-se
+VERSION         ?=latest
+COMMIT          ?=$(shell git rev-parse --short HEAD)
+BRANCH          ?=$(shell git symbolic-ref -q --short HEAD)
 
 # GoLang Environment:
-GOCMD		?=go
+GOCMD           ?=go
 GOOS            ?=linux
 GOARCH          ?=amd64
-BINARY_NAME	?=barrelman
-BINARY_ARCH	?=amd64
-BINARY_LINUX	?=$(BINARY_NAME)-$(VERSION)-linux-$(BINARY_ARCH)
-BINARY_DARWIN	?=$(BINARY_NAME)-$(VERSION)-darwin-$(BINARY_ARCH)
-GOBUILD		=$(GOCMD) build
-GOCLEAN		=$(GOCMD) clean
-GOTEST		=$(GOCMD) test
-GOGET		=$(GOCMD) get
-SET_VERSION =github.com/charter-se/barrelman/version.version=$(VERSION)
-SET_COMMIT  =github.com/charter-se/barrelman/version.commit=$(COMMIT)
-SET_BRANCH  =github.com/charter-se/barrelman/version.branch=$(BRANCH)
+BINARY_NAME     ?=barrelman
+BINARY_ARCH     ?=amd64
+BINARY_LINUX    ?=$(BINARY_NAME)-$(VERSION)-linux-$(BINARY_ARCH)
+BINARY_DARWIN   ?=$(BINARY_NAME)-$(VERSION)-darwin-$(BINARY_ARCH)
+GOBUILD         =$(GOCMD) build
+GOCLEAN         =$(GOCMD) clean
+GOTEST          =$(GOCMD) test
+GOGET           =$(GOCMD) get
+SET_VERSION     =github.com/charter-se/barrelman/version.version=$(VERSION)
+SET_COMMIT      =github.com/charter-se/barrelman/version.commit=$(COMMIT)
+SET_BRANCH      =github.com/charter-se/barrelman/version.branch=$(BRANCH)
 
 LDFLAGS         =-w -s -X $(SET_VERSION) -X $(SET_COMMIT) -X $(SET_BRANCH)
 
@@ -53,9 +53,9 @@ build-darwin:
 
 
 # Docker Tasks:
-## Use: make docker-build BINARY_NAME=barrelman REGISTRY=quay.io NAMESPACE=charter-se VERSION=v0.2.5 COMMIT=$(git rev-parse --short HEAD) GOOS=darwin GOARCH=amd64
+## Use: make docker-build BINARY_NAME=barrelman REGISTRY=quay.io NAMESPACE=charter-se VERSION=v0.2.5 COMMIT=$(git rev-parse --short HEAD) BRANCH=$(git symbolic-ref -q --short HEAD) GOOS=linux GOARCH=amd64
 docker-build:
-	docker build --build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) --build-arg GOOS=$(GOOS) --build-arg GOARCH=$(GOARCH) -t $(REGISTRY)/$(NAMESPACE)/$(BINARY_NAME):$(VERSION) .
+	docker build --build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) --build-arg BRANCH=$(BRANCH) --build-arg GOOS=$(GOOS) --build-arg GOARCH=$(GOARCH) -t $(REGISTRY)/$(NAMESPACE)/$(BINARY_NAME):$(VERSION) .
 
 ## Use: make docker-push BINARY_NAME=barrelman REGISTRY=quay.io NAMESPACE=charter-se VERSION=v0.2.5
 docker-push:
