@@ -7,6 +7,7 @@ BRANCH          ?=$(shell git symbolic-ref -q --short HEAD)
 
 # GoLang Environment:
 GOCMD           ?=go
+DEPCMD		    ?=dep
 GOOS            ?=linux
 GOARCH          ?=amd64
 BINARY_NAME     ?=barrelman
@@ -16,7 +17,7 @@ BINARY_DARWIN   ?=$(BINARY_NAME)-$(VERSION)-darwin-$(BINARY_ARCH)
 GOBUILD         =$(GOCMD) build
 GOCLEAN         =$(GOCMD) clean
 GOTEST          =$(GOCMD) test
-GOGET           =$(GOCMD) get
+GODEP           =$(DEPCMD) ensure
 SET_VERSION     =github.com/charter-se/barrelman/version.version=$(VERSION)
 SET_COMMIT      =github.com/charter-se/barrelman/version.commit=$(COMMIT)
 SET_BRANCH      =github.com/charter-se/barrelman/version.branch=$(BRANCH)
@@ -42,7 +43,7 @@ run:
 	./$(BINARY_NAME)
 
 deps:
-	$(GOGET) github.com/charter-se/structured
+	$(GODEP)
 
 
 # Go Cross-Compilation Tasks:

@@ -1419,6 +1419,7 @@
     "github.com/stretchr/testify/mock",
     "google.golang.org/grpc",
     "gopkg.in/src-d/go-git.v4",
+    "gopkg.in/src-d/go-git.v4/plumbing",
     "gopkg.in/src-d/go-git.v4/plumbing/transport/http",
     "gopkg.in/yaml.v2",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
