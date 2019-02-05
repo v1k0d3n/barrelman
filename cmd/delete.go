@@ -124,7 +124,7 @@ func DeleteByManifest(bm *manifest.Manifest, session cluster.Sessioner) error {
 	}
 
 	for _, v := range releases {
-		deleteList[v.Chart.GetMetadata().Name] = &cluster.DeleteMeta{
+		deleteList[v.ReleaseName] = &cluster.DeleteMeta{
 			ReleaseName: v.ReleaseName,
 			Namespace:   "",
 		}
