@@ -28,6 +28,7 @@ import (
 	"regexp"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/Masterminds/sprig"
 	"github.com/spf13/cobra"
@@ -156,7 +157,13 @@ func (cmd *templateCmd) Run() error {
 	}
 
 	for _, v := range archives.List {
-		if err := cmd.Export(v.Path); err != nil {
+		log.WithFields(log.Fields{
+			"File":      v.Path,
+			"MetaName":  v.MetaName,
+			"Namespace": v.Namespace,
+			"ChartName": v.ChartName,
+		}).Debug("Template")
+		if err := cmd.Export(v.Reader); err != nil {
 			return errors.WithFields(errors.Fields{
 				"file": v.Path,
 				"name": v.MetaName,
@@ -166,16 +173,7 @@ func (cmd *templateCmd) Run() error {
 	return nil
 }
 
-func (cmd *templateCmd) Export(inChart string) error {
-
-	// verify chart path exists
-	if _, err := os.Stat(inChart); err == nil {
-		if cmd.chartPath, err = filepath.Abs(inChart); err != nil {
-			return err
-		}
-	} else {
-		return err
-	}
+func (cmd *templateCmd) Export(inChart io.Reader) error {
 
 	// verify that output-dir exists if provided
 	if cmd.outputDir != "" {
@@ -207,7 +205,7 @@ func (cmd *templateCmd) Export(inChart string) error {
 	}
 
 	// Check chart requirements to make sure all dependencies are present in /charts
-	c, err := chartutil.Load(cmd.chartPath)
+	c, err := chartutil.LoadArchive(inChart)
 	if err != nil {
 		return errors.Wrap(err, "chart load failed")
 	}
@@ -228,17 +226,13 @@ func (cmd *templateCmd) Export(inChart string) error {
 		return err
 	}
 
-	// if cmd.Debug {
-	// 	rel := &release.Release{
-	// 		Name:      cmd.releaseName,
-	// 		Chart:     c,
-	// 		Config:    config,
-	// 		Version:   1,
-	// 		Namespace: cmd.namespace,
-	// 		Info:      &release.Info{LastDeployed: timeconv.Timestamp(time.Now())},
-	// 	}
-	// 	printRelease(os.Stdout, rel)
-	// }
+	log.WithFields(log.Fields{
+		"Name":      cmd.releaseName,
+		"Chart":     c,
+		"Config":    config,
+		"Namespace": cmd.namespace,
+		"Info":      &release.Info{LastDeployed: timeconv.Timestamp(time.Now())},
+	}).Debug("chart")
 
 	listManifests := manifest.SplitManifests(renderedTemplates)
 	var manifestsToRender []manifest.Manifest
@@ -302,7 +296,7 @@ func (cmd *templateCmd) Export(inChart string) error {
 			}
 			continue
 		}
-		fmt.Printf("---\n# Source: %s\n", m.Name)
+		fmt.Printf("--- # Source: %s\n", m.Name)
 		fmt.Println(data)
 	}
 	return nil
@@ -324,7 +318,7 @@ func writeToFile(outputDir string, name string, data string) error {
 
 	defer f.Close()
 
-	_, err = f.WriteString(fmt.Sprintf("---\n# Source: %s\n%s", name, data))
+	_, err = f.WriteString(fmt.Sprintf("--- # Source: %s\n%s", name, data))
 
 	if err != nil {
 		return err
