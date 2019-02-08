@@ -169,9 +169,9 @@ func (s *Session) DiffRelease(m *ReleaseMeta) (bool, []byte, error) {
 
 //UpgradeRelease applies changes to an already running release, potentially triggering a restart
 func (s *Session) UpgradeRelease(m *ReleaseMeta) (string, error) {
-	res, err := s.Helm.UpdateRelease(
+	res, err := s.Helm.UpdateReleaseFromChart(
 		m.ReleaseName,
-		m.Path,
+		m.Chart,
 		helm.UpgradeForce(true),
 		helm.UpgradeDryRun(m.DryRun),
 		helm.UpdateValueOverrides(m.ValueOverrides),
