@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/charter-se/barrelman/cluster"
 	"github.com/charter-se/barrelman/manifest"
 	"github.com/charter-se/barrelman/version"
 	"github.com/charter-se/structured/errors"
 	"github.com/charter-se/structured/log"
-	"github.com/spf13/cobra"
 )
 
 const (
@@ -130,33 +131,14 @@ func (cmd *applyCmd) Run(session cluster.Sessioner) error {
 		}).Info("Using kube context")
 	}
 
-	// Open and initialize the manifest
-	mfest, err := manifest.New(&manifest.Config{
+	archives, err := processManifest(&manifest.Config{
 		DataDir:      cmd.Options.DataDir,
 		ManifestFile: cmd.Options.ManifestFile,
 		AccountTable: cmd.Config.Account,
-	})
+	}, cmd.Options.NoSync)
 	if err != nil {
-		return errors.Wrap(err, "error while initializing manifest")
+		return errors.Wrap(err, "apply failed")
 	}
-
-	if !cmd.Options.NoSync {
-		if err := mfest.Sync(); err != nil {
-			return errors.Wrap(err, "error while downloading charts")
-		}
-	}
-
-	//Build/update chart archives from manifest
-	archives, err := mfest.CreateArchives()
-	if err != nil {
-		return errors.Wrap(err, "failed to create archives")
-	}
-	//Remove archive files after we are done with them
-	defer func() {
-		if err := archives.Purge(); err != nil {
-			log.Error(errors.Wrap(err, "failed to purge local archives"))
-		}
-	}()
 
 	releases, err := session.Releases()
 	if err != nil {
