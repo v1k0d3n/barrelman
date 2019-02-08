@@ -474,7 +474,7 @@ func (m *Manifest) CreateArchives() (*ArchiveFiles, error) {
 			if err != nil {
 				return nil, errors.Wrap(err, "error getting chart path")
 			}
-			as, err := Archive(m.Config.DataDir, chart, path, dependCharts, chart.Data.Archiver)
+			as, err := Archive(chart, path, dependCharts, chart.Data.Archiver)
 			if err != nil {
 				return nil, errors.Wrap(err, "Got err while running Archive")
 			}

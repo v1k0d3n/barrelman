@@ -29,6 +29,7 @@ type applyCmd struct {
 
 type releaseTarget struct {
 	ReleaseMeta *cluster.ReleaseMeta
+	Chart       *cluster.Chart
 	State       int
 	Diff        []byte
 	Changed     bool
@@ -145,7 +146,10 @@ func (cmd *applyCmd) Run(session cluster.Sessioner) error {
 		return errors.Wrap(err, "failed to get current releases")
 	}
 
-	rt := cmd.ComputeReleases(session, archives, releases)
+	rt, err := cmd.ComputeReleases(session, archives, releases)
+	if err != nil {
+		return err
+	}
 
 	if err := rt.dryRun(session); err != nil {
 		return err
@@ -185,11 +189,15 @@ func (cmd *applyCmd) isInForce(rel *cluster.ReleaseMeta) bool {
 func (cmd *applyCmd) ComputeReleases(
 	session cluster.Sessioner,
 	archives *manifest.ArchiveFiles,
-	currentReleases map[string]*cluster.ReleaseMeta) releaseTargets {
+	currentReleases map[string]*cluster.ReleaseMeta) (releaseTargets, error) {
 	rt := releaseTargets{}
 
 	for _, v := range archives.List {
 		releaseExists := false
+		inChart, err := cluster.ChartFromArchive(v.Reader)
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to generate chart from archive")
+		}
 		for _, rel := range currentReleases {
 			if rel.ReleaseName == v.ReleaseName {
 				releaseExists = true
@@ -198,7 +206,7 @@ func (cmd *applyCmd) ComputeReleases(
 						&releaseTarget{
 							State: Replaceable,
 							ReleaseMeta: &cluster.ReleaseMeta{
-								Path:           v.Path,
+								Chart:          inChart,
 								ReleaseName:    rel.ReleaseName,
 								Namespace:      v.Namespace,
 								ValueOverrides: v.Overrides,
@@ -209,7 +217,7 @@ func (cmd *applyCmd) ComputeReleases(
 						&releaseTarget{
 							State: Upgradable,
 							ReleaseMeta: &cluster.ReleaseMeta{
-								Path:           v.Path,
+								Chart:          inChart,
 								ReleaseName:    rel.ReleaseName,
 								Namespace:      v.Namespace,
 								ValueOverrides: v.Overrides,
@@ -223,7 +231,7 @@ func (cmd *applyCmd) ComputeReleases(
 				&releaseTarget{
 					State: Installable,
 					ReleaseMeta: &cluster.ReleaseMeta{
-						Path:           v.Path,
+						Chart:          inChart,
 						ReleaseName:    v.ReleaseName,
 						Namespace:      v.Namespace,
 						ValueOverrides: v.Overrides,
@@ -231,7 +239,7 @@ func (cmd *applyCmd) ComputeReleases(
 				})
 		}
 	}
-	return rt
+	return rt, nil
 }
 
 func (rt releaseTargets) dryRun(session cluster.Sessioner) error {
@@ -239,7 +247,7 @@ func (rt releaseTargets) dryRun(session cluster.Sessioner) error {
 		v.ReleaseMeta.DryRun = true
 		switch v.State {
 		case Installable:
-			_, _, err := session.InstallRelease(v.ReleaseMeta, []byte{})
+			_, _, err := session.InstallRelease(v.ReleaseMeta)
 			if err != nil {
 				return err
 			}
@@ -297,11 +305,9 @@ func (rt releaseTargets) Apply(session cluster.Sessioner, opt *cmdOptions) error
 		v.ReleaseMeta.DryRun = false
 		v.ReleaseMeta.InstallTimeout = 120
 		switch v.State {
-
 		case Installable, Replaceable:
 			if err := func() error {
 				//This closure removes a "break OUT"
-
 				var innerErr error
 				if v.State == Replaceable {
 					//The release exists, it needs to be deleted
@@ -319,7 +325,7 @@ func (rt releaseTargets) Apply(session cluster.Sessioner, opt *cmdOptions) error
 					}
 				}
 				for i := 0; i < opt.InstallRetry; i++ {
-					msg, relName, err := session.InstallRelease(v.ReleaseMeta, []byte{})
+					msg, relName, err := session.InstallRelease(v.ReleaseMeta)
 					if err != nil {
 						innerErr = err
 						//The state has changed underneath us, but the release needs installed anyhow

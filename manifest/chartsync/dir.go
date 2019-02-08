@@ -1,6 +1,7 @@
 package chartsync
 
 import (
+	"io"
 	"os"
 
 	"github.com/charter-se/structured/errors"
@@ -36,7 +37,7 @@ func (r *dirControl) Sync(cs *ChartSync, acc AccountTable) error {
 	return nil
 }
 
-func (g *SyncDir) ArchiveRun(ac *ArchiveConfig) (string, error) {
+func (g *SyncDir) ArchiveRun(ac *ArchiveConfig) (io.Reader, error) {
 	log.WithFields(log.Fields{
 		"DataDir":     ac.DataDir,
 		"AcrhivePath": ac.Path,

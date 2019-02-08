@@ -3,20 +3,22 @@ package chartsync
 
 import (
 	"fmt"
-	"gopkg.in/src-d/go-git.v4/plumbing"
+	"io"
 	"net/url"
 	"os"
 
-	"github.com/charter-se/structured/errors"
 	git "gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
+
+	"github.com/charter-se/structured/errors"
 )
 
 type AccountTable map[string]*Account
 
 type ArchiveConfig struct {
 	ChartMeta    *ChartMeta
-	ArchiveFunc  func(string, string, []*ChartSpec, *ChartMeta) (string, error)
+	ArchiveFunc  func(string, string, []*ChartSpec, *ChartMeta) (io.Reader, error)
 	DataDir      string
 	Path         string
 	DependCharts []*ChartSpec
@@ -62,7 +64,7 @@ type Syncer interface {
 }
 
 type Archiver interface {
-	ArchiveRun(*ArchiveConfig) (string, error)
+	ArchiveRun(*ArchiveConfig) (io.Reader, error)
 	GetPath() (string, error)
 }
 
