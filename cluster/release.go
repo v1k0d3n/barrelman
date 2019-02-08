@@ -123,16 +123,6 @@ func (s *Session) InstallRelease(m *ReleaseMeta) (string, string, error) {
 		helm.InstallTimeout(int64(m.InstallTimeout.Seconds())),
 	)
 
-	// res, err := s.Helm.InstallRelease(
-	// 	m.Path,
-	// 	m.Namespace,
-	// 	helm.ReleaseName(m.ReleaseName),
-	// 	helm.ValueOverrides(m.ValueOverrides),
-	// 	helm.InstallDryRun(m.DryRun),
-	// 	helm.InstallReuseName(m.InstallReuseName),
-	// 	helm.InstallWait(m.InstallWait),
-	// 	helm.InstallTimeout(int64(m.InstallTimeout.Seconds())),
-	// )
 	if err != nil {
 		return "", "", errors.WithFields(errors.Fields{
 			"File":      m.Path,
