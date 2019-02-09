@@ -2,17 +2,18 @@ package chartsync
 
 import (
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"strings"
 	"sync"
 
-	"github.com/charter-se/structured/errors"
-	"github.com/charter-se/structured/log"
-
-	"gopkg.in/src-d/go-git.v4"
+	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
+
+	"github.com/charter-se/structured/errors"
+	"github.com/charter-se/structured/log"
 )
 
 type SyncGit struct {
@@ -68,7 +69,7 @@ func (r *gitRepoList) Sync(cs *ChartSync, acc AccountTable) error {
 	return nil
 }
 
-func (g *SyncGit) ArchiveRun(ac *ArchiveConfig) (string, error) {
+func (g *SyncGit) ArchiveRun(ac *ArchiveConfig) (io.Reader, error) {
 	log.WithFields(log.Fields{
 		"DataDir":     ac.DataDir,
 		"AcrhivePath": ac.Path,

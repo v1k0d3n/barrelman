@@ -1,10 +1,11 @@
 package chartsync
 
 import (
-	"github.com/charter-se/structured/log"
+	"io"
 	"os"
 
 	"github.com/charter-se/structured/errors"
+	"github.com/charter-se/structured/log"
 )
 
 type SyncFile struct {
@@ -33,13 +34,14 @@ func (fh *fileHandler) Sync(cs *ChartSync, acc AccountTable) error {
 	return nil
 }
 
-func (sf *SyncFile) ArchiveRun(ac *ArchiveConfig) (string, error) {
-	target := sf.ChartMeta.Source.Location
-
-	log.Info("creating archive for " + sf.ChartMeta.Name)
-	if _, err := os.Stat(target); os.IsNotExist(err) {
-		return "", errors.WithFields(errors.Fields{"Path": target}).Wrap(err, "target path missing")
+func (sf *SyncFile) ArchiveRun(ac *ArchiveConfig) (io.Reader, error) {
+	target, err := os.Open(sf.ChartMeta.Source.Location)
+	if err != nil {
+		return nil, err
 	}
+	log.WithFields(log.Fields{
+		"MetaName": sf.ChartMeta.Name,
+	}).Debug("creating archive")
 	return target, nil
 }
 

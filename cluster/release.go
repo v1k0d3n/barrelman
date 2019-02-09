@@ -11,15 +11,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charter-se/structured/errors"
-
 	"github.com/aryann/difflib"
 	"github.com/mgutz/ansi"
 	"google.golang.org/grpc"
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
+	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/helm"
 	"k8s.io/helm/pkg/proto/hapi/chart"
 	"k8s.io/helm/pkg/proto/hapi/release"
+
+	"github.com/charter-se/structured/errors"
 )
 
 const (
@@ -33,6 +34,7 @@ const (
 )
 
 type ReleaseMeta struct {
+	Chart            *chart.Chart
 	Path             string //Location of Chartfile
 	MetaName         string //As presented in manifest
 	ChartName        string //Defined in manifest, but alignes in processing
@@ -69,7 +71,7 @@ type ReleaseDiff struct {
 
 type Releaser interface {
 	ListReleases() ([]*Release, error)
-	InstallRelease(*ReleaseMeta, []byte) (string, string, error)
+	InstallRelease(*ReleaseMeta) (string, string, error)
 	DiffRelease(m *ReleaseMeta) (bool, []byte, error)
 	UpgradeRelease(m *ReleaseMeta) (string, error)
 	DeleteReleases(dm []*DeleteMeta) error
@@ -109,9 +111,9 @@ func (s *Session) ListReleases() ([]*Release, error) {
 }
 
 //InstallRelease uploads a chart and starts a release
-func (s *Session) InstallRelease(m *ReleaseMeta, chart []byte) (string, string, error) {
-	res, err := s.Helm.InstallRelease(
-		m.Path,
+func (s *Session) InstallRelease(m *ReleaseMeta) (string, string, error) {
+	res, err := s.Helm.InstallReleaseFromChart(
+		m.Chart,
 		m.Namespace,
 		helm.ReleaseName(m.ReleaseName),
 		helm.ValueOverrides(m.ValueOverrides),
@@ -120,6 +122,7 @@ func (s *Session) InstallRelease(m *ReleaseMeta, chart []byte) (string, string, 
 		helm.InstallWait(m.InstallWait),
 		helm.InstallTimeout(int64(m.InstallTimeout.Seconds())),
 	)
+
 	if err != nil {
 		return "", "", errors.WithFields(errors.Fields{
 			"File":      m.Path,
@@ -138,9 +141,9 @@ func (s *Session) DiffRelease(m *ReleaseMeta) (bool, []byte, error) {
 		return false, nil, errors.Wrap(err, "Upgrade failed to get current release")
 	}
 	currentParsed := ParseRelease(currentR.Release)
-	res, err := s.Helm.UpdateRelease(
+	res, err := s.Helm.UpdateReleaseFromChart(
 		m.ReleaseName,
-		m.Path,
+		m.Chart,
 		helm.UpgradeDryRun(true),
 		helm.UpdateValueOverrides(m.ValueOverrides),
 	)
@@ -156,9 +159,9 @@ func (s *Session) DiffRelease(m *ReleaseMeta) (bool, []byte, error) {
 
 //UpgradeRelease applies changes to an already running release, potentially triggering a restart
 func (s *Session) UpgradeRelease(m *ReleaseMeta) (string, error) {
-	res, err := s.Helm.UpdateRelease(
+	res, err := s.Helm.UpdateReleaseFromChart(
 		m.ReleaseName,
-		m.Path,
+		m.Chart,
 		helm.UpgradeForce(true),
 		helm.UpgradeDryRun(m.DryRun),
 		helm.UpdateValueOverrides(m.ValueOverrides),
@@ -229,6 +232,14 @@ type metadata struct {
 		Namespace string
 		Name      string
 	}
+}
+
+func ChartFromArchive(aChart io.Reader) (*chart.Chart, error) {
+	c, err := chartutil.LoadArchive(aChart)
+	if err != nil {
+		return nil, errors.Wrap(err, "chart from archive failed")
+	}
+	return c, nil
 }
 
 func (m metadata) String() string {
