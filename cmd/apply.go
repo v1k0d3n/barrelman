@@ -330,18 +330,17 @@ func (rt releaseTargets) Apply(session cluster.Sessioner, opt *cmdOptions) error
 						innerErr = err
 						//The state has changed underneath us, but the release needs installed anyhow
 						//So delete and try again
-						dm := &cluster.DeleteMeta{
-							ReleaseName:   v.ReleaseMeta.ReleaseName,
-							Namespace:     v.ReleaseMeta.Namespace,
-							DeleteTimeout: v.ReleaseMeta.InstallTimeout,
+						msg, err := session.UpgradeRelease(v.ReleaseMeta)
+						if err != nil {
+							return errors.WithFields(errors.Fields{
+								"Name":      v.ReleaseMeta.ReleaseName,
+								"Namespace": v.ReleaseMeta.Namespace,
+							}).Wrap(err, "error while upgrading release")
 						}
 						log.WithFields(log.Fields{
 							"Name":      v.ReleaseMeta.ReleaseName,
 							"Namespace": v.ReleaseMeta.Namespace,
-						}).Info("Deleting (state change)")
-						if err := session.DeleteRelease(dm); err != nil {
-							return errors.Wrap(err, "error deleting release before install (forced)")
-						}
+						}).Info("Upgraded (state change) " + msg)
 						/////
 						select {
 						default:
