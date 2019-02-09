@@ -2,6 +2,7 @@ package manifest
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -19,6 +20,7 @@ type ArchiveSpec struct {
 	ChartName   string
 	ReleaseName string
 	Path        string
+	Reader      io.Reader
 	DataDir     string
 	Namespace   string
 	Overrides   []byte
@@ -30,7 +32,6 @@ type ArchiveFiles struct {
 }
 
 func Archive(
-	dataDir string,
 	chart *Chart,
 	path string,
 	dependCharts []*chartsync.ChartSpec,
@@ -51,14 +52,13 @@ func Archive(
 		return nil, errors.Wrap(err, "Failed to get absolute path")
 	}
 
-	as.Path, err = archiver.ArchiveRun(&chartsync.ArchiveConfig{
+	as.Reader, err = archiver.ArchiveRun(&chartsync.ArchiveConfig{
 		ChartMeta: &chartsync.ChartMeta{
 			Name:    chart.Metadata.Name,
 			Source:  chart.Data.SyncSource,
 			Depends: chart.Data.Dependencies,
 		},
 		ArchiveFunc:  createArchive,
-		DataDir:      dataDir,
 		Path:         path,
 		DependCharts: dependCharts,
 	})
@@ -67,22 +67,22 @@ func Archive(
 }
 
 //Package creates an archive based on dependancies contained in []*ChartSpec
-func Package(depends []*chartsync.ChartSpec, src string, chartMeta *chartsync.ChartMeta, writers ...io.Writer) error {
+func Package(depends []*chartsync.ChartSpec, src string, chartMeta *chartsync.ChartMeta) (io.Reader, error) {
 	// ensure the src actually exists before trying to tar it
 
 	if chartMeta.Type == "git" {
 		if err := chartsync.NewRef(src, chartMeta.Source); err != nil {
-			return errors.Wrap(err, "error checking out branch")
+			return nil, errors.Wrap(err, "error checking out branch")
 		}
 	}
 
 	if _, err := os.Stat(src); err != nil {
-		return errors.Wrap(err, "unable to tar files")
+		return nil, errors.Wrap(err, "unable to tar files")
 	}
 
-	mw := io.MultiWriter(writers...)
+	buf := bytes.NewBuffer([]byte{})
 
-	gzw := gzip.NewWriter(mw)
+	gzw := gzip.NewWriter(buf)
 	defer gzw.Close()
 
 	tw := tar.NewWriter(gzw)
@@ -135,7 +135,7 @@ func Package(depends []*chartsync.ChartSpec, src string, chartMeta *chartsync.Ch
 		return nil
 	}); err != nil {
 		//Error is already annotated
-		return err
+		return nil, err
 	}
 
 	//Add depends
@@ -171,10 +171,10 @@ func Package(depends []*chartsync.ChartSpec, src string, chartMeta *chartsync.Ch
 			f.Close()
 			return nil
 		}); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return buf, nil
 }
 
 func (a *ArchiveFiles) Purge() error {
@@ -188,20 +188,10 @@ func (a *ArchiveFiles) Purge() error {
 	return nil
 }
 
-func createArchive(datadir string, path string, dependCharts []*chartsync.ChartSpec, meta *chartsync.ChartMeta) (string, error) {
-	randomName := fmt.Sprintf("%v/%v", datadir, tempFileName("tmp_", ".tgz"))
-	f, err := os.Create(randomName)
-	if err != nil {
-		return randomName, err
-	}
-	defer func() {
-		f.Close()
-	}()
-
+func createArchive(datadir string, path string, dependCharts []*chartsync.ChartSpec, meta *chartsync.ChartMeta) (io.Reader, error) {
 	log.WithFields(log.Fields{
 		"Chart": meta.Name,
-		"File":  randomName,
 	}).Debug("creating archive")
-	err = Package(dependCharts, path, meta, f)
-	return randomName, err
+	reader, err := Package(dependCharts, path, meta)
+	return reader, err
 }
