@@ -123,16 +123,6 @@ func (s *Session) InstallRelease(m *ReleaseMeta) (string, string, error) {
 		helm.InstallTimeout(int64(m.InstallTimeout.Seconds())),
 	)
 
-	// res, err := s.Helm.InstallRelease(
-	// 	m.Path,
-	// 	m.Namespace,
-	// 	helm.ReleaseName(m.ReleaseName),
-	// 	helm.ValueOverrides(m.ValueOverrides),
-	// 	helm.InstallDryRun(m.DryRun),
-	// 	helm.InstallReuseName(m.InstallReuseName),
-	// 	helm.InstallWait(m.InstallWait),
-	// 	helm.InstallTimeout(int64(m.InstallTimeout.Seconds())),
-	// )
 	if err != nil {
 		return "", "", errors.WithFields(errors.Fields{
 			"File":      m.Path,
@@ -169,9 +159,9 @@ func (s *Session) DiffRelease(m *ReleaseMeta) (bool, []byte, error) {
 
 //UpgradeRelease applies changes to an already running release, potentially triggering a restart
 func (s *Session) UpgradeRelease(m *ReleaseMeta) (string, error) {
-	res, err := s.Helm.UpdateRelease(
+	res, err := s.Helm.UpdateReleaseFromChart(
 		m.ReleaseName,
-		m.Path,
+		m.Chart,
 		helm.UpgradeForce(true),
 		helm.UpgradeDryRun(m.DryRun),
 		helm.UpdateValueOverrides(m.ValueOverrides),
