@@ -3,27 +3,31 @@ package cmd
 import (
 	"testing"
 
-	"github.com/charter-se/barrelman/cluster"
-	"github.com/charter-se/barrelman/cluster/mocks"
-	"github.com/charter-se/structured/errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/mock"
 	"k8s.io/helm/pkg/proto/hapi/chart"
+
+	"github.com/charter-se/barrelman/cluster"
+	"github.com/charter-se/barrelman/cluster/mocks"
+	"github.com/charter-se/structured/errors"
 )
 
 func TestNewDeleteCmd(t *testing.T) {
+	logOpts := []string{}
 	Convey("newDeleteCmd", t, func() {
 		Convey("Can succeed", func() {
 			cmd := newDeleteCmd(&deleteCmd{
-				Options: &cmdOptions{},
-				Config:  &Config{},
+				Options:    &cmdOptions{},
+				Config:     &Config{},
+				LogOptions: &logOpts,
 			})
 			So(cmd.Name(), ShouldEqual, "delete")
 		})
 		Convey("Can fail Run", func() {
 			cmd := newDeleteCmd(&deleteCmd{
-				Options: &cmdOptions{},
-				Config:  &Config{},
+				Options:    &cmdOptions{},
+				Config:     &Config{},
+				LogOptions: &logOpts,
 			})
 
 			err := cmd.RunE(cmd, []string{})

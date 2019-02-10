@@ -3,25 +3,29 @@ package cmd
 import (
 	"testing"
 
+	. "github.com/smartystreets/goconvey/convey"
+
 	"github.com/charter-se/barrelman/cluster"
 	"github.com/charter-se/barrelman/cluster/mocks"
 	"github.com/charter-se/structured/errors"
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestNewListCmd(t *testing.T) {
+	logOpts := []string{}
 	Convey("newListCmd", t, func() {
 		Convey("Can succeed", func() {
 			cmd := newListCmd(&listCmd{
-				Options: &cmdOptions{},
-				Config:  &Config{},
+				Options:    &cmdOptions{},
+				Config:     &Config{},
+				LogOptions: &logOpts,
 			})
 			So(cmd.Name(), ShouldEqual, "list")
 		})
 		Convey("Can fail Run", func() {
 			cmd := newListCmd(&listCmd{
-				Options: &cmdOptions{},
-				Config:  &Config{},
+				Options:    &cmdOptions{},
+				Config:     &Config{},
+				LogOptions: &logOpts,
 			})
 
 			err := cmd.RunE(cmd, []string{})
