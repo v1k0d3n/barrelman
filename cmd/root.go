@@ -1,13 +1,17 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"runtime"
+	"strings"
 
-	"github.com/charter-se/structured/log"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	helm_env "k8s.io/helm/pkg/helm/environment"
+
+	"github.com/charter-se/structured/log"
 )
 
 type cmdOptions struct {
@@ -23,6 +27,12 @@ type cmdOptions struct {
 	InstallRetry   int
 	Force          *[]string
 }
+
+type valueFiles []string //from helm for template command
+
+var (
+	settings helm_env.EnvSettings
+)
 
 func newRootCmd(args []string) *cobra.Command {
 	cobraCmd := &cobra.Command{}
@@ -60,6 +70,11 @@ func newRootCmd(args []string) *cobra.Command {
 	}))
 
 	cobraCmd.AddCommand(newListCmd(&listCmd{
+		Options:    options,
+		Config:     config,
+		LogOptions: logOptions,
+	}))
+	cobraCmd.AddCommand(newTemplateCmd(&templateCmd{
 		Options:    options,
 		Config:     config,
 		LogOptions: logOptions,
@@ -115,4 +130,19 @@ func getConfig(kubeconfig string) (*rest.Config, error) {
 		return clientcmd.BuildConfigFromFlags("", kubeconfig)
 	}
 	return rest.InClusterConfig()
+}
+
+func (v *valueFiles) String() string {
+	return fmt.Sprint(*v)
+}
+
+func (v *valueFiles) Type() string {
+	return "valueFiles"
+}
+
+func (v *valueFiles) Set(value string) error {
+	for _, filePath := range strings.Split(value, ",") {
+		*v = append(*v, filePath)
+	}
+	return nil
 }
