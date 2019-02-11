@@ -153,7 +153,7 @@ func (cmd *templateCmd) Run() error {
 		AccountTable: cmd.Config.Account,
 	}, cmd.Options.NoSync)
 	if err != nil {
-		return errors.Wrap(err, "apply failed")
+		return errors.Wrap(err, "template failed")
 	}
 
 	for _, v := range archives.List {
