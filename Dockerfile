@@ -15,8 +15,6 @@ ENV GOARCH=$GOARCH
 WORKDIR /go/src/github.com/charter-se/barrelman
 COPY . .
 
-RUN go get -d -v ./...
-
 RUN CGO_ENABLED=0 go build -ldflags "-w -s -X github.com/charter-se/barrelman/version.version=${VERSION} -X github.com/charter-se/barrelman/version.commit=${COMMIT} -X github.com/charter-se/barrelman/version.branch=${BRANCH}" -a -installsuffix cgo -o /barrelman
 
 FROM scratch AS build
