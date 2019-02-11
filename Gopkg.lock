@@ -99,7 +99,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:d572d52782cefe8a523551ca74715c582821581ecb247675ca86a8b94de074b2"
+  digest = "1:92a6e60daf6e5426b7b9c187155c37e9dadba4bd492fb7b9c46fb34e43893876"
   name = "github.com/charter-se/structured"
   packages = [
     ".",
@@ -107,7 +107,7 @@
     "log",
   ]
   pruneopts = ""
-  revision = "bcf24ba019c12981ad16009aa5bdb3af7482333f"
+  revision = "b8be75e216c885bb2c7fc2c0d62181b6037fa2bf"
 
 [[projects]]
   digest = "1:0deddd908b6b4b768cfc272c16ee61e7088a60f7fe2f06c547bd3d8e1f8b8e77"
@@ -795,6 +795,7 @@
     "internal/subtle",
     "openpgp",
     "openpgp/armor",
+    "openpgp/clearsign",
     "openpgp/elgamal",
     "openpgp/errors",
     "openpgp/packet",
@@ -1276,28 +1277,39 @@
   name = "k8s.io/helm"
   packages = [
     "pkg/chartutil",
+    "pkg/downloader",
     "pkg/engine",
+    "pkg/getter",
     "pkg/helm",
+    "pkg/helm/environment",
+    "pkg/helm/helmpath",
     "pkg/hooks",
     "pkg/ignore",
     "pkg/kube",
     "pkg/manifest",
+    "pkg/plugin",
     "pkg/proto/hapi/chart",
     "pkg/proto/hapi/release",
     "pkg/proto/hapi/rudder",
     "pkg/proto/hapi/services",
     "pkg/proto/hapi/version",
+    "pkg/provenance",
     "pkg/releasetesting",
     "pkg/releaseutil",
     "pkg/renderutil",
+    "pkg/repo",
+    "pkg/resolver",
     "pkg/rudder",
     "pkg/storage",
     "pkg/storage/driver",
     "pkg/storage/errors",
+    "pkg/strvals",
     "pkg/sympath",
     "pkg/tiller",
     "pkg/tiller/environment",
     "pkg/timeconv",
+    "pkg/tlsutil",
+    "pkg/urlutil",
     "pkg/version",
   ]
   pruneopts = ""
@@ -1492,6 +1504,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/Masterminds/sprig",
     "github.com/aryann/difflib",
     "github.com/charter-se/structured",
     "github.com/charter-se/structured/errors",
@@ -1513,13 +1526,18 @@
     "k8s.io/client-go/rest",
     "k8s.io/client-go/tools/clientcmd",
     "k8s.io/helm/pkg/chartutil",
+    "k8s.io/helm/pkg/downloader",
+    "k8s.io/helm/pkg/getter",
     "k8s.io/helm/pkg/helm",
+    "k8s.io/helm/pkg/helm/environment",
     "k8s.io/helm/pkg/kube",
     "k8s.io/helm/pkg/manifest",
     "k8s.io/helm/pkg/proto/hapi/chart",
     "k8s.io/helm/pkg/proto/hapi/release",
     "k8s.io/helm/pkg/proto/hapi/services",
     "k8s.io/helm/pkg/renderutil",
+    "k8s.io/helm/pkg/repo",
+    "k8s.io/helm/pkg/strvals",
     "k8s.io/helm/pkg/tiller",
     "k8s.io/helm/pkg/timeconv",
     "k8s.io/helm/pkg/version",
