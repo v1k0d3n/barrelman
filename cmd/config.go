@@ -7,9 +7,10 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/spf13/viper"
+
 	"github.com/charter-se/barrelman/manifest/chartsync"
 	"github.com/charter-se/structured/errors"
-	"github.com/spf13/viper"
 )
 
 const (
@@ -26,6 +27,11 @@ type BarrelmanConfig struct {
 	Env      map[string]string
 }
 
+func GetEmptyConfig() *Config {
+	return &Config{
+		Account: make(map[string]*chartsync.Account),
+	}
+}
 func GetConfigFromFile(s string) (*Config, error) {
 	config := &Config{}
 	config.Account = make(map[string]*chartsync.Account)

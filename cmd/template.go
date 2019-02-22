@@ -76,28 +76,29 @@ To render just one template in a chart, use '-x':
 	$ helm template mychart -x templates/deployment.yaml
 `
 
-type templateCmd struct {
-	namespace        string
-	valueFiles       valueFiles
-	chartPath        string
-	out              io.Writer
-	values           []string
-	stringValues     []string
-	fileValues       []string
-	nameTemplate     string
-	showNotes        bool
-	releaseName      string
-	releaseIsUpgrade bool
-	renderFiles      []string
-	kubeVersion      string
-	outputDir        string
+//TemplateCmd is the configuration and state for the template command
+type TemplateCmd struct {
+	Namespace        string
+	ValueFiles       valueFiles
+	ChartPath        string
+	Out              io.Writer
+	Values           []string
+	StringValues     []string
+	FileValues       []string
+	NameTemplate     string
+	ShowNotes        bool
+	ReleaseName      string
+	ReleaseIsUpgrade bool
+	RenderFiles      []string
+	KubeVersion      string
+	OutputDir        string
 	Options          *cmdOptions
 	Config           *Config
 	Log              structured.Logger
 	LogOptions       *[]string
 }
 
-func newTemplateCmd(cmd *templateCmd) *cobra.Command {
+func newTemplateCmd(cmd *TemplateCmd) *cobra.Command {
 
 	cobraCmd := &cobra.Command{
 		Use:   "template [flags] CHART",
@@ -118,23 +119,34 @@ func newTemplateCmd(cmd *templateCmd) *cobra.Command {
 	}
 
 	f := cobraCmd.Flags()
-	f.BoolVar(&cmd.showNotes, "notes", false, "show the computed NOTES.txt file as well")
-	f.StringVarP(&cmd.releaseName, "name", "n", "release-name", "release name")
-	f.BoolVar(&cmd.releaseIsUpgrade, "is-upgrade", false, "set .Release.IsUpgrade instead of .Release.IsInstall")
-	f.StringArrayVarP(&cmd.renderFiles, "execute", "x", []string{}, "only execute the given templates")
-	f.VarP(&cmd.valueFiles, "values", "f", "specify values in a YAML file (can specify multiple)")
-	f.StringVar(&cmd.namespace, "namespace", "", "namespace to install the release into")
-	f.StringArrayVar(&cmd.values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
-	f.StringArrayVar(&cmd.stringValues, "set-string", []string{}, "set STRING values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
-	f.StringArrayVar(&cmd.fileValues, "set-file", []string{}, "set values from respective files specified via the command line (can specify multiple or separate values with commas: key1=path1,key2=path2)")
-	f.StringVar(&cmd.nameTemplate, "name-template", "", "specify template used to name the release")
-	f.StringVar(&cmd.kubeVersion, "kube-version", defaultKubeVersion, "kubernetes version used as Capabilities.KubeVersion.Major/Minor")
-	f.StringVar(&cmd.outputDir, "output-dir", "", "writes the executed templates to files in output-dir instead of stdout")
+	f.BoolVar(&cmd.ShowNotes, "notes", false, "show the computed NOTES.txt file as well")
+	f.StringVarP(&cmd.ReleaseName, "name", "n", "release-name", "release name")
+	f.BoolVar(&cmd.ReleaseIsUpgrade, "is-upgrade", false, "set .Release.IsUpgrade instead of .Release.IsInstall")
+	f.StringArrayVarP(&cmd.RenderFiles, "execute", "x", []string{}, "only execute the given templates")
+	f.VarP(&cmd.ValueFiles, "values", "f", "specify values in a YAML file (can specify multiple)")
+	f.StringVar(&cmd.Namespace, "namespace", "", "namespace to install the release into")
+	f.StringArrayVar(&cmd.Values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
+	f.StringArrayVar(&cmd.StringValues, "set-string", []string{}, "set STRING values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
+	f.StringArrayVar(&cmd.FileValues, "set-file", []string{}, "set values from respective files specified via the command line (can specify multiple or separate values with commas: key1=path1,key2=path2)")
+	f.StringVar(&cmd.NameTemplate, "name-template", "", "specify template used to name the release")
+	f.StringVar(&cmd.KubeVersion, "kube-version", defaultKubeVersion, "kubernetes version used as Capabilities.KubeVersion.Major/Minor")
+	f.StringVar(&cmd.OutputDir, "output-dir", "", "writes the executed templates to files in output-dir instead of stdout")
 
 	return cobraCmd
 }
 
-func (cmd *templateCmd) Run() error {
+//InitTemplateCmd facilitates running template command as a pkg/cmd
+func InitTemplateCmd(dataDir string, manifestFile string) *TemplateCmd {
+
+	logOptions := &[]string{}
+	return &TemplateCmd{
+		Options:    &cmdOptions{},
+		Config:     &Config{},
+		LogOptions: logOptions,
+	}
+}
+
+func (cmd *TemplateCmd) Run() error {
 	var err error
 	ver := version.Get()
 	log.WithFields(log.Fields{
@@ -143,10 +155,15 @@ func (cmd *templateCmd) Run() error {
 		"Branch":  ver.Branch,
 	}).Info("Barrelman")
 
-	cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
-	if err != nil {
-		return errors.Wrap(err, "got error while loading config")
+	if cmd.Options.ConfigFile != "" {
+		cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
+		if err != nil {
+			return errors.Wrap(err, "got error while loading config")
+		}
+	} else {
+		cmd.Config = GetEmptyConfig()
 	}
+
 	archives, err := processManifest(&bfest.Config{
 		DataDir:      cmd.Options.DataDir,
 		ManifestFile: cmd.Options.ManifestFile,
@@ -173,32 +190,32 @@ func (cmd *templateCmd) Run() error {
 	return nil
 }
 
-func (cmd *templateCmd) Export(inChart io.Reader) error {
+func (cmd *TemplateCmd) Export(inChart io.Reader) error {
 
 	// verify that output-dir exists if provided
-	if cmd.outputDir != "" {
-		_, err := os.Stat(cmd.outputDir)
+	if cmd.OutputDir != "" {
+		_, err := os.Stat(cmd.OutputDir)
 		if os.IsNotExist(err) {
-			return fmt.Errorf("output-dir '%s' does not exist", cmd.outputDir)
+			return fmt.Errorf("output-dir '%s' does not exist", cmd.OutputDir)
 		}
 	}
 
-	if cmd.namespace == "" {
-		cmd.namespace = defaultNamespace()
+	if cmd.Namespace == "" {
+		cmd.Namespace = defaultNamespace()
 	}
 	// get combined values and create config
-	rawVals, err := vals(cmd.valueFiles, cmd.values, cmd.stringValues, cmd.fileValues, "", "", "")
+	rawVals, err := vals(cmd.ValueFiles, cmd.Values, cmd.StringValues, cmd.FileValues, "", "", "")
 	if err != nil {
 		return err
 	}
 	config := &chart.Config{Raw: string(rawVals), Values: map[string]*chart.Value{}}
-	if msgs := validation.IsDNS1123Subdomain(cmd.releaseName); cmd.releaseName != "" && len(msgs) > 0 {
-		return fmt.Errorf("release name %s is invalid: %s", cmd.releaseName, strings.Join(msgs, ";"))
+	if msgs := validation.IsDNS1123Subdomain(cmd.ReleaseName); cmd.ReleaseName != "" && len(msgs) > 0 {
+		return fmt.Errorf("release name %s is invalid: %s", cmd.ReleaseName, strings.Join(msgs, ";"))
 	}
 
 	// If template is specified, try to run the template.
-	if cmd.nameTemplate != "" {
-		cmd.releaseName, err = generateName(cmd.nameTemplate)
+	if cmd.NameTemplate != "" {
+		cmd.ReleaseName, err = generateName(cmd.NameTemplate)
 		if err != nil {
 			return err
 		}
@@ -212,13 +229,13 @@ func (cmd *templateCmd) Export(inChart io.Reader) error {
 
 	renderOpts := renderutil.Options{
 		ReleaseOptions: chartutil.ReleaseOptions{
-			Name:      cmd.releaseName,
-			IsInstall: !cmd.releaseIsUpgrade,
-			IsUpgrade: cmd.releaseIsUpgrade,
+			Name:      cmd.ReleaseName,
+			IsInstall: !cmd.ReleaseIsUpgrade,
+			IsUpgrade: cmd.ReleaseIsUpgrade,
 			Time:      timeconv.Now(),
-			Namespace: cmd.namespace,
+			Namespace: cmd.Namespace,
 		},
-		KubeVersion: cmd.kubeVersion,
+		KubeVersion: cmd.KubeVersion,
 	}
 
 	renderedTemplates, err := renderutil.Render(c, config, renderOpts)
@@ -227,10 +244,10 @@ func (cmd *templateCmd) Export(inChart io.Reader) error {
 	}
 
 	log.WithFields(log.Fields{
-		"Name":      cmd.releaseName,
+		"Name":      cmd.ReleaseName,
 		"Chart":     c,
 		"Config":    config,
-		"Namespace": cmd.namespace,
+		"Namespace": cmd.Namespace,
 		"Info":      &release.Info{LastDeployed: timeconv.Timestamp(time.Now())},
 	}).Debug("chart")
 
@@ -239,11 +256,11 @@ func (cmd *templateCmd) Export(inChart io.Reader) error {
 
 	// if we have a list of files to render, then check that each of the
 	// provided files exists in the chart.
-	if len(cmd.renderFiles) > 0 {
-		for _, f := range cmd.renderFiles {
+	if len(cmd.RenderFiles) > 0 {
+		for _, f := range cmd.RenderFiles {
 			missing := true
 			if !filepath.IsAbs(f) {
-				newF, err := filepath.Abs(filepath.Join(cmd.chartPath, f))
+				newF, err := filepath.Abs(filepath.Join(cmd.ChartPath, f))
 				if err != nil {
 					return fmt.Errorf("could not turn template path %s into absolute path: %s", f, err)
 				}
@@ -256,7 +273,7 @@ func (cmd *templateCmd) Export(inChart io.Reader) error {
 				manifestPathSplit := strings.Split(manifest.Name, "/")
 				// remove the chart name from the path
 				manifestPathSplit = manifestPathSplit[1:]
-				toJoin := append([]string{cmd.chartPath}, manifestPathSplit...)
+				toJoin := append([]string{cmd.ChartPath}, manifestPathSplit...)
 				manifestPath := filepath.Join(toJoin...)
 
 				// if the filepath provided matches a manifest path in the
@@ -278,19 +295,19 @@ func (cmd *templateCmd) Export(inChart io.Reader) error {
 	for _, m := range tiller.SortByKind(manifestsToRender) {
 		data := m.Content
 		b := filepath.Base(m.Name)
-		if !cmd.showNotes && b == "NOTES.txt" {
+		if !cmd.ShowNotes && b == "NOTES.txt" {
 			continue
 		}
 		if strings.HasPrefix(b, "_") {
 			continue
 		}
 
-		if cmd.outputDir != "" {
+		if cmd.OutputDir != "" {
 			// blank template after execution
 			if whitespaceRegex.MatchString(data) {
 				continue
 			}
-			err = writeToFile(cmd.outputDir, m.Name, data)
+			err = writeToFile(cmd.OutputDir, m.Name, data)
 			if err != nil {
 				return err
 			}
@@ -423,7 +440,7 @@ func vals(valueFiles valueFiles, values []string, stringValues []string, fileVal
 }
 
 // printRelease prints info about a release if the Debug is true.
-func (cmd *templateCmd) printRelease(rel *release.Release) {
+func (cmd *TemplateCmd) printRelease(rel *release.Release) {
 	if rel == nil {
 		return
 	}

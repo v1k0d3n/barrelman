@@ -32,8 +32,3 @@ Local directory can be used as a chart source repository with the following feat
 
 ## File source handler
 A local Helm Chart archive can be used directly from a Barrelman manifest.
-
-
-
-
-

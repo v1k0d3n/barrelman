@@ -74,7 +74,7 @@ func newRootCmd(args []string) *cobra.Command {
 		Config:     config,
 		LogOptions: logOptions,
 	}))
-	cobraCmd.AddCommand(newTemplateCmd(&templateCmd{
+	cobraCmd.AddCommand(newTemplateCmd(&TemplateCmd{
 		Options:    options,
 		Config:     config,
 		LogOptions: logOptions,
