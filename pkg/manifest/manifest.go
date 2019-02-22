@@ -12,7 +12,7 @@ import (
 
 	"github.com/ghodss/yaml"
 
-	"github.com/charter-se/barrelman/manifest/chartsync"
+	"github.com/charter-se/barrelman/pkg/manifest/chartsync"
 	"github.com/charter-se/structured"
 	"github.com/charter-se/structured/errors"
 	"github.com/charter-se/structured/log"

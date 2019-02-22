@@ -1,46 +1,21 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
-	"runtime"
-	"strings"
 
 	"github.com/spf13/cobra"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-	helm_env "k8s.io/helm/pkg/helm/environment"
 
+	"github.com/charter-se/barrelman/pkg/barrelman"
 	"github.com/charter-se/structured/log"
-)
-
-type cmdOptions struct {
-	ManifestFile   string
-	ConfigFile     string
-	KubeConfigFile string
-	KubeContext    string
-	DataDir        string
-	DryRun         bool
-	Diff           bool
-	NoSync         bool
-	Debug          bool
-	InstallRetry   int
-	Force          *[]string
-}
-
-type valueFiles []string //from helm for template command
-
-var (
-	settings helm_env.EnvSettings
 )
 
 func newRootCmd(args []string) *cobra.Command {
 	cobraCmd := &cobra.Command{}
-	options := &cmdOptions{
+	options := &barrelman.CmdOptions{
 		DataDir:      Default().DataDir,
 		ManifestFile: Default().ManifestFile,
 	}
-	config := &Config{}
+	config := &barrelman.Config{}
 
 	flags := cobraCmd.PersistentFlags()
 	flags.StringVarP(
@@ -57,30 +32,30 @@ func newRootCmd(args []string) *cobra.Command {
 		nil,
 		"log options (e.g. --log=debug,JSON")
 
-	cobraCmd.AddCommand(newDeleteCmd(&deleteCmd{
+	cobraCmd.AddCommand(newDeleteCmd(&barrelman.DeleteCmd{
 		Options:    options,
 		Config:     config,
 		LogOptions: logOptions,
 	}))
 
-	cobraCmd.AddCommand(newApplyCmd(&applyCmd{
+	cobraCmd.AddCommand(newApplyCmd(&barrelman.ApplyCmd{
 		Options:    options,
 		Config:     config,
 		LogOptions: logOptions,
 	}))
 
-	cobraCmd.AddCommand(newListCmd(&listCmd{
+	cobraCmd.AddCommand(newListCmd(&barrelman.ListCmd{
 		Options:    options,
 		Config:     config,
 		LogOptions: logOptions,
 	}))
-	cobraCmd.AddCommand(newTemplateCmd(&TemplateCmd{
+	cobraCmd.AddCommand(newTemplateCmd(&barrelman.TemplateCmd{
 		Options:    options,
 		Config:     config,
 		LogOptions: logOptions,
 	}))
 
-	cobraCmd.AddCommand(newVersionCmd(&versionCmd{}))
+	cobraCmd.AddCommand(newVersionCmd(&barrelman.VersionCmd{}))
 
 	flags.Parse(args)
 	//We are triggering Cobra to set that value twice somewhere
@@ -108,41 +83,4 @@ func logSettings(args *[]string) []func(*log.Logger) error {
 		}
 	}
 	return ret
-}
-
-func ensureWorkDir(datadir string) error {
-	return os.MkdirAll(datadir, os.ModePerm)
-}
-
-func userHomeDir() string {
-	if runtime.GOOS == "windows" {
-		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
-		if home == "" {
-			home = os.Getenv("USERPROFILE")
-		}
-		return home
-	}
-	return os.Getenv("HOME")
-}
-
-func getConfig(kubeconfig string) (*rest.Config, error) {
-	if kubeconfig != "" {
-		return clientcmd.BuildConfigFromFlags("", kubeconfig)
-	}
-	return rest.InClusterConfig()
-}
-
-func (v *valueFiles) String() string {
-	return fmt.Sprint(*v)
-}
-
-func (v *valueFiles) Type() string {
-	return "valueFiles"
-}
-
-func (v *valueFiles) Set(value string) error {
-	for _, filePath := range strings.Split(value, ",") {
-		*v = append(*v, filePath)
-	}
-	return nil
 }
