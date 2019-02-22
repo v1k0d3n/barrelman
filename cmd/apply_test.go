@@ -10,25 +10,26 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/charter-se/barrelman/cluster"
-	"github.com/charter-se/barrelman/cluster/mocks"
+	"github.com/charter-se/barrelman/pkg/barrelman"
+	"github.com/charter-se/barrelman/pkg/cluster"
+	"github.com/charter-se/barrelman/pkg/cluster/mocks"
 )
 
 func TestNewApplyCmd(t *testing.T) {
 	Convey("newApplyCmd", t, func() {
 		logOpts := []string{}
 		Convey("Can succeed", func() {
-			cmd := newApplyCmd(&applyCmd{
-				Options:    &cmdOptions{},
-				Config:     &Config{},
+			cmd := newApplyCmd(&barrelman.ApplyCmd{
+				Options:    &barrelman.CmdOptions{},
+				Config:     &barrelman.Config{},
 				LogOptions: &logOpts,
 			})
 			So(cmd.Name(), ShouldEqual, "apply")
 		})
 		Convey("Can fail Run", func() {
-			cmd := newApplyCmd(&applyCmd{
-				Options:    &cmdOptions{},
-				Config:     &Config{},
+			cmd := newApplyCmd(&barrelman.ApplyCmd{
+				Options:    &barrelman.CmdOptions{},
+				Config:     &barrelman.Config{},
 				LogOptions: &logOpts,
 			})
 
@@ -39,35 +40,11 @@ func TestNewApplyCmd(t *testing.T) {
 	})
 }
 
-func TestDiff(t *testing.T) {
-	Convey("Should handle DiffRelease failure", t, func() {
-
-		session := &mocks.Sessioner{}
-		rt := releaseTargets{
-			&releaseTarget{
-				ReleaseMeta: &cluster.ReleaseMeta{
-					MetaName:  "storage-minio",
-					Namespace: "scratch",
-				},
-				State: Upgradable,
-			},
-		}
-
-		session.On("DiffRelease", mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
-			return true
-		}),
-		).Return(true, []byte{}, errors.New("simulated fail in DiffRelease"))
-		_, err := rt.Diff(session)
-		So(err, ShouldNotBeNil)
-		So(err.Error(), ShouldContainSubstring, "simulated")
-		session.AssertExpectations(t)
-	})
-}
 func TestApplyRun(t *testing.T) {
 	Convey("Run", t, func() {
 		Convey("Can fail to find config file", func() {
-			c := &applyCmd{
-				Options: &cmdOptions{
+			c := &barrelman.ApplyCmd{
+				Options: &barrelman.CmdOptions{
 					ConfigFile: "",
 				},
 			}
@@ -78,8 +55,8 @@ func TestApplyRun(t *testing.T) {
 		})
 
 		Convey("Can handle Init failure", func() {
-			c := &applyCmd{
-				Options: &cmdOptions{
+			c := &barrelman.ApplyCmd{
+				Options: &barrelman.CmdOptions{
 					ConfigFile:     getTestDataDir() + "/config",
 					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
 					DataDir:        getTestDataDir() + "/",
@@ -99,8 +76,8 @@ func TestApplyRun(t *testing.T) {
 		})
 
 		SkipConvey("Can handle Releases failure", func() {
-			c := &applyCmd{
-				Options: &cmdOptions{
+			c := &barrelman.ApplyCmd{
+				Options: &barrelman.CmdOptions{
 					ConfigFile:     getTestDataDir() + "/config",
 					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
 					DataDir:        getTestDataDir() + "/",
@@ -123,8 +100,8 @@ func TestApplyRun(t *testing.T) {
 		})
 
 		SkipConvey("Can succeed with one install failure (retry)", func() {
-			c := &applyCmd{
-				Options: &cmdOptions{
+			c := &barrelman.ApplyCmd{
+				Options: &barrelman.CmdOptions{
 					ConfigFile:     getTestDataDir() + "/config",
 					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
 					DataDir:        getTestDataDir() + "/",
@@ -173,8 +150,8 @@ func TestApplyRun(t *testing.T) {
 		})
 
 		SkipConvey("Should fail after retry count exceeded", func() {
-			c := &applyCmd{
-				Options: &cmdOptions{
+			c := &barrelman.ApplyCmd{
+				Options: &barrelman.CmdOptions{
 					ConfigFile:     getTestDataDir() + "/config",
 					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
 					DataDir:        getTestDataDir() + "/",
@@ -214,8 +191,8 @@ func TestApplyRun(t *testing.T) {
 		})
 
 		SkipConvey("Should succeed in replacing release (Force)", func() {
-			c := &applyCmd{
-				Options: &cmdOptions{
+			c := &barrelman.ApplyCmd{
+				Options: &barrelman.CmdOptions{
 					ConfigFile:     getTestDataDir() + "/config",
 					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
 					DataDir:        getTestDataDir() + "/",
@@ -251,8 +228,8 @@ func TestApplyRun(t *testing.T) {
 		})
 
 		SkipConvey("Should fail in replacing release (Force)", func() {
-			c := &applyCmd{
-				Options: &cmdOptions{
+			c := &barrelman.ApplyCmd{
+				Options: &barrelman.CmdOptions{
 					ConfigFile:     getTestDataDir() + "/config",
 					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
 					DataDir:        getTestDataDir() + "/",
@@ -284,8 +261,8 @@ func TestApplyRun(t *testing.T) {
 		})
 
 		SkipConvey("Should succeed in upgrading release", func() {
-			c := &applyCmd{
-				Options: &cmdOptions{
+			c := &barrelman.ApplyCmd{
+				Options: &barrelman.CmdOptions{
 					ConfigFile:     getTestDataDir() + "/config",
 					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
 					DataDir:        getTestDataDir() + "/",
@@ -323,8 +300,8 @@ func TestApplyRun(t *testing.T) {
 			session.AssertExpectations(t)
 		})
 		SkipConvey("Should fail in upgrading release", func() {
-			c := &applyCmd{
-				Options: &cmdOptions{
+			c := &barrelman.ApplyCmd{
+				Options: &barrelman.CmdOptions{
 					ConfigFile:     getTestDataDir() + "/config",
 					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
 					DataDir:        getTestDataDir() + "/",
@@ -369,8 +346,8 @@ func TestApplyRun(t *testing.T) {
 		})
 
 		SkipConvey("Can skip on no change", func() {
-			c := &applyCmd{
-				Options: &cmdOptions{
+			c := &barrelman.ApplyCmd{
+				Options: &barrelman.CmdOptions{
 					ConfigFile:     getTestDataDir() + "/config",
 					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
 					DataDir:        getTestDataDir() + "/",

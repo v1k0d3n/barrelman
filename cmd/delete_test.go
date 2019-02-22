@@ -7,8 +7,9 @@ import (
 	"github.com/stretchr/testify/mock"
 	"k8s.io/helm/pkg/proto/hapi/chart"
 
-	"github.com/charter-se/barrelman/cluster"
-	"github.com/charter-se/barrelman/cluster/mocks"
+	"github.com/charter-se/barrelman/pkg/barrelman"
+	"github.com/charter-se/barrelman/pkg/cluster"
+	"github.com/charter-se/barrelman/pkg/cluster/mocks"
 	"github.com/charter-se/structured/errors"
 )
 
@@ -16,17 +17,17 @@ func TestNewDeleteCmd(t *testing.T) {
 	logOpts := []string{}
 	Convey("newDeleteCmd", t, func() {
 		Convey("Can succeed", func() {
-			cmd := newDeleteCmd(&deleteCmd{
-				Options:    &cmdOptions{},
-				Config:     &Config{},
+			cmd := newDeleteCmd(&barrelman.DeleteCmd{
+				Options:    &barrelman.CmdOptions{},
+				Config:     &barrelman.Config{},
 				LogOptions: &logOpts,
 			})
 			So(cmd.Name(), ShouldEqual, "delete")
 		})
 		Convey("Can fail Run", func() {
-			cmd := newDeleteCmd(&deleteCmd{
-				Options:    &cmdOptions{},
-				Config:     &Config{},
+			cmd := newDeleteCmd(&barrelman.DeleteCmd{
+				Options:    &barrelman.CmdOptions{},
+				Config:     &barrelman.Config{},
 				LogOptions: &logOpts,
 			})
 
@@ -40,8 +41,8 @@ func TestNewDeleteCmd(t *testing.T) {
 func TestDeleteRun(t *testing.T) {
 	Convey("Delete", t, func() {
 		Convey("Can fail to find config file", func() {
-			c := &deleteCmd{
-				Options: &cmdOptions{
+			c := &barrelman.DeleteCmd{
+				Options: &barrelman.CmdOptions{
 					ConfigFile: "",
 				},
 			}
@@ -52,8 +53,8 @@ func TestDeleteRun(t *testing.T) {
 		})
 
 		Convey("Can fail to Init", func() {
-			c := &deleteCmd{
-				Options: &cmdOptions{
+			c := &barrelman.DeleteCmd{
+				Options: &barrelman.CmdOptions{
 					ConfigFile:     getTestDataDir() + "/config",
 					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
 					DataDir:        getTestDataDir() + "/",
@@ -73,8 +74,8 @@ func TestDeleteRun(t *testing.T) {
 		})
 
 		Convey("Can fail to resolve charts", func() {
-			c := &deleteCmd{
-				Options: &cmdOptions{
+			c := &barrelman.DeleteCmd{
+				Options: &barrelman.CmdOptions{
 					ConfigFile:     getTestDataDir() + "/config",
 					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
 					DataDir:        getTestDataDir() + "/",
@@ -107,8 +108,8 @@ func TestDeleteRun(t *testing.T) {
 		})
 
 		Convey("Can fail to delete", func() {
-			c := &deleteCmd{
-				Options: &cmdOptions{
+			c := &barrelman.DeleteCmd{
+				Options: &barrelman.CmdOptions{
 					ConfigFile:     getTestDataDir() + "/config",
 					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
 					DataDir:        getTestDataDir() + "/",
@@ -142,8 +143,8 @@ func TestDeleteRun(t *testing.T) {
 		})
 
 		Convey("Can succeed", func() {
-			c := &deleteCmd{
-				Options: &cmdOptions{
+			c := &barrelman.DeleteCmd{
+				Options: &barrelman.CmdOptions{
 					ConfigFile:     getTestDataDir() + "/config",
 					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
 					DataDir:        getTestDataDir() + "/",

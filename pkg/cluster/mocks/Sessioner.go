@@ -2,7 +2,7 @@
 
 package mocks
 
-import cluster "github.com/charter-se/barrelman/cluster"
+import cluster "github.com/charter-se/barrelman/pkg/cluster"
 import io "io"
 import mock "github.com/stretchr/testify/mock"
 

@@ -7,9 +7,10 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/charter-se/barrelman/manifest/chartsync"
-	mock_chartsync "github.com/charter-se/barrelman/manifest/chartsync/mocks"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"github.com/charter-se/barrelman/pkg/manifest/chartsync"
+	mock_chartsync "github.com/charter-se/barrelman/pkg/manifest/chartsync/mocks"
 )
 
 func TestNewManifest(t *testing.T) {
@@ -235,5 +236,5 @@ func TestManifest(t *testing.T) {
 //our tests are run in temporary directories, so finding the testdata can be a little troublesome
 func getTestDataDir() string {
 	_, filename, _, _ := runtime.Caller(0)
-	return fmt.Sprintf("%v/../testdata", path.Dir(filename))
+	return fmt.Sprintf("%v/../../testdata", path.Dir(filename))
 }

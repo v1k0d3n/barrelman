@@ -5,8 +5,9 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"github.com/charter-se/barrelman/cluster"
-	"github.com/charter-se/barrelman/cluster/mocks"
+	"github.com/charter-se/barrelman/pkg/barrelman"
+	"github.com/charter-se/barrelman/pkg/cluster"
+	"github.com/charter-se/barrelman/pkg/cluster/mocks"
 	"github.com/charter-se/structured/errors"
 )
 
@@ -14,17 +15,17 @@ func TestNewListCmd(t *testing.T) {
 	logOpts := []string{}
 	Convey("newListCmd", t, func() {
 		Convey("Can succeed", func() {
-			cmd := newListCmd(&listCmd{
-				Options:    &cmdOptions{},
-				Config:     &Config{},
+			cmd := newListCmd(&barrelman.ListCmd{
+				Options:    &barrelman.CmdOptions{},
+				Config:     &barrelman.Config{},
 				LogOptions: &logOpts,
 			})
 			So(cmd.Name(), ShouldEqual, "list")
 		})
 		Convey("Can fail Run", func() {
-			cmd := newListCmd(&listCmd{
-				Options:    &cmdOptions{},
-				Config:     &Config{},
+			cmd := newListCmd(&barrelman.ListCmd{
+				Options:    &barrelman.CmdOptions{},
+				Config:     &barrelman.Config{},
 				LogOptions: &logOpts,
 			})
 
@@ -39,8 +40,8 @@ func TestNewListCmd(t *testing.T) {
 func TestListRun(t *testing.T) {
 	Convey("List", t, func() {
 		Convey("Can fail to find config file", func() {
-			c := &listCmd{
-				Options: &cmdOptions{
+			c := &barrelman.ListCmd{
+				Options: &barrelman.CmdOptions{
 					ConfigFile: "",
 				},
 			}
@@ -50,8 +51,8 @@ func TestListRun(t *testing.T) {
 			So(err.Error(), ShouldContainSubstring, "config file does not exist")
 		})
 		Convey("Can fail to Init", func() {
-			c := &listCmd{
-				Options: &cmdOptions{
+			c := &barrelman.ListCmd{
+				Options: &barrelman.CmdOptions{
 					ConfigFile:     getTestDataDir() + "/config",
 					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
 					DataDir:        getTestDataDir() + "/",
@@ -70,8 +71,8 @@ func TestListRun(t *testing.T) {
 			session.AssertExpectations(t)
 		})
 		Convey("Can fail to list releases", func() {
-			c := &listCmd{
-				Options: &cmdOptions{
+			c := &barrelman.ListCmd{
+				Options: &barrelman.CmdOptions{
 					ConfigFile:     getTestDataDir() + "/config",
 					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
 					DataDir:        getTestDataDir() + "/",
@@ -97,8 +98,8 @@ func TestListRun(t *testing.T) {
 			session.AssertExpectations(t)
 		})
 		Convey("Can succeed", func() {
-			c := &listCmd{
-				Options: &cmdOptions{
+			c := &barrelman.ListCmd{
+				Options: &barrelman.CmdOptions{
 					ConfigFile:     getTestDataDir() + "/config",
 					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
 					DataDir:        getTestDataDir() + "/",
