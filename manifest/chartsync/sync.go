@@ -57,10 +57,15 @@ type ChartMeta struct {
 
 type Controller interface {
 	Syncer
+	Reseter
 }
 
 type Syncer interface {
 	Sync(*ChartSync, AccountTable) error
+}
+
+type Reseter interface {
+	Reset()
 }
 
 type Archiver interface {
