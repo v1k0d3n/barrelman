@@ -33,6 +33,10 @@ func init() {
 	})
 }
 
+func (r *dirControl) Reset() {
+	return
+}
+
 func (r *dirControl) Sync(cs *ChartSync, acc AccountTable) error {
 	return nil
 }

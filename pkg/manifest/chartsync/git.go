@@ -53,6 +53,15 @@ func init() {
 	})
 }
 
+func (r *gitRepoList) Reset() {
+	r.Lock()
+	defer func() {
+		r.Unlock()
+	}()
+	r.list = make(repoList)
+	return
+}
+
 func (r *gitRepoList) Sync(cs *ChartSync, acc AccountTable) error {
 	r.Lock()
 	defer func() {
