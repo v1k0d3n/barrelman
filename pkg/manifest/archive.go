@@ -24,7 +24,6 @@ type ArchiveSpec struct {
 	DataDir     string
 	Namespace   string
 	Overrides   []byte
-	Purge       bool
 }
 
 type ArchiveFiles struct {
@@ -43,7 +42,6 @@ func Archive(
 		ReleaseName: chart.Data.ReleaseName,
 		Namespace:   chart.Data.Namespace,
 		Overrides:   chart.Data.Overrides,
-		Purge:       false,
 	}
 	var err error
 
@@ -175,17 +173,6 @@ func Package(depends []*chartsync.ChartSpec, src string, chartMeta *chartsync.Ch
 		}
 	}
 	return buf, nil
-}
-
-func (a *ArchiveFiles) Purge() error {
-	for _, v := range a.List {
-		if v.Purge {
-			if err := os.Remove(v.Path); err != nil {
-				return errors.WithFields(errors.Fields{"file": v.Path}).Wrap(err, "failed while cleaning up archives")
-			}
-		}
-	}
-	return nil
 }
 
 func createArchive(datadir string, path string, dependCharts []*chartsync.ChartSpec, meta *chartsync.ChartMeta) (io.Reader, error) {

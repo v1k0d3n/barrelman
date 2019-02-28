@@ -63,7 +63,9 @@ func (r *gitRepoList) Sync(cs *ChartSync, acc AccountTable) error {
 		// Ensure that the repo is on master before attempting to sync
 
 		if err := r.Download(cs, acc, k); err != nil {
-			return err
+			return errors.WithFields(errors.Fields{
+				"URI": k,
+			}).Wrap(err, "Git download failed")
 		}
 	}
 	return nil

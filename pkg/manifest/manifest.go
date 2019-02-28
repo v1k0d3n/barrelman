@@ -321,7 +321,11 @@ func (m *Manifest) Sync() error {
 			Type:    c.Data.Source.Type,
 			Source:  c.Data.SyncSource,
 		}); err != nil {
-			return err
+			return errors.WithFields(errors.Fields{
+				"Name":   c.Metadata.Name,
+				"Type":   c.Data.Source.Type,
+				"Source": c.Data.SyncSource,
+			}).Wrap(err, "Sync() failed")
 		}
 	}
 

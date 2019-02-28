@@ -59,11 +59,6 @@ func newApplyCmd(cmd *barrelman.ApplyCmd) *cobra.Command {
 		"force",
 		*(Default().Force),
 		"force apply chart name(s)")
-	cobraCmd.Flags().IntVar(
-		&cmd.Options.InstallRetry,
-		"install-retry",
-		Default().InstallRetry,
-		"retry install (n) times (Kubernetes bug workaround)")
 
 	return cobraCmd
 }

@@ -84,7 +84,7 @@ func New(d string, acc AccountTable) *ChartSync {
 func (cs *ChartSync) Sync(acc AccountTable) error {
 	for _, control := range registry.AllControllers() {
 		if err := control.Sync(cs, acc); err != nil {
-			return err
+			return errors.Wrap(err, "failed to perform Sync()")
 		}
 	}
 	return nil
