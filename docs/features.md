@@ -1,6 +1,7 @@
 Flagship: Barrelman Features
 ====
-[//]: # (Checked = &#9745;    Unchecked = &#9744;)    
+
+[//]: # (Checked = &#9745;    Unchecked = &#9744;)
 | Feature | Description | Implemented |
 |:---------:|:------:|:-------:|
 Multiple Chart deployment | Any number of Helm charts may be defined in a Barrelment manifest to be deployed in an atomic manner, potentially across namespaces. | &#9745; |
@@ -16,8 +17,8 @@ Backup/Restore | Barrelman can snapshot and export to file a running state of a 
 HTTP/s Manifest loader | While it is common to operate Barrelman with a local manifest file to deploy and update an application stack, Barrelman can also retrieve a manifest from a secure web server and run the retrieved manifest as if it were local. | &#9744;
 ---
 ## Git Source Handler
-Git source endpoints are supported with the following features: 
-- GitHub private repo 
+Git source endpoints are supported with the following features:
+- GitHub private repo
 - Multiple repository
 - Checkout specific branch
 - Checkout specific tag
@@ -32,8 +33,3 @@ Local directory can be used as a chart source repository with the following feat
 
 ## File source handler
 A local Helm Chart archive can be used directly from a Barrelman manifest.
-
-
-
-
-
