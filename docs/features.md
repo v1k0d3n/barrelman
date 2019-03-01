@@ -1,7 +1,7 @@
 Flagship: Barrelman Features
 ====
-
 [//]: # (Checked = &#9745;    Unchecked = &#9744;)
+
 | Feature | Description | Implemented |
 |:---------:|:------:|:-------:|
 Multiple Chart deployment | Any number of Helm charts may be defined in a Barrelment manifest to be deployed in an atomic manner, potentially across namespaces. | &#9745; |
