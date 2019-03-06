@@ -1,13 +1,14 @@
-//go:generate mockery -output "mockHelm" -dir ../vendor/k8s.io/helm/pkg/helm -name=Interface
+//go:generate mockery -output "mockHelm" -dir ../../vendor/k8s.io/helm/pkg/helm -name=Interface
 
 package cluster
 
 import (
 	"testing"
 
-	mockHelm "github.com/charter-se/barrelman/cluster/mockHelm" // requires mockery run
 	. "github.com/smartystreets/goconvey/convey"
 	rls "k8s.io/helm/pkg/proto/hapi/services"
+
+	mockHelm "github.com/charter-se/barrelman/pkg/cluster/mockHelm" // requires mockery run
 )
 
 var TestHelm = &mockHelm.Interface{}

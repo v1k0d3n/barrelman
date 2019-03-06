@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/charter-se/barrelman/manifest/chartsync"
+	"github.com/charter-se/barrelman/pkg/manifest/chartsync"
 	"github.com/charter-se/structured/errors"
 	"github.com/charter-se/structured/log"
 )

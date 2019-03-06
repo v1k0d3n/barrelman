@@ -1,19 +1,12 @@
 package cmd
 
 import (
-	"fmt"
-
-	"github.com/charter-se/barrelman/version"
 	"github.com/spf13/cobra"
+
+	"github.com/charter-se/barrelman/pkg/barrelman"
 )
 
-type versionCmd struct{}
-
-var templ = []byte(`Version: {{.Version}}
-Branch: {{.Branch}}
-Commit: {{.Commit}}`)
-
-func newVersionCmd(cmd *versionCmd) *cobra.Command {
+func newVersionCmd(cmd *barrelman.VersionCmd) *cobra.Command {
 	cobraCmd := &cobra.Command{
 		Use:   "version",
 		Short: "version something",
@@ -26,14 +19,4 @@ func newVersionCmd(cmd *versionCmd) *cobra.Command {
 		},
 	}
 	return cobraCmd
-}
-
-func (cmd *versionCmd) Run() error {
-	ver := version.Get()
-	fmt.Printf("\nBarrelman deployment tool\n\n")
-	fmt.Printf("\tVersion: %v\n", ver.Version)
-	fmt.Printf("\tBranch: %v\n", ver.Branch)
-	fmt.Printf("\tCommit: %v\n", ver.Commit)
-
-	return nil
 }
