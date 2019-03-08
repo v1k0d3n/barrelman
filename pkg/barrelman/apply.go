@@ -268,6 +268,11 @@ func (rt ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) error
 				for i := 0; i < opt.InstallRetry; i++ {
 					msg, relName, err := session.InstallRelease(v.ReleaseMeta)
 					if err != nil {
+						log.WithFields(log.Fields{
+							"Name":      v.ReleaseMeta.ReleaseName,
+							"Namespace": v.ReleaseMeta.Namespace,
+							"Error":     err.Error(),
+						}).Debug("Install reported error")
 						innerErr = err
 						//The state has changed underneath us, but the release needs installed anyhow
 						//So delete and try again
