@@ -1,24 +1,18 @@
 pipeline {
-    environment {
-     IPADDRESS = ""
-    }
     agent none
     stages {
-        stage('Init Flagship') {
+        stage('Run Tests') {
             parallel {
-                stage('Test On Ubuntu') {
+                stage('Go Test') {
                     agent {
                         label "ec2-flagship-ubuntu"
                     }
                     steps {
-                            script {
-                                sh "make test"
-                            }
-                        }
+                        sh "make test"
                     }
                     post {
                         always {
-                            sh "echo cool"
+                            sh  "echo reached post"
                         }
                     }
                 }

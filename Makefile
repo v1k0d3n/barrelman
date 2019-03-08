@@ -37,6 +37,7 @@ clean:
 	rm -f $(BINARY_NAME)
 	rm -f $(BINARY_LINUX)
 	rm -f $(BINARY_DARWIN)
+	rm -f testdata/*.tgz
 
 run:
 	$(GOBUILD) -o $(BINARY_NAME) -v ./...
