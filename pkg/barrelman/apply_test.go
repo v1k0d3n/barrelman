@@ -375,7 +375,8 @@ func TestApply(t *testing.T) {
 			},
 		}
 		opt := &CmdOptions{
-			Force: &[]string{},
+			Force:        &[]string{},
+			InstallRetry: 3,
 		}
 		Convey("Should handle DeleteRelease failure with state Replaceable", func() {
 			session.On("DeleteRelease", mock.MatchedBy(func(crm *cluster.DeleteMeta) bool {
@@ -393,12 +394,12 @@ func TestApply(t *testing.T) {
 			session.On("InstallRelease", mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
 				return true
 			}),
-			).Return("msg String", "newReleaseName", errors.New("simulated fail in InstallRelease"))
+			).Return("msg String", "newReleaseName", errors.New("simulated fail in InstallRelease")).Times(3)
 
-			session.On("UpgradeRelease", mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
+			session.On("DeleteRelease", mock.MatchedBy(func(crm *cluster.DeleteMeta) bool {
 				return true
 			}),
-			).Return("msg String", errors.New("simulated fail in UpgradeRelease"))
+			).Return(nil)
 
 			err := rt.Apply(session, opt)
 			So(err, ShouldNotBeNil)
@@ -416,17 +417,21 @@ func TestApply(t *testing.T) {
 			So(err, ShouldBeNil)
 			session.AssertExpectations(t)
 		})
-		Convey("Should handle InstallRelease failure with state Installable, then succeed in UpgradeRelease", func() {
+		Convey("Should handle InstallRelease failure with state Installable, then succeed", func() {
 			rt[0].State = Installable
 			session.On("InstallRelease", mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
 				return true
 			}),
-			).Return("msg String", "newReleaseName", errors.New("simulated fail in InstallRelease"))
+			).Return("msg String", "newReleaseName", errors.New("simulated fail in InstallRelease")).Once()
 
-			session.On("UpgradeRelease", mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
+			session.On("DeleteRelease", mock.MatchedBy(func(crm *cluster.DeleteMeta) bool {
 				return true
 			}),
-			).Return("msg String", nil).Times(1)
+			).Return(nil)
+			session.On("InstallRelease", mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
+				return true
+			}),
+			).Return("msg String", "newReleaseName", nil).Once()
 
 			err := rt.Apply(session, opt)
 			So(err, ShouldBeNil)

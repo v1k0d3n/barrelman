@@ -11,4 +11,5 @@ type CmdOptions struct {
 	NoSync         bool
 	Debug          bool
 	Force          *[]string
+	InstallRetry   int
 }
