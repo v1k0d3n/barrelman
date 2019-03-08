@@ -8,7 +8,7 @@ pipeline {
                         label "ec2-flagship-ubuntu"
                     }
                     steps {
-                        sh "make test"
+                        sh "make docker-test"
                     }
                     post {
                         always {
