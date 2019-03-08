@@ -30,7 +30,7 @@ func Default() *Defaults {
 	}
 	d.KubeContext = os.Getenv("KUBE_CONTEXT")
 	d.DataDir = fmt.Sprintf("%v/.barrelman/data", usr.HomeDir)
-	d.InstallRetry = int(1)
+	d.InstallRetry = int(3)
 	d.Force = &[]string{}
 	return d
 }

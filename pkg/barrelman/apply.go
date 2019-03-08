@@ -2,6 +2,7 @@ package barrelman
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/charter-se/barrelman/pkg/cluster"
 	"github.com/charter-se/barrelman/pkg/manifest"
@@ -245,44 +246,70 @@ func (rt ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) error
 		v.ReleaseMeta.InstallTimeout = 120
 		switch v.State {
 		case Installable, Replaceable:
-			if v.State == Replaceable {
-				//The release exists, it needs to be deleted
-				dm := &cluster.DeleteMeta{
-					ReleaseName:   v.ReleaseMeta.ReleaseName,
-					Namespace:     v.ReleaseMeta.Namespace,
-					DeleteTimeout: v.ReleaseMeta.InstallTimeout,
-				}
-				log.WithFields(log.Fields{
-					"Name":      v.ReleaseMeta.ReleaseName,
-					"Namespace": v.ReleaseMeta.Namespace,
-				}).Info("Deleting (force install)")
-				if err := session.DeleteRelease(dm); err != nil {
-					return errors.Wrap(err, "error deleting release before install (forced)")
-				}
-			}
+			if err := func() error {
+				//This closure removes a "break OUT"
 
-			msg, relName, err := session.InstallRelease(v.ReleaseMeta)
-			if err != nil {
-				//The state has changed underneath us, but the release needs installed anyhow
-				//So attempt an upgrade
-				msg, err := session.UpgradeRelease(v.ReleaseMeta)
-				if err != nil {
-					return errors.WithFields(errors.Fields{
+				var innerErr error
+				if v.State == Replaceable {
+					//The release exists, it needs to be deleted
+					dm := &cluster.DeleteMeta{
+						ReleaseName:   v.ReleaseMeta.ReleaseName,
+						Namespace:     v.ReleaseMeta.Namespace,
+						DeleteTimeout: v.ReleaseMeta.InstallTimeout,
+					}
+					log.WithFields(log.Fields{
 						"Name":      v.ReleaseMeta.ReleaseName,
 						"Namespace": v.ReleaseMeta.Namespace,
-					}).Wrap(err, "error while upgrading release")
+					}).Info("Deleting (force install)")
+					if err := session.DeleteRelease(dm); err != nil {
+						return errors.Wrap(err, "error deleting release before install (forced)")
+					}
 				}
-				log.WithFields(log.Fields{
+				for i := 0; i < opt.InstallRetry; i++ {
+					msg, relName, err := session.InstallRelease(v.ReleaseMeta)
+					if err != nil {
+						log.WithFields(log.Fields{
+							"Name":      v.ReleaseMeta.ReleaseName,
+							"Namespace": v.ReleaseMeta.Namespace,
+							"Error":     err.Error(),
+						}).Debug("Install reported error")
+						innerErr = err
+						//The state has changed underneath us, but the release needs installed anyhow
+						//So delete and try again
+						dm := &cluster.DeleteMeta{
+							ReleaseName:   v.ReleaseMeta.ReleaseName,
+							Namespace:     v.ReleaseMeta.Namespace,
+							DeleteTimeout: v.ReleaseMeta.InstallTimeout,
+						}
+						log.WithFields(log.Fields{
+							"Name":      v.ReleaseMeta.ReleaseName,
+							"Namespace": v.ReleaseMeta.Namespace,
+						}).Info("Deleting (state change)")
+						if err := session.DeleteRelease(dm); err != nil {
+							return errors.Wrap(err, "error deleting release before install (forced)")
+						}
+						/////
+						select {
+						default:
+							_ = <-time.After(1 * time.Second)
+						}
+						continue
+					}
+					log.WithFields(log.Fields{
+						"Name":      v.ReleaseMeta.ReleaseName,
+						"Namespace": v.ReleaseMeta.Namespace,
+						"Release":   relName,
+					}).Info(msg)
+					innerErr = nil
+					return nil
+				}
+				return errors.WithFields(errors.Fields{
 					"Name":      v.ReleaseMeta.ReleaseName,
 					"Namespace": v.ReleaseMeta.Namespace,
-				}).Info("Upgraded (state change) " + msg)
-				continue
+				}).Wrap(innerErr, "Error while installing release")
+			}(); err != nil {
+				return err
 			}
-			log.WithFields(log.Fields{
-				"Name":      v.ReleaseMeta.ReleaseName,
-				"Namespace": v.ReleaseMeta.Namespace,
-				"Release":   relName,
-			}).Info("Installed " + msg)
 
 		case Upgradable:
 			if !v.Changed {
