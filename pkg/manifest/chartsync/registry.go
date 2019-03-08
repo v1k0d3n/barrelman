@@ -55,3 +55,9 @@ func (r *reg) AllControllers() []Controller {
 	}
 	return c
 }
+
+func Reset() {
+	for _, v := range registry.AllControllers() {
+		v.Reset()
+	}
+}

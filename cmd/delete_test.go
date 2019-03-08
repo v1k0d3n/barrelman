@@ -60,7 +60,6 @@ func TestDeleteRun(t *testing.T) {
 					DataDir:        getTestDataDir() + "/",
 					KubeConfigFile: getTestDataDir() + "/kube/config",
 					DryRun:         false,
-					InstallRetry:   3,
 					NoSync:         true,
 				},
 			}
@@ -81,7 +80,6 @@ func TestDeleteRun(t *testing.T) {
 					DataDir:        getTestDataDir() + "/",
 					KubeConfigFile: getTestDataDir() + "/kube/config",
 					DryRun:         false,
-					InstallRetry:   3,
 					NoSync:         true,
 				},
 			}
@@ -115,7 +113,6 @@ func TestDeleteRun(t *testing.T) {
 					DataDir:        getTestDataDir() + "/",
 					KubeConfigFile: getTestDataDir() + "/kube/config",
 					DryRun:         false,
-					InstallRetry:   3,
 					NoSync:         true,
 				},
 			}
@@ -150,7 +147,6 @@ func TestDeleteRun(t *testing.T) {
 					DataDir:        getTestDataDir() + "/",
 					KubeConfigFile: getTestDataDir() + "/kube/config",
 					DryRun:         false,
-					InstallRetry:   3,
 					NoSync:         true,
 				},
 			}

@@ -30,6 +30,10 @@ func init() {
 	})
 }
 
+func (fh *fileHandler) Reset() {
+	return
+}
+
 func (fh *fileHandler) Sync(cs *ChartSync, acc AccountTable) error {
 	return nil
 }

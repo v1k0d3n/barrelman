@@ -78,6 +78,7 @@ type Releaser interface {
 	DeleteRelease(m *DeleteMeta) error
 	Releases() (map[string]*ReleaseMeta, error)
 	DiffManifests(map[string]*MappingResult, map[string]*MappingResult, []string, int, io.Writer) bool
+	ChartFromArchive(aChart io.Reader) (*chart.Chart, error)
 }
 
 //ListReleases returns an array of running releases as reported by the cluster
@@ -234,14 +235,6 @@ type metadata struct {
 	}
 }
 
-func ChartFromArchive(aChart io.Reader) (*chart.Chart, error) {
-	c, err := chartutil.LoadArchive(aChart)
-	if err != nil {
-		return nil, errors.Wrap(err, "chart from archive failed")
-	}
-	return c, nil
-}
-
 func (m metadata) String() string {
 	apiBase := m.ApiVersion
 	sp := strings.Split(apiBase, "/")
@@ -332,6 +325,18 @@ func Parse(manifest string, defaultNamespace string) map[string]*MappingResult {
 		}
 	}
 	return result
+}
+
+func (s *Session) ChartFromArchive(aChart io.Reader) (*chart.Chart, error) {
+	return ChartFromArchive(aChart)
+}
+
+func ChartFromArchive(aChart io.Reader) (*chart.Chart, error) {
+	c, err := chartutil.LoadArchive(aChart)
+	if err != nil {
+		return nil, errors.Wrap(err, "chart from archive failed")
+	}
+	return c, nil
 }
 
 func (s *Session) DiffManifests(oldIndex, newIndex map[string]*MappingResult, suppressedKinds []string, context int, to io.Writer) bool {

@@ -1,0 +1,25 @@
+{{- if .Values.networkPolicy.enabled }}
+kind: NetworkPolicy
+apiVersion: {{ template "minio.networkPolicy.apiVersion" . }}
+metadata:
+  name: {{ template "kubernetes-common.utils.chart_name_fq" . }}
+  labels:
+    app: {{ template "kubernetes-common.utils.chart_name" . }}
+    chart: {{ template "kubernetes-common.utils.chart_label" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ template "kubernetes-common.utils.chart_name" . }}
+      release: {{ .Release.Name }}
+  ingress:
+    - ports:
+        - port: {{ .Values.service.port }}
+      {{- if not .Values.networkPolicy.allowExternal }}
+      from:
+        - podSelector:
+            matchLabels:
+              {{ template "kubernetes-common.utils.chart_name" . }}-client: "true"
+      {{- end }}
+{{- end }}

@@ -58,7 +58,6 @@ func TestListRun(t *testing.T) {
 					DataDir:        getTestDataDir() + "/",
 					KubeConfigFile: getTestDataDir() + "/kube/config",
 					DryRun:         false,
-					InstallRetry:   3,
 					NoSync:         true,
 				},
 			}
@@ -78,7 +77,6 @@ func TestListRun(t *testing.T) {
 					DataDir:        getTestDataDir() + "/",
 					KubeConfigFile: getTestDataDir() + "/kube/config",
 					DryRun:         false,
-					InstallRetry:   3,
 					NoSync:         true,
 				},
 			}
@@ -105,7 +103,6 @@ func TestListRun(t *testing.T) {
 					DataDir:        getTestDataDir() + "/",
 					KubeConfigFile: getTestDataDir() + "/kube/config",
 					DryRun:         false,
-					InstallRetry:   3,
 					NoSync:         true,
 				},
 			}

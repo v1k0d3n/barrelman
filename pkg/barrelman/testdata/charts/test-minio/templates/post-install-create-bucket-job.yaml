@@ -1,0 +1,44 @@
+{{- if .Values.defaultBucket.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ template "kubernetes-common.utils.chart_name_fq" . }}-make-bucket-job
+  labels:
+    app: {{ template "kubernetes-common.utils.chart_name" . }}
+    chart: {{ template "kubernetes-common.utils.chart_label" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    metadata:
+      labels:
+        app: {{ template "kubernetes-common.utils.chart_name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      restartPolicy: OnFailure
+{{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+{{- end }}
+      volumes:
+        - name: minio-configuration
+          projected:
+            sources:
+            - secret:
+                name: {{ template "kubernetes-common.utils.chart_name_fq" . }}
+      containers:
+      - name: minio-mc
+        image: {{ quote .Values.image.tags.mc }}
+        command: ["/bin/sh", "/config/initialize"]
+        env:
+          - name: MINIO_ENDPOINT
+            value: {{ template "kubernetes-common.utils.chart_name_fq" . }}
+          - name: MINIO_PORT
+            value: {{ .Values.service.port | quote }}
+        volumeMounts:
+          - name: minio-configuration
+            mountPath: /config
+{{- end }}
