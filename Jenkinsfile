@@ -1,21 +1,21 @@
 pipeline {
-    agent none
+    agent {
+        label "ec2-flagship-ubuntu"
+    }
     stages {
-        stage('Run Tests') {
-            parallel {
-                stage('Go Test') {
-                    agent {
-                        label "ec2-flagship-ubuntu"
-                    }
-                    steps {
-                        sh "make docker-test"
-                    }
-                    post {
-                        always {
-                            sh  "echo reached post"
-                        }
-                    }
-                }
+        stage('Go Test') {
+            steps {
+                sh "sudo docker build -f Dockertest ."
+            }
+        }
+        stage('GO Build') {
+            steps {
+                sh "sudo docker build -f Dockerfile ."
+            }
+        }
+        stage('Deploy') {
+            steps {
+                sh "I am deploying"
             }
         }
     }
