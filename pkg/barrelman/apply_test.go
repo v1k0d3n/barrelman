@@ -2,7 +2,6 @@ package barrelman
 
 import (
 	"bytes"
-	"errors"
 	"io"
 	"os"
 	"testing"
@@ -15,6 +14,7 @@ import (
 	"github.com/charter-se/barrelman/pkg/cluster/mocks"
 	"github.com/charter-se/barrelman/pkg/manifest"
 	"github.com/charter-se/barrelman/pkg/manifest/chartsync"
+	"github.com/charter-se/structured/errors"
 )
 
 func TestApplyRun(t *testing.T) {
@@ -40,16 +40,20 @@ func TestApplyRun(t *testing.T) {
 
 		session := &mocks.Sessioner{}
 
-		Convey("Should error on config file", func() {
+		Convey("Should ignore missing config file", func() {
 			applyCmd.Options.ConfigFile = "notExist"
+			session.On("Init").Return(errors.New("simulated Init error"))
 			err := applyCmd.Run(session)
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "config file does not exist")
+			So(err.Error(), ShouldContainSubstring, "simulated Init error")
 			session.AssertExpectations(t)
 		})
 		Convey("Should error on session.Init()", func() {
 			session.On("Init").Return(errors.New("simulated Init error"))
 			err := applyCmd.Run(session)
+			if err != nil {
+				err = errors.WithFields(errors.Fields{"TDIR": applyCmd.Options.DataDir}).Wrap(err, "failed")
+			}
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "simulated")
 			session.AssertExpectations(t)
@@ -230,6 +234,7 @@ func TestApplyRun(t *testing.T) {
 			chartsync.Reset()
 			session = &mocks.Sessioner{}
 			applyCmd = newTestApplyCmd()
+			Printf("reset: %v\n", applyCmd.Options.DataDir)
 			os.RemoveAll(applyCmd.Options.DataDir)
 		})
 	})

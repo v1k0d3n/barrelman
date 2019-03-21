@@ -24,17 +24,6 @@ func TestNewApplyCmd(t *testing.T) {
 			})
 			So(cmd.Name(), ShouldEqual, "apply")
 		})
-		Convey("Can fail Run", func() {
-			cmd := newApplyCmd(&barrelman.ApplyCmd{
-				Options:    &barrelman.CmdOptions{},
-				Config:     &barrelman.Config{},
-				LogOptions: &logOpts,
-			})
-
-			err := cmd.RunE(cmd, []string{})
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "config file does not exist")
-		})
 	})
 }
 
@@ -44,12 +33,14 @@ func TestApplyRun(t *testing.T) {
 			c := &barrelman.ApplyCmd{
 				Options: &barrelman.CmdOptions{
 					ConfigFile: "",
+					DataDir:    getTestDataDir() + "/",
 				},
 			}
 			session := &mocks.Sessioner{}
+			session.On("Init").Return(errors.New("simulated Init failure")).Once()
 			err := c.Run(session)
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "config file does not exist")
+			So(err.Error(), ShouldContainSubstring, "simulated Init failure")
 		})
 
 		Convey("Can handle Init failure", func() {
@@ -57,8 +48,8 @@ func TestApplyRun(t *testing.T) {
 				Options: &barrelman.CmdOptions{
 					ConfigFile:     getTestDataDir() + "/config",
 					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
-					DataDir:        getTestDataDir() + "/",
 					KubeConfigFile: getTestDataDir() + "/kube/config",
+					DataDir:        getTestDataDir() + "/",
 					DryRun:         false,
 					NoSync:         true,
 				},

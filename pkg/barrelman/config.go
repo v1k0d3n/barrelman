@@ -160,7 +160,10 @@ func toString(v interface{}) string {
 }
 
 func ensureWorkDir(datadir string) error {
-	return os.MkdirAll(datadir, os.ModePerm)
+	if err := os.MkdirAll(datadir, os.ModePerm); err != nil {
+		return errors.WithFields(errors.Fields{"DataDir": datadir}).Wrap(err, "MkdirAll failed")
+	}
+	return nil
 }
 
 func userHomeDir() string {

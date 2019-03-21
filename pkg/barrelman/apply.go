@@ -51,7 +51,7 @@ func (cmd *ApplyCmd) Run(session cluster.Sessioner) error {
 	}
 
 	if err := ensureWorkDir(cmd.Options.DataDir); err != nil {
-		return errors.Wrap(err, "failed to create working directory")
+		return errors.WithFields(errors.Fields{"Dir": cmd.Options.DataDir}).Wrap(err, "failed to create working directory")
 	}
 
 	log.Debug("connecting to cluster")

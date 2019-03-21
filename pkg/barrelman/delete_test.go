@@ -38,9 +38,10 @@ func TestDeleteRun(t *testing.T) {
 
 		Convey("Should error on config file", func() {
 			delCmd.Options.ConfigFile = "notExist"
+			session.On("Init").Return(errors.New("simulated Init error"))
 			err := delCmd.Run(session)
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "config file does not exist")
+			So(err.Error(), ShouldContainSubstring, "simulated Init error")
 			session.AssertExpectations(t)
 		})
 

@@ -24,17 +24,6 @@ func TestNewDeleteCmd(t *testing.T) {
 			})
 			So(cmd.Name(), ShouldEqual, "delete")
 		})
-		Convey("Can fail Run", func() {
-			cmd := newDeleteCmd(&barrelman.DeleteCmd{
-				Options:    &barrelman.CmdOptions{},
-				Config:     &barrelman.Config{},
-				LogOptions: &logOpts,
-			})
-
-			err := cmd.RunE(cmd, []string{})
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "config file does not exist")
-		})
 	})
 }
 
@@ -44,12 +33,14 @@ func TestDeleteRun(t *testing.T) {
 			c := &barrelman.DeleteCmd{
 				Options: &barrelman.CmdOptions{
 					ConfigFile: "",
+					DataDir:    getTestDataDir() + "/",
 				},
 			}
 			session := &mocks.Sessioner{}
+			session.On("Init").Return(errors.New("simulated Init failure")).Once()
 			err := c.Run(session)
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "config file does not exist")
+			So(err.Error(), ShouldContainSubstring, "simulated Init failure")
 		})
 
 		Convey("Can fail to Init", func() {

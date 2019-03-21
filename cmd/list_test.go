@@ -22,19 +22,7 @@ func TestNewListCmd(t *testing.T) {
 			})
 			So(cmd.Name(), ShouldEqual, "list")
 		})
-		Convey("Can fail Run", func() {
-			cmd := newListCmd(&barrelman.ListCmd{
-				Options:    &barrelman.CmdOptions{},
-				Config:     &barrelman.Config{},
-				LogOptions: &logOpts,
-			})
-
-			err := cmd.RunE(cmd, []string{})
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "config file does not exist")
-		})
 	})
-
 }
 
 func TestListRun(t *testing.T) {
@@ -43,12 +31,14 @@ func TestListRun(t *testing.T) {
 			c := &barrelman.ListCmd{
 				Options: &barrelman.CmdOptions{
 					ConfigFile: "",
+					DataDir:    getTestDataDir() + "/",
 				},
 			}
 			session := &mocks.Sessioner{}
+			session.On("Init").Return(errors.New("simulated Init failure")).Once()
 			err := c.Run(session)
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "config file does not exist")
+			So(err.Error(), ShouldContainSubstring, "simulated Init failure")
 		})
 		Convey("Can fail to Init", func() {
 			c := &barrelman.ListCmd{
