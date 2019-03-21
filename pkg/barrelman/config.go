@@ -49,12 +49,7 @@ func GetConfigFromFile(s string) (*Config, error) {
 	config.Account = make(map[string]*chartsync.Account)
 
 	if _, err := os.Stat(s); os.IsNotExist(err) {
-		// if s == Default().ConfigFile {
-		// 	return config, nil
-		// }
-		return nil, errors.WithFields(errors.Fields{
-			"File": s,
-		}).New("config file does not exist")
+		return config, nil
 	}
 	f, err := os.Open(s)
 	if err != nil {
