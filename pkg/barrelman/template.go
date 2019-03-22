@@ -269,7 +269,7 @@ func (cmd *TemplateCmd) Export(inChart io.Reader) error {
 			if whitespaceRegex.MatchString(data) {
 				continue
 			}
-			err = writeToFile(cmd.OutputDir, m.Name, data)
+			err = writeToFile(cmd.OutputDir, b, data)
 			if err != nil {
 				return err
 			}
