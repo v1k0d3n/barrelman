@@ -125,6 +125,27 @@ type Metadata struct {
 
 //New creates an initializes a *Manifest instance
 func New(c *Config) (*Manifest, error) {
+	if c.Log == nil {
+		c.Log = log.New()
+	}
+	file := c.ManifestFile
+	c.Log.WithFields(log.Fields{
+		"File": file,
+	}).Debug("opening file")
+	fileR, err := os.Open(file)
+	if err != nil {
+		return &Manifest{}, errors.WithFields(errors.Fields{"file": file}).Wrap(err, "error opening file")
+	}
+	defer fileR.Close()
+	yp := yamlpack.New()
+	if err := yp.Import(file, fileR); err != nil {
+		return nil, errors.WithFields(errors.Fields{"file": file}).Wrap(err, "error importing manifest")
+	}
+	return NewFromSections(c, yp.AllSections())
+}
+
+//NewFromSections takes a *Config and array of *yamlpack.Section to assemble a *Manifest
+func NewFromSections(c *Config, yamlSections []*yamlpack.YamlSection) (*Manifest, error) {
 	m := &Manifest{}
 	m.Data = &ManifestData{}
 	m.Lookup = &LookupTable{}
@@ -137,26 +158,12 @@ func New(c *Config) (*Manifest, error) {
 		return nil, errors.New("manifest.New() called without account table")
 	}
 	m.Config = c
-	file := m.Config.ManifestFile
-	m.Config.Log.WithFields(log.Fields{
-		"File": file,
-	}).Debug("opening file")
-	fileR, err := os.Open(file)
-	if err != nil {
-		return &Manifest{}, errors.WithFields(errors.Fields{"file": file}).Wrap(err, "error opening file")
-	}
-	//m.YamlSec, err = importYaml(fileR)
-	yp := yamlpack.New()
-	if err := yp.Import(file, fileR); err != nil {
-		return nil, errors.WithFields(errors.Fields{"file": file}).Wrap(err, "error importing manifest")
-	}
-	m.YamlSec = yp.AllSections()
 
+	m.YamlSec = yamlSections
 	m.ChartSync = chartsync.New(m.Config.DataDir, c.AccountTable)
 	if err := m.load(); err != nil {
 		return nil, errors.Wrap(err, "Error running chartsync")
 	}
-
 	return m, nil
 }
 
