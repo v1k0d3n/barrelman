@@ -30,7 +30,7 @@ func processManifest(config *manifest.Config, noSync bool) (*manifest.ArchiveFil
 
 func processManifestSections(config *manifest.Config, ys []*yamlpack.YamlSection, noSync bool) (*manifest.ArchiveFiles, error) {
 	// Open and initialize the manifest
-	mfest, err := manifest.New(config)
+	mfest, err := manifest.NewFromSections(config, ys)
 	if err != nil {
 		return nil, errors.Wrap(err, "error while initializing manifest")
 	}
