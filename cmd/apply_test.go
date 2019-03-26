@@ -24,34 +24,11 @@ func TestNewApplyCmd(t *testing.T) {
 			})
 			So(cmd.Name(), ShouldEqual, "apply")
 		})
-		Convey("Can fail Run", func() {
-			cmd := newApplyCmd(&barrelman.ApplyCmd{
-				Options:    &barrelman.CmdOptions{},
-				Config:     &barrelman.Config{},
-				LogOptions: &logOpts,
-			})
-
-			err := cmd.RunE(cmd, []string{})
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "config file does not exist")
-		})
 	})
 }
 
 func TestApplyRun(t *testing.T) {
 	Convey("Run", t, func() {
-		Convey("Can fail to find config file", func() {
-			c := &barrelman.ApplyCmd{
-				Options: &barrelman.CmdOptions{
-					ConfigFile: "",
-				},
-			}
-			session := &mocks.Sessioner{}
-			err := c.Run(session)
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "config file does not exist")
-		})
-
 		Convey("Can handle Init failure", func() {
 			c := &barrelman.ApplyCmd{
 				Options: &barrelman.CmdOptions{

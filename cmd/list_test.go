@@ -31,7 +31,7 @@ func TestNewListCmd(t *testing.T) {
 
 			err := cmd.RunE(cmd, []string{})
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "config file does not exist")
+			So(err.Error(), ShouldContainSubstring, "no such file or directory")
 		})
 	})
 
@@ -39,17 +39,6 @@ func TestNewListCmd(t *testing.T) {
 
 func TestListRun(t *testing.T) {
 	Convey("List", t, func() {
-		Convey("Can fail to find config file", func() {
-			c := &barrelman.ListCmd{
-				Options: &barrelman.CmdOptions{
-					ConfigFile: "",
-				},
-			}
-			session := &mocks.Sessioner{}
-			err := c.Run(session)
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "config file does not exist")
-		})
 		Convey("Can fail to Init", func() {
 			c := &barrelman.ListCmd{
 				Options: &barrelman.CmdOptions{

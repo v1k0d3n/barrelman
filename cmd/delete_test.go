@@ -24,34 +24,11 @@ func TestNewDeleteCmd(t *testing.T) {
 			})
 			So(cmd.Name(), ShouldEqual, "delete")
 		})
-		Convey("Can fail Run", func() {
-			cmd := newDeleteCmd(&barrelman.DeleteCmd{
-				Options:    &barrelman.CmdOptions{},
-				Config:     &barrelman.Config{},
-				LogOptions: &logOpts,
-			})
-
-			err := cmd.RunE(cmd, []string{})
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "config file does not exist")
-		})
 	})
 }
 
 func TestDeleteRun(t *testing.T) {
 	Convey("Delete", t, func() {
-		Convey("Can fail to find config file", func() {
-			c := &barrelman.DeleteCmd{
-				Options: &barrelman.CmdOptions{
-					ConfigFile: "",
-				},
-			}
-			session := &mocks.Sessioner{}
-			err := c.Run(session)
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "config file does not exist")
-		})
-
 		Convey("Can fail to Init", func() {
 			c := &barrelman.DeleteCmd{
 				Options: &barrelman.CmdOptions{
