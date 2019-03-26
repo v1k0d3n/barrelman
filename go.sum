@@ -30,8 +30,6 @@ github.com/charter-se/structured v0.0.0-20190211172727-b8be75e216c8 h1:pd3En4tnJ
 github.com/charter-se/structured v0.0.0-20190211172727-b8be75e216c8/go.mod h1:GjdEbkrvwaYHUWmaB7Rndn0FCRS7QSn8Hf7wiEX9XO8=
 github.com/cirrocloud/yamlpack v0.0.0-20190215235819-74c72b8409c0 h1:5EOOdHWZkcZi+V5qEtRfZ7BSiYNrt5zRhL6+KjwV720=
 github.com/cirrocloud/yamlpack v0.0.0-20190215235819-74c72b8409c0/go.mod h1:l5G62DX21oYp9e1YpQj+BtlhxhZi6kOHehJUZR42id0=
-github.com/cirrocloud/yamlpack v0.0.0-20190322150351-bf6651c77939 h1:82x+6aSwC31eQxZLEas+nvxFf1LS35DZ7PuFCJfb88k=
-github.com/cirrocloud/yamlpack v0.0.0-20190322150351-bf6651c77939/go.mod h1:UgljwRLYa6n/qYj8v3APqo/So2/JTYeq5DQyF5jWIoI=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-etcd v2.0.0+incompatible/go.mod h1:Jez6KQU2B/sWsbdaef3ED8NzMklzPG4d5KIOhIy30Tk=
