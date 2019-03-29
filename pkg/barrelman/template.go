@@ -142,7 +142,7 @@ func (cmd *TemplateCmd) Run() error {
 			"Namespace": v.Namespace,
 			"ChartName": v.ChartName,
 		}).Debug("Template")
-		if err := cmd.Export(v.Reader); err != nil {
+		if err := cmd.Export(v); err != nil {
 			return errors.WithFields(errors.Fields{
 				"file": v.Path,
 				"name": v.MetaName,
@@ -152,7 +152,7 @@ func (cmd *TemplateCmd) Run() error {
 	return nil
 }
 
-func (cmd *TemplateCmd) Export(inChart io.Reader) error {
+func (cmd *TemplateCmd) Export(as *bfest.ArchiveSpec) error {
 
 	// verify that output-dir exists if provided
 	if cmd.OutputDir != "" {
@@ -161,18 +161,21 @@ func (cmd *TemplateCmd) Export(inChart io.Reader) error {
 			return fmt.Errorf("output-dir '%s' does not exist", cmd.OutputDir)
 		}
 	}
-
-	if cmd.Namespace == "" {
-		cmd.Namespace = defaultNamespace()
-	}
 	// get combined values and create config
-	rawVals, err := vals(cmd.ValueFiles, cmd.Values, cmd.StringValues, cmd.FileValues, "", "", "")
+	rawVals, err := vals(as.Overrides, cmd.ValueFiles, cmd.Values, cmd.StringValues, cmd.FileValues, "", "", "")
 	if err != nil {
 		return err
 	}
+
+	// Check chart requirements to make sure all dependencies are present in /charts
+	c, err := chartutil.LoadArchive(as.Reader)
+	if err != nil {
+		return errors.Wrap(err, "chart load failed")
+	}
+
 	config := &chart.Config{Raw: string(rawVals), Values: map[string]*chart.Value{}}
-	if msgs := validation.IsDNS1123Subdomain(cmd.ReleaseName); cmd.ReleaseName != "" && len(msgs) > 0 {
-		return fmt.Errorf("release name %s is invalid: %s", cmd.ReleaseName, strings.Join(msgs, ";"))
+	if msgs := validation.IsDNS1123Subdomain(as.ReleaseName); as.ReleaseName != "" && len(msgs) > 0 {
+		return fmt.Errorf("release name %s is invalid: %s", as.ReleaseName, strings.Join(msgs, ";"))
 	}
 
 	// If template is specified, try to run the template.
@@ -183,19 +186,13 @@ func (cmd *TemplateCmd) Export(inChart io.Reader) error {
 		}
 	}
 
-	// Check chart requirements to make sure all dependencies are present in /charts
-	c, err := chartutil.LoadArchive(inChart)
-	if err != nil {
-		return errors.Wrap(err, "chart load failed")
-	}
-
 	renderOpts := renderutil.Options{
 		ReleaseOptions: chartutil.ReleaseOptions{
-			Name:      cmd.ReleaseName,
+			Name:      as.ReleaseName,
 			IsInstall: !cmd.ReleaseIsUpgrade,
 			IsUpgrade: cmd.ReleaseIsUpgrade,
 			Time:      timeconv.Now(),
-			Namespace: cmd.Namespace,
+			Namespace: as.Namespace,
 		},
 		KubeVersion: cmd.KubeVersion,
 	}
@@ -206,10 +203,9 @@ func (cmd *TemplateCmd) Export(inChart io.Reader) error {
 	}
 
 	log.WithFields(log.Fields{
-		"Name":      cmd.ReleaseName,
-		"Chart":     c,
+		"Name":      as.ReleaseName,
 		"Config":    config,
-		"Namespace": cmd.Namespace,
+		"Namespace": as.Namespace,
 		"Info":      &release.Info{LastDeployed: timeconv.Timestamp(time.Now())},
 	}).Debug("chart")
 
@@ -347,9 +343,9 @@ func mergeValues(dest map[string]interface{}, src map[string]interface{}) map[st
 
 // vals merges values from files specified via -f/--values and
 // directly via --set or --set-string or --set-file, marshaling them to YAML
-func vals(valueFiles valueFiles, values []string, stringValues []string, fileValues []string, CertFile, KeyFile, CAFile string) ([]byte, error) {
+func vals(overrideBytes []byte, valueFiles valueFiles, values []string, stringValues []string, fileValues []string, CertFile, KeyFile, CAFile string) ([]byte, error) {
 	base := map[string]interface{}{}
-
+	overrides := map[string]interface{}{}
 	// User specified a values files via -f/--values
 	for _, filePath := range valueFiles {
 		currentMap := map[string]interface{}{}
@@ -367,7 +363,9 @@ func vals(valueFiles valueFiles, values []string, stringValues []string, fileVal
 		}
 
 		if err := yaml.Unmarshal(bytes, &currentMap); err != nil {
-			return []byte{}, fmt.Errorf("failed to parse %s: %s", filePath, err)
+			return []byte{}, errors.WithFields(errors.Fields{
+				"File": filePath,
+			}).Wrap(err, "failed to parse file")
 		}
 		// Merge with the previous map
 		base = mergeValues(base, currentMap)
@@ -376,14 +374,14 @@ func vals(valueFiles valueFiles, values []string, stringValues []string, fileVal
 	// User specified a value via --set
 	for _, value := range values {
 		if err := strvals.ParseInto(value, base); err != nil {
-			return []byte{}, fmt.Errorf("failed parsing --set data: %s", err)
+			return []byte{}, errors.Wrap(err, "failed parsing --set")
 		}
 	}
 
 	// User specified a value via --set-string
 	for _, value := range stringValues {
 		if err := strvals.ParseIntoString(value, base); err != nil {
-			return []byte{}, fmt.Errorf("failed parsing --set-string data: %s", err)
+			return []byte{}, errors.Wrap(err, "failed parsing --set-string")
 		}
 	}
 
@@ -394,10 +392,14 @@ func vals(valueFiles valueFiles, values []string, stringValues []string, fileVal
 			return string(bytes), err
 		}
 		if err := strvals.ParseIntoFile(value, base, reader); err != nil {
-			return []byte{}, fmt.Errorf("failed parsing --set-file data: %s", err)
+			return []byte{}, errors.Wrap(err, "failed parsing --set-file")
 		}
 	}
 
+	if err := yaml.Unmarshal(overrideBytes, &overrides); err != nil {
+		return []byte{}, errors.Wrap(err, "failed to parse overrides")
+	}
+	base = mergeValues(base, overrides)
 	return yaml.Marshal(base)
 }
 

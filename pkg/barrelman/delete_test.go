@@ -36,14 +36,6 @@ func TestDeleteRun(t *testing.T) {
 
 		session := &mocks.Sessioner{}
 
-		Convey("Should error on config file", func() {
-			delCmd.Options.ConfigFile = "notExist"
-			err := delCmd.Run(session)
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "config file does not exist")
-			session.AssertExpectations(t)
-		})
-
 		Convey("Should error on session.Init()", func() {
 			session.On("Init").Return(errors.New("simulated Init error"))
 			err := delCmd.Run(session)

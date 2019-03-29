@@ -40,13 +40,6 @@ func TestApplyRun(t *testing.T) {
 
 		session := &mocks.Sessioner{}
 
-		Convey("Should error on config file", func() {
-			applyCmd.Options.ConfigFile = "notExist"
-			err := applyCmd.Run(session)
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "config file does not exist")
-			session.AssertExpectations(t)
-		})
 		Convey("Should error on session.Init()", func() {
 			session.On("Init").Return(errors.New("simulated Init error"))
 			err := applyCmd.Run(session)
