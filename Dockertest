@@ -1,0 +1,18 @@
+FROM golang:1.11
+
+ARG VERSION=latest
+ARG COMMIT=master
+ARG BRANCH=master
+ARG GOOS=linux
+ARG GOARCH=amd64
+
+ENV VERSION=$VERSION
+ENV COMMIT=$COMMIT
+ENV BRANCH=$BRANCH
+ENV GOOS=$GOOS
+ENV GOARCH=$GOARCH
+
+WORKDIR /go/src/github.com/charter-se/barrelman
+COPY . .
+
+RUN make test

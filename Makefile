@@ -37,6 +37,7 @@ clean:
 	rm -f $(BINARY_NAME)
 	rm -f $(BINARY_LINUX)
 	rm -f $(BINARY_DARWIN)
+	rm -f testdata/*.tgz
 
 run:
 	$(GOBUILD) -o $(BINARY_NAME) -v ./...
@@ -65,3 +66,6 @@ docker-push:
 ## Use: make docker-push BINARY_NAME=barrelman REGISTRY=quay.io NAMESPACE=charter-se VERSION=v0.2.5 COMMIT=$(git rev-parse --short HEAD)
 docker-push-commit:
 	docker build $(REGISTRY)/$(NAMESPACE)/$(BINARY_NAME):$(VERSION)-$(COMMIT)
+
+docker-test:
+	docker build -f Dockertest .
