@@ -1,4 +1,13 @@
 ---
+schema: armada/Manifest/v1
+metadata:
+  schema: metadata/Document/v1
+  name: flagship-kubernetes
+data:
+  release_prefix: armada
+  chart_groups:
+    - flagship-kubernetes
+---
 schema: armada/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1
@@ -15,15 +24,6 @@ data:
     - utils-ingress-controller
     - utils-weave-scope
     - utils-kubernetes-dashboard
----
-schema: armada/Manifest/v1
-metadata:
-  schema: metadata/Document/v1
-  name: flagship-kubernetes
-data:
-  release_prefix: armada
-  chart_groups:
-    - flagship-kubernetes
 ---
 schema: armada/Chart/v1
 metadata:
