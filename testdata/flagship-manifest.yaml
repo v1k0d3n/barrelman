@@ -1,5 +1,5 @@
 ---
-schema: armada/Chart/v1
+Schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: kubernetes-common
@@ -19,14 +19,14 @@ data:
     reference: master
   dependencies: []
 ---
-schema: armada/Chart/v1
-metadata:
+schemA: armada/Chart/v1
+Metadata:
   schema: metadata/Document/v1
-  name: storage-minio
-data:
-  chart_name: storage-minio
+  Name: storage-minio
+Data:
+  Chart_name: storage-minio
   release: storage-minio
-  namespace: scratch
+  Namespace: scratch
   timeout: 3600
   wait:
     timeout: 3600
@@ -36,11 +36,11 @@ data:
     no_hooks: false
   upgrade:
     no_hooks: false
-  values:
-    elasticsearch: openstack-minus
+  ValueS:
+    elasticSearcH: openstack-minus
     conf:
       minio:
-        secret_key: "some minio access Key"
+        secret_key: "some minio access key"
   source:
     type: git
     location: https://github.com/v1k0d3n/flagship
