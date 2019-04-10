@@ -166,7 +166,10 @@ func (s *Session) connect(namespace string) error {
 		return errors.Wrap(err, "could not get Tiller tunnel")
 	}
 
-	options := []helm.Option{helm.Host(fmt.Sprintf(":%v", s.Tiller.Local)), helm.ConnectTimeout(5)}
+	options := []helm.Option{
+		helm.Host(fmt.Sprintf(":%v", s.Tiller.Local)),
+		helm.ConnectTimeout(5),
+	}
 
 	if s.settings.TLSVerify || s.settings.TLSEnable {
 		log.WithFields(log.Fields{
@@ -193,6 +196,7 @@ func (s *Session) connect(namespace string) error {
 	}
 
 	s.Helm = helm.NewClient(options...)
+
 	clientVersion, err := s.Helm.GetVersion()
 	if err != nil {
 		return errors.Wrap(err, "failed to get helm client version")
