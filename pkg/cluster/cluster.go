@@ -9,17 +9,20 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/charter-se/structured/errors"
-	"github.com/charter-se/structured/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/helm/pkg/helm"
+	helm_env "k8s.io/helm/pkg/helm/environment"
 	"k8s.io/helm/pkg/kube"
+	"k8s.io/helm/pkg/tlsutil"
 	"k8s.io/helm/pkg/version"
 	podutil "k8s.io/kubernetes/pkg/api/pod"
 	"k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+
+	"github.com/charter-se/structured/errors"
+	"github.com/charter-se/structured/log"
 )
 
 type Sessioner interface {
@@ -40,6 +43,7 @@ type Session struct {
 	Clientset   *internalclientset.Clientset
 	kubeConfig  string
 	kubeContext string
+	settings    helm_env.EnvSettings
 }
 
 //NewSession returns a *Session with kubernetes connections established
@@ -69,6 +73,7 @@ func (s *Session) Init() error {
 	if tillerNamespace == "" {
 		tillerNamespace = "kube-system"
 	}
+
 	err := s.connect(tillerNamespace)
 	if err != nil {
 		return errors.Wrap(err, "connection to kubernetes failed")
@@ -102,13 +107,55 @@ func (s *Session) Init() error {
 
 //connect builds connections for all supported APIs
 func (s *Session) connect(namespace string) error {
-	config, err := kube.GetConfig(s.GetKubeContext(), s.GetKubeConfig()).ClientConfig()
+
+	//static analysis suggests use of these
+	kubeContext := s.GetKubeContext()
+	kubeConfig := s.GetKubeConfig()
+
+	config, err := kube.GetConfig(kubeContext, kubeConfig).ClientConfig()
 	if err != nil {
 		return errors.WithFields(errors.Fields{
-			"KubeConfig":  s.GetKubeConfig(),
-			"kubeContext": s.GetKubeContext(),
+			"KubeConfig":  kubeConfig,
+			"kubeContext": kubeContext,
 		}).Wrap(err, "could not get kubernetes config for context")
 	}
+
+	// Setup TLS as done in helm/cmd/helm
+
+	if os.Getenv("HELM_TLS_ENABLE") == "true" {
+		s.settings.TLSEnable = true
+	}
+
+	if os.Getenv("HELM_HOME") == "" {
+		os.Setenv("HELM_HOME", helm_env.DefaultHelmHome)
+	}
+
+	log.Debugf("TLSCaCert: %s", helm_env.DefaultTLSCaCert)
+
+	log.Debugf("using HELM_HOME home %s", os.Getenv("HELM_HOME"))
+
+	if os.Getenv("HELM_TLS_CA_CERT") != "" {
+		s.settings.TLSCaCertFile = os.Getenv("HELM_TLS_CA_CERT")
+	} else {
+		s.settings.TLSCaCertFile = os.ExpandEnv(helm_env.DefaultTLSCaCert)
+	}
+
+	if os.Getenv("HELM_TLS_CERT") != "" {
+		s.settings.TLSCertFile = os.Getenv("HELM_TLS_CERT")
+	} else {
+		s.settings.TLSCertFile = os.ExpandEnv(helm_env.DefaultTLSCert)
+	}
+
+	if os.Getenv("HELM_TLS_KEY") != "" {
+		s.settings.TLSKeyFile = os.Getenv("HELM_TLS_KEY")
+	} else {
+		s.settings.TLSKeyFile = os.ExpandEnv(helm_env.DefaultTLSKeyFile)
+	}
+
+	if os.Getenv("HELM_TLS_VERIFY") == "true" {
+		s.settings.TLSVerify = true
+	}
+
 	s.Clientset, err = internalclientset.NewForConfig(config)
 	if err != nil {
 		return errors.Wrap(err, "could not get kubernetes client")
@@ -124,7 +171,37 @@ func (s *Session) connect(namespace string) error {
 		return errors.Wrap(err, "could not get Tiller tunnel")
 	}
 
-	s.Helm = helm.NewClient(helm.Host(fmt.Sprintf(":%v", s.Tiller.Local)), helm.ConnectTimeout(5))
+	options := []helm.Option{
+		helm.Host(fmt.Sprintf(":%v", s.Tiller.Local)),
+		helm.ConnectTimeout(5),
+	}
+
+	if s.settings.TLSVerify || s.settings.TLSEnable {
+		log.WithFields(log.Fields{
+			"Key":  s.settings.TLSKeyFile,
+			"Cert": s.settings.TLSCertFile,
+			"CA":   s.settings.TLSCaCertFile,
+		}).Debug("Using TLS for Tiller")
+		tlsopts := tlsutil.Options{
+			ServerName:         s.settings.TLSServerName,
+			KeyFile:            s.settings.TLSKeyFile,
+			CertFile:           s.settings.TLSCertFile,
+			InsecureSkipVerify: true,
+		}
+		if s.settings.TLSVerify {
+			tlsopts.CaCertFile = s.settings.TLSCaCertFile
+			tlsopts.InsecureSkipVerify = false
+		}
+		tlscfg, err := tlsutil.ClientConfig(tlsopts)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(2)
+		}
+		options = append(options, helm.WithTLS(tlscfg))
+	}
+
+	s.Helm = helm.NewClient(options...)
+
 	clientVersion, err := s.Helm.GetVersion()
 	if err != nil {
 		return errors.Wrap(err, "failed to get helm client version")
