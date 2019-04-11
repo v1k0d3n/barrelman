@@ -122,7 +122,7 @@ func (s *Session) connect(namespace string) error {
 
 	// Setup TLS as done in helm/cmd/helm
 
-	if os.Getenv("HELM_TLS_ENABLE") == "true" {
+	if os.Getenv("HELM_TLS_ENABLE") == "true" || os.Getenv("HELM_TLS_ENABLE") == "1" {
 		s.settings.TLSEnable = true
 	}
 
@@ -152,7 +152,7 @@ func (s *Session) connect(namespace string) error {
 		s.settings.TLSKeyFile = os.ExpandEnv(helm_env.DefaultTLSKeyFile)
 	}
 
-	if os.Getenv("HELM_TLS_VERIFY") == "true" {
+	if os.Getenv("HELM_TLS_VERIFY") == "true" || os.Getenv("HELM_TLS_VERIFY") == "1" {
 		s.settings.TLSVerify = true
 	}
 
