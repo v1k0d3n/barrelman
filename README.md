@@ -43,7 +43,7 @@ The YAML configuration document may contain multiple sub-documents or charts den
 
 Barrelman does diff analysis on each release and only executes those changes necassary to acheive the configured state.
 
-~~~Barrelman can be configured to rollback all changes within the current or last transaction on a detected failure, or when commanded by the command line interface. A failure as indicated by kubernetes when commiting one chart will result in the rolling back to the previously commited state on all configured charts.~~~  *(rollback not yet implimented)*
+~~Barrelman can be configured to rollback all changes within the current or last transaction on a detected failure, or when commanded by the command line interface. A failure as indicated by kubernetes when commiting one chart will result in the rolling back to the previously commited state on all configured charts.~~  *(rollback not yet implimented)*
 
 As a Helm plugin, Barrelman is largely configured by the Helm environment including Kubernetes server settings and authorization keys.
 
