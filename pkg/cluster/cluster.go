@@ -107,11 +107,16 @@ func (s *Session) Init() error {
 
 //connect builds connections for all supported APIs
 func (s *Session) connect(namespace string) error {
-	config, err := kube.GetConfig(s.GetKubeContext(), s.GetKubeConfig()).ClientConfig()
+
+	//static analysis suggests use of these
+	kubeContext := s.GetKubeContext()
+	kubeConfig := s.GetKubeConfig()
+
+	config, err := kube.GetConfig(kubeContext, kubeConfig).ClientConfig()
 	if err != nil {
 		return errors.WithFields(errors.Fields{
-			"KubeConfig":  s.GetKubeConfig(),
-			"kubeContext": s.GetKubeContext(),
+			"KubeConfig":  kubeConfig,
+			"kubeContext": kubeContext,
 		}).Wrap(err, "could not get kubernetes config for context")
 	}
 
