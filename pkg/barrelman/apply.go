@@ -131,6 +131,7 @@ func (cmd *ApplyCmd) ComputeReleases(
 	archives *manifest.ArchiveFiles,
 	currentReleases map[string]*cluster.ReleaseMeta) (ReleaseTargets, error) {
 	rt := ReleaseTargets{}
+	installWait := true
 
 	for _, v := range archives.List {
 		releaseExists := false
@@ -150,6 +151,7 @@ func (cmd *ApplyCmd) ComputeReleases(
 								ReleaseName:    rel.ReleaseName,
 								Namespace:      v.Namespace,
 								ValueOverrides: v.Overrides,
+								InstallWait:    installWait,
 							},
 						})
 				} else {
@@ -161,6 +163,7 @@ func (cmd *ApplyCmd) ComputeReleases(
 								ReleaseName:    rel.ReleaseName,
 								Namespace:      v.Namespace,
 								ValueOverrides: v.Overrides,
+								InstallWait:    installWait,
 							},
 						})
 				}
@@ -175,6 +178,7 @@ func (cmd *ApplyCmd) ComputeReleases(
 						ReleaseName:    v.ReleaseName,
 						Namespace:      v.Namespace,
 						ValueOverrides: v.Overrides,
+						InstallWait:    installWait,
 					},
 				})
 		}
@@ -265,6 +269,10 @@ func (rt ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) error
 						return errors.Wrap(err, "error deleting release before install (forced)")
 					}
 				}
+				log.WithFields(log.Fields{
+					"Name":      v.ReleaseMeta.ReleaseName,
+					"Namespace": v.ReleaseMeta.Namespace,
+				}).Info("Installing")
 				for i := 0; i < opt.InstallRetry; i++ {
 					msg, relName, err := session.InstallRelease(v.ReleaseMeta)
 					if err != nil {
@@ -319,6 +327,10 @@ func (rt ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) error
 				}).Info("Skipping")
 				continue
 			}
+			log.WithFields(log.Fields{
+				"Name":      v.ReleaseMeta.ReleaseName,
+				"Namespace": v.ReleaseMeta.Namespace,
+			}).Info("Upgrading")
 			msg, err := session.UpgradeRelease(v.ReleaseMeta)
 			if err != nil {
 				return errors.WithFields(errors.Fields{
