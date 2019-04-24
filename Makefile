@@ -18,9 +18,9 @@ GOBUILD         =$(GOCMD) build
 GOCLEAN         =$(GOCMD) clean
 GOTEST          =$(GOCMD) test
 GODEP           =$(DEPCMD) ensure
-SET_VERSION     =github.com/charter-se/barrelman/version.version=$(VERSION)
-SET_COMMIT      =github.com/charter-se/barrelman/version.commit=$(COMMIT)
-SET_BRANCH      =github.com/charter-se/barrelman/version.branch=$(BRANCH)
+SET_VERSION     =github.com/charter-se/barrelman/pkg/version.version=$(VERSION)
+SET_COMMIT      =github.com/charter-se/barrelman/pkg/version.commit=$(COMMIT)
+SET_BRANCH      =github.com/charter-se/barrelman/pkg/version.branch=$(BRANCH)
 
 LDFLAGS         =-w -s -X $(SET_VERSION) -X $(SET_COMMIT) -X $(SET_BRANCH)
 
