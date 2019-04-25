@@ -12,7 +12,7 @@ import (
 	hapi_release5 "k8s.io/helm/pkg/proto/hapi/release"
 	rls "k8s.io/helm/pkg/proto/hapi/services"
 
-	"github.com/charter-se/structured/errors"
+	"github.com/charter-oss/structured/errors"
 )
 
 func TestListReleases(t *testing.T) {

@@ -3,7 +3,7 @@ package barrelman
 import (
 	"fmt"
 
-	"github.com/charter-se/barrelman/pkg/version"
+	"github.com/charter-oss/barrelman/pkg/version"
 )
 
 type VersionCmd struct{}

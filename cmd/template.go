@@ -22,8 +22,8 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/helm/pkg/chartutil"
 
-	"github.com/charter-se/barrelman/pkg/barrelman"
-	"github.com/charter-se/structured/log"
+	"github.com/charter-oss/barrelman/pkg/barrelman"
+	"github.com/charter-oss/structured/log"
 )
 
 const templateDesc = `

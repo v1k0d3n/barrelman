@@ -25,8 +25,8 @@ github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 h1:xJ4a3vCFaGF/jqvzLM
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/chai2010/gettext-go v0.0.0-20170215093142-bf70f2a70fb1 h1:HD4PLRzjuCVW79mQ0/pdsalOLHJ+FaEoqJLxfltpb2U=
 github.com/chai2010/gettext-go v0.0.0-20170215093142-bf70f2a70fb1/go.mod h1:/iP1qXHoty45bqomnu2LM+VVyAEdWN+vtSHGlQgyxbw=
-github.com/charter-se/structured v0.0.0-20190211172727-b8be75e216c8 h1:pd3En4tnJcb25vv+FrPM04gxuLuOkvXan4oL15pDEjg=
-github.com/charter-se/structured v0.0.0-20190211172727-b8be75e216c8/go.mod h1:GjdEbkrvwaYHUWmaB7Rndn0FCRS7QSn8Hf7wiEX9XO8=
+github.com/charter-oss/structured v0.0.0-20190211172727-b8be75e216c8 h1:XhT3MVlDeE3TJZqmtDxvqfqDE5IQbYoUTjjBB1w+3Xw=
+github.com/charter-oss/structured v0.0.0-20190211172727-b8be75e216c8/go.mod h1:kDuVjY3e2xqA1m/Q30ZRs9YrfMJ3jvDGoK/WRl6rAz0=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

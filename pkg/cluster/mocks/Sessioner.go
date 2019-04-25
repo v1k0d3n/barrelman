@@ -3,7 +3,7 @@
 package mocks
 
 import chart "k8s.io/helm/pkg/proto/hapi/chart"
-import cluster "github.com/charter-se/barrelman/pkg/cluster"
+import cluster "github.com/charter-oss/barrelman/pkg/cluster"
 import io "io"
 import mock "github.com/stretchr/testify/mock"
 

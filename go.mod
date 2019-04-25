@@ -1,4 +1,4 @@
-module github.com/charter-se/barrelman
+module github.com/charter-oss/barrelman
 
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
@@ -9,7 +9,7 @@ require (
 	github.com/aokoli/goutils v1.0.1 // indirect
 	github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a
 	github.com/chai2010/gettext-go v0.0.0-20170215093142-bf70f2a70fb1 // indirect
-	github.com/charter-se/structured v0.0.0-20190211172727-b8be75e216c8
+	github.com/charter-oss/structured v0.0.0-20190211172727-b8be75e216c8
 	github.com/docker/distribution v2.7.0+incompatible // indirect
 	github.com/docker/docker v0.0.0-20181201151923-ad1354ffb423 // indirect
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect

@@ -18,8 +18,8 @@ sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 ### Get the code
 ```sh
 go get github.com/CirroCloud/yamlpack
-go get github.com/charter-se/structured
-git clone https://github.com/charter-se/barrelman.git
+go get github.com/charter-oss/structured
+git clone https://github.com/charter-oss/barrelman.git
 cd barrelman
 ```
 ### Build

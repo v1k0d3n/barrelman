@@ -11,10 +11,10 @@ import (
 	"github.com/stretchr/testify/mock"
 	"k8s.io/helm/pkg/proto/hapi/chart"
 
-	"github.com/charter-se/barrelman/pkg/cluster"
-	"github.com/charter-se/barrelman/pkg/cluster/mocks"
-	"github.com/charter-se/barrelman/pkg/manifest"
-	"github.com/charter-se/barrelman/pkg/manifest/chartsync"
+	"github.com/charter-oss/barrelman/pkg/cluster"
+	"github.com/charter-oss/barrelman/pkg/cluster/mocks"
+	"github.com/charter-oss/barrelman/pkg/manifest"
+	"github.com/charter-oss/barrelman/pkg/manifest/chartsync"
 )
 
 func TestApplyRun(t *testing.T) {

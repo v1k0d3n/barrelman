@@ -7,10 +7,10 @@ import (
 	"github.com/stretchr/testify/mock"
 	"k8s.io/helm/pkg/proto/hapi/chart"
 
-	"github.com/charter-se/barrelman/pkg/barrelman"
-	"github.com/charter-se/barrelman/pkg/cluster"
-	"github.com/charter-se/barrelman/pkg/cluster/mocks"
-	"github.com/charter-se/structured/errors"
+	"github.com/charter-oss/barrelman/pkg/barrelman"
+	"github.com/charter-oss/barrelman/pkg/cluster"
+	"github.com/charter-oss/barrelman/pkg/cluster/mocks"
+	"github.com/charter-oss/structured/errors"
 )
 
 func TestNewDeleteCmd(t *testing.T) {

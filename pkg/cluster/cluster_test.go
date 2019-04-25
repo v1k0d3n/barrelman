@@ -9,7 +9,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	rls "k8s.io/helm/pkg/proto/hapi/services"
 
-	mockHelm "github.com/charter-se/barrelman/pkg/cluster/mockHelm" // requires mockery run
+	mockHelm "github.com/charter-oss/barrelman/pkg/cluster/mockHelm" // requires mockery run
 )
 
 var TestHelm = &mockHelm.Interface{}

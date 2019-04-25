@@ -24,10 +24,10 @@ github.com/chai2010/gettext-go/gettext
 github.com/chai2010/gettext-go/gettext/mo
 github.com/chai2010/gettext-go/gettext/plural
 github.com/chai2010/gettext-go/gettext/po
-# github.com/charter-se/structured v0.0.0-20190211172727-b8be75e216c8
-github.com/charter-se/structured/errors
-github.com/charter-se/structured/log
-github.com/charter-se/structured
+# github.com/charter-oss/structured v0.0.0-20190211172727-b8be75e216c8
+github.com/charter-oss/structured/errors
+github.com/charter-oss/structured/log
+github.com/charter-oss/structured
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
 # github.com/docker/distribution v2.7.0+incompatible

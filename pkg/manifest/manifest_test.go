@@ -9,8 +9,8 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"github.com/charter-se/barrelman/pkg/manifest/chartsync"
-	mock_chartsync "github.com/charter-se/barrelman/pkg/manifest/chartsync/mocks"
+	"github.com/charter-oss/barrelman/pkg/manifest/chartsync"
+	mock_chartsync "github.com/charter-oss/barrelman/pkg/manifest/chartsync/mocks"
 )
 
 func TestNewManifest(t *testing.T) {

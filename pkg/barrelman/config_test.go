@@ -9,7 +9,7 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"github.com/charter-se/barrelman/pkg/manifest/chartsync"
+	"github.com/charter-oss/barrelman/pkg/manifest/chartsync"
 )
 
 func TestConfig(t *testing.T) {
