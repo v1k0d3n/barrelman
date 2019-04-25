@@ -1,11 +1,11 @@
 package barrelman
 
 import (
-	"github.com/charter-se/barrelman/pkg/cluster"
-	"github.com/charter-se/barrelman/pkg/version"
-	"github.com/charter-se/structured"
-	"github.com/charter-se/structured/errors"
-	"github.com/charter-se/structured/log"
+	"github.com/charter-oss/barrelman/pkg/cluster"
+	"github.com/charter-oss/barrelman/pkg/version"
+	"github.com/charter-oss/structured"
+	"github.com/charter-oss/structured/errors"
+	"github.com/charter-oss/structured/log"
 )
 
 type ListCmd struct {

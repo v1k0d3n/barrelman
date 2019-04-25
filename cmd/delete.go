@@ -3,9 +3,9 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/charter-se/barrelman/pkg/barrelman"
-	"github.com/charter-se/barrelman/pkg/cluster"
-	"github.com/charter-se/structured/log"
+	"github.com/charter-oss/barrelman/pkg/barrelman"
+	"github.com/charter-oss/barrelman/pkg/cluster"
+	"github.com/charter-oss/structured/log"
 )
 
 func newDeleteCmd(cmd *barrelman.DeleteCmd) *cobra.Command {

@@ -46,11 +46,11 @@ import (
 	"k8s.io/helm/pkg/tiller"
 	"k8s.io/helm/pkg/timeconv"
 
-	bfest "github.com/charter-se/barrelman/pkg/manifest"
-	"github.com/charter-se/barrelman/pkg/version"
-	"github.com/charter-se/structured"
-	"github.com/charter-se/structured/errors"
-	"github.com/charter-se/structured/log"
+	bfest "github.com/charter-oss/barrelman/pkg/manifest"
+	"github.com/charter-oss/barrelman/pkg/version"
+	"github.com/charter-oss/structured"
+	"github.com/charter-oss/structured/errors"
+	"github.com/charter-oss/structured/log"
 )
 
 const defaultDirectoryPermission = 0755

@@ -12,7 +12,7 @@ ENV BRANCH=$BRANCH
 ENV GOOS=$GOOS
 ENV GOARCH=$GOARCH
 
-WORKDIR /go/src/github.com/charter-se/barrelman
+WORKDIR /go/src/github.com/charter-oss/barrelman
 COPY . .
 
 RUN make test
