@@ -28,3 +28,12 @@ func OptSetJSON() func(*Logger) error {
 		return nil
 	}
 }
+
+func OptForceColor() func(*Logger) error {
+	return func(logger *Logger) error {
+		logger.Handler.SetFormatter(&logrus.TextFormatter{
+			ForceColors: true,
+		})
+		return nil
+	}
+}
