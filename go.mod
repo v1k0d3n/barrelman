@@ -9,7 +9,7 @@ require (
 	github.com/aokoli/goutils v1.0.1 // indirect
 	github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a
 	github.com/chai2010/gettext-go v0.0.0-20170215093142-bf70f2a70fb1 // indirect
-	github.com/charter-oss/structured v0.0.0-20190211172727-b8be75e216c8
+	github.com/charter-oss/structured v0.0.2
 	github.com/docker/distribution v2.7.0+incompatible // indirect
 	github.com/docker/docker v0.0.0-20181201151923-ad1354ffb423 // indirect
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
@@ -35,8 +35,6 @@ require (
 	github.com/huandu/xstrings v1.2.0 // indirect
 	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
-	github.com/jjeffery/errors v1.0.2 // indirect
-	github.com/jjeffery/kv v0.7.0 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
 	github.com/jtolds/gls v0.0.0-20181110203027-b4936e06046b // indirect
 	github.com/mattn/go-colorable v0.0.9 // indirect
