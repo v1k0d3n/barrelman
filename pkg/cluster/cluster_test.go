@@ -30,12 +30,12 @@ func TestNewSession(t *testing.T) {
 		os.Setenv("HELM_TLS_VERIFY", "")
 		os.Setenv("HELM_HOME", "")
 
-		Convey("Can init", func() {
+		SkipConvey("Can init", func() {
 			c := NewSession("", "")
 			err := c.Init()
 			So(err, ShouldBeNil)
 		})
-		Convey("Can load TLS files", func() {
+		SkipConvey("Can load TLS files", func() {
 			os.Setenv("HELM_TLS_ENABLE", "true")
 			os.Setenv("HELM_TLS_CA_CERT", "./testdata/ca.pem")
 			os.Setenv("HELM_TLS_CERT", "./testdata/server1.pem")
