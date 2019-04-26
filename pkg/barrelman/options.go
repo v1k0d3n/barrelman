@@ -12,4 +12,5 @@ type CmdOptions struct {
 	Debug          bool
 	Force          *[]string
 	InstallRetry   int
+	InstallWait    bool
 }

@@ -87,6 +87,7 @@ type ChartData struct {
 	Timeout      int
 	Wait         *ChartDataWait
 	Install      *ChartDataInstall
+	InstallWait  bool
 	Upgrade      *ChartDataUpgrade
 	Source       *ChartSource
 	Dependencies []string
@@ -304,6 +305,7 @@ func NewChart() *Chart {
 	chart.Data.Wait = &ChartDataWait{}
 	chart.Data.Wait.Labels = make(map[string]string)
 	chart.Data.Install = &ChartDataInstall{}
+	chart.Data.InstallWait = true
 	chart.Data.Upgrade = &ChartDataUpgrade{}
 	chart.Data.Values = make(map[string]interface{})
 	chart.Data.Dependencies = []string{}

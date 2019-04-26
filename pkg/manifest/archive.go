@@ -24,6 +24,7 @@ type ArchiveSpec struct {
 	DataDir     string
 	Namespace   string
 	Overrides   []byte
+	InstallWait bool
 }
 
 type ArchiveFiles struct {
@@ -42,6 +43,7 @@ func Archive(
 		ReleaseName: chart.Data.ReleaseName,
 		Namespace:   chart.Data.Namespace,
 		Overrides:   chart.Data.Overrides,
+		InstallWait: chart.Data.InstallWait,
 	}
 	var err error
 
