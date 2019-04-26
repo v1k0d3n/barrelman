@@ -131,7 +131,6 @@ func (cmd *ApplyCmd) ComputeReleases(
 	archives *manifest.ArchiveFiles,
 	currentReleases map[string]*cluster.ReleaseMeta) (ReleaseTargets, error) {
 	rt := ReleaseTargets{}
-	installWait := true
 
 	for _, v := range archives.List {
 		releaseExists := false
@@ -151,7 +150,7 @@ func (cmd *ApplyCmd) ComputeReleases(
 								ReleaseName:    rel.ReleaseName,
 								Namespace:      v.Namespace,
 								ValueOverrides: v.Overrides,
-								InstallWait:    installWait,
+								InstallWait:    v.InstallWait,
 							},
 						})
 				} else {
@@ -163,7 +162,7 @@ func (cmd *ApplyCmd) ComputeReleases(
 								ReleaseName:    rel.ReleaseName,
 								Namespace:      v.Namespace,
 								ValueOverrides: v.Overrides,
-								InstallWait:    installWait,
+								InstallWait:    v.InstallWait,
 							},
 						})
 				}
@@ -178,7 +177,7 @@ func (cmd *ApplyCmd) ComputeReleases(
 						ReleaseName:    v.ReleaseName,
 						Namespace:      v.Namespace,
 						ValueOverrides: v.Overrides,
-						InstallWait:    installWait,
+						InstallWait:    v.InstallWait,
 					},
 				})
 		}
