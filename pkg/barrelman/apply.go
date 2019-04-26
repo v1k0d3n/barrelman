@@ -294,7 +294,8 @@ func (rt ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) error
 							"Namespace": v.ReleaseMeta.Namespace,
 						}).Info("Deleting (state change)")
 						if err := session.DeleteRelease(dm); err != nil {
-							return errors.Wrap(err, "error deleting release before install (forced)")
+							//deleting kube-proxy or other connection issues can trigger this, don't abort the retry
+							log.Debug(err, "error deleting release before install (forced)")
 						}
 						/////
 						select {
