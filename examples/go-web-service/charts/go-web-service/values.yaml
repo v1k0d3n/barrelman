@@ -1,0 +1,14 @@
+---
+replicaCount: 1
+
+image:
+  repository: go-web-service
+  tag: v1.0.0
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+
+env:
+  app_name: Barrelman

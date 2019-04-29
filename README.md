@@ -1,75 +1,154 @@
-[![CodeFactor](https://www.codefactor.io/repository/github/charter-se/barrelman/badge)](https://www.codefactor.io/repository/github/charter-se/barrelman)
+# Barrelman
+
+[![CodeFactor](https://www.codefactor.io/repository/github/charter-oss/barrelman/badge)](https://www.codefactor.io/repository/github/charter-oss/barrelman)
 [![Barrelman Container on Quay](https://quay.io/repository/charter-se/barrelman/status "Docker Repository on Quay")](https://quay.io/repository/charter-se/barrelman)
-# barrelman
+
+## Overview
+
 *A project to deploy extremely atomic Helm charts as more complex application release groups.*
 
-Barrelman is a [Helm plugin](https://github.com/helm/helm/blob/master/docs/plugins.md) that strives for document compatability with [Armada](https://github.com/att-comdev/armada) and follows Aramada YAML conventions.
+Barrelman uses a single manifest to organize complex application deployments that can consist of many 
+microservices and independent shared services such as databases and caches.
+
+Barrelman does diff analysis on each release and only executes those changes necessary to achieve 
+the desired state.
+
+Additionally, Helm charts can be sourced from different locations like local file, directory, GitHub repos, Helm 
+repos, etc. This makes Barrelman manifests very flexible.
+
+## Requirements
+
+- Go >= 1.11 (for module support)
+- Access to [charter-se](https://github.com/charter-se) GitHub organization
 
 ## Build
 
-### MacOS
-install xcode and xcode tools
+1. Get the code
 
-depending on the state of your install you may need to run:
-```sh
-sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-```
+    ```sh
+    git clone https://github.com/charter-se/barrelman.git
+    cd barrelman
+    ```
 
-### Get the code
-```sh
-go get github.com/CirroCloud/yamlpack
-go get github.com/charter-oss/structured
-git clone https://github.com/charter-oss/barrelman.git
-cd barrelman
-```
-### Build
-```sh
-go build ./...
-```
-## Install
+2. Build the binary
 
-Copy or link the barrelman binary and plugin.yaml files to ~/.helm/plugins/barrelman/
+    ```sh
+    export GO111MODULE=on
+    go build
+    ```
+
+## Install as Helm Plugin
+
+As a Helm plugin, Barrelman is largely configured by the Helm environment including Kubernetes server 
+settings and authorization keys.
+
+Copy or link the Barrelman binary and plugin.yaml files to `~/.helm/plugins/barrelman/`
+
 ```sh
 mkdir ~/.helm/plugins/barrelman
 cp barrelman ~/.helm/plugins/barrelman
-cp plugins.yaml ~/.helm/plugins/barrelman
-``` 
+cp plugin.yaml ~/.helm/plugins/barrelman
+```
 
+When Barrelman is installed as a plugin you can run commands like `helm barrelman ...`.
 
-## Overview
-The two main concepts are the ability to process a single YAML file that consists of multiple charts and target state commanding.
+## Install as a Standalone Binary
 
-The YAML configuration document may contain multiple sub-documents or charts denoted by the YAML directive seperator "---". Each section within the YAML file will be sent as a chart to kubernetes, routed to a kubernetes namespace specified in the section.
+This will install the Barrelman binary to $GOPATH/bin.
 
-Barrelman does diff analysis on each release and only executes those changes necassary to acheive the configured state.
+```sh
+cd barrelman
+export GO111MODULE=on
+go install
+```
 
-~~Barrelman can be configured to rollback all changes within the current or last transaction on a detected failure, or when commanded by the command line interface. A failure as indicated by kubernetes when commiting one chart will result in the rolling back to the previously commited state on all configured charts.~~  *(rollback not yet implimented)*
+If it is in your $PATH you will be able to run commands like `barrelman ...`.
 
-As a Helm plugin, Barrelman is largely configured by the Helm environment including Kubernetes server settings and authorization keys.
+## Quick Start
+
+This quick start will use an example LAMP stack manifest to show some of the basic features of Barrelman.
+
+_We assume Barrelman has been installed as described above. Commands are shown using the standalone 
+Barrelman binary. Prepend `helm ` to use Barrelman a Helm plugin._
+
+Requirements:
+
+- Barrelman is installed
+- An existing Kubernetes cluster
+- Helm and Tiller installed on the Kubernetes cluster
+
+We have a Barrelman manifest defined in `examples/go-web-service/manifest.yaml` that we will use to 
+deploy our application. Run the following command to deploy the application:
+
+```sh
+cd examples/go-web-service/
+barrelman apply manifest.yaml
+```
+
+You can test the application by port-forwarding to your Kubernetes cluster and the service created 
+by the chart and then browsing to `http://localhost:8080/`.
+
+```sh
+kubectl -n barrelman-go-web-service port-forward svc/go-web-service 8080:8080
+```
+
+Next we will modify our manifest and scale up the number of pods running our service.
+
+Update the number of replicas set in the `examples/go-web-service/manifest.yaml` file.
+
+```yaml
+  values:
+    replicas: 3
+```
+
+Barrelman can show you a diff of the current state in the cluster and pending changes in your manifest.
+
+```sh
+barrelman apply --diff manifest.yaml
+```
+
+Now apply the new manifest
+
+```sh
+barrelman apply manifest.yaml
+```
+
+Verify that Kubernetes has scaled up the pods
+
+```sh
+kubectl -n barrelman-go-web-service get po
+```
+
+Finally, let's cleanup by deleting the resources deployed by Barrelman
+
+```sh
+barrelman delete manifest.yaml
+```
+
+_Note that the namespace is not deleted by this command since we do not want to accidentally delete 
+resources that have been created there outside of the Barrelman process._
 
 ## Usage
 
-### apply
+For main usage documentation run
 
 ```sh
-helm barrelman apply testdata/flagship-manifest.yaml
+barrelman help
 ```
 
-#### --nosync
-Disable automatic repository syncing
+For command help run
 
-#### --dry-run
-Run a "dry-run" on each release in the manifest, does not commit any changes
+```sh
+barrelman <command> -h
+```
 
-#### --diff
-Renders the local charts on k8s and compares them against the running releases and displays any differences, does not commit any changes
+## Authentication
 
-## Authenitcation
-Some git repositories may require authenitcation in order to syncronize. Barrelman currently supports github [personal access tokens](https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/).
+Some Git repositories may require authentication. Barrelman supports authentication using 
+[GitHub personal access tokens](https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/).
 
-The personal access token can be configured in ~/.barrelman/config
+The personal access token can be configured in `~/.barrelman/config`
 
-#### Example
 ```yaml
 ---
 account:
@@ -79,71 +158,6 @@ account:
       secret: 867530986753098675309
 ```
 
-## Example Manifest
-```yaml
----
-schema: armada/Chart/v1
-metadata:
-  schema: metadata/Document/v1
-  name: kubernetes-common
-data:
-  chart_name: kubernetes-common
-  release: kubernetes-common
-  namespace: scratch
-  install:
-    no_hooks: false
-  upgrade:
-    no_hooks: false
-  values: {}
-  source:
-    type: git
-    location: https://github.com/v1k0d3n/flagship
-    subpath: charts/kubernetes-common
-    reference: master
-  dependencies: []
----
-schema: armada/Chart/v1
-metadata:
-  schema: metadata/Document/v1
-  name: storage-minio
-data:
-  chart_name: storage-minio
-  release: storage-minio
-  namespace: scratch
-  timeout: 3600
-  wait:
-    timeout: 3600
-    labels:
-      release_group: flagship-storage-minio
-  install:
-    no_hooks: false
-  upgrade:
-    no_hooks: false
-  values: {}
-  source:
-    type: git
-    location: https://github.com/v1k0d3n/flagship
-    subpath: charts/storage-minio
-    reference: master
-  dependencies:
-    - kubernetes-common
----
-schema: armada/ChartGroup/v1
-metadata:
-  schema: metadata/Document/v1
-  name: scratch-test
-data:
-  description: "Keystone Infra Services"
-  sequenced: True
-  chart_group:
-    - storage-minio
----
-schema: armada/Manifest/v1
-metadata:
-  schema: metadata/Document/v1
-  name: scratch-manifest
-data:
-  release_prefix: armada
-  chart_groups:
-    - scratch-test
-```
+## Examples
+
+Example Barrelman manifests can be found in `examples/` and `testdata/`.
