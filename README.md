@@ -19,14 +19,14 @@ repos, etc. This makes Barrelman manifests very flexible.
 ## Requirements
 
 - Go >= 1.11 (for module support)
-- Access to [charter-se](https://github.com/charter-se) GitHub organization
+- Access to [charter-oss](https://github.com/charter-oss) GitHub organization
 
 ## Build
 
 1. Get the code
 
     ```sh
-    git clone https://github.com/charter-se/barrelman.git
+    git clone https://github.com/charter-oss/barrelman.git
     cd barrelman
     ```
 
@@ -75,7 +75,7 @@ Requirements:
 
 - Barrelman is installed
 - An existing Kubernetes cluster
-- Helm and Tiller installed on the Kubernetes cluster
+- Helm and Tiller installed on the Kubernetes cluster, see [Installing Helm](https://helm.sh/docs/using_helm/#installing-helm)
 
 We have a Barrelman manifest defined in `examples/go-web-service/manifest.yaml` that we will use to 
 deploy our application. Run the following command to deploy the application:
@@ -116,7 +116,7 @@ barrelman apply manifest.yaml
 Verify that Kubernetes has scaled up the pods
 
 ```sh
-kubectl -n barrelman-go-web-service get po
+kubectl -n barrelman-go-web-service get pods
 ```
 
 Finally, let's cleanup by deleting the resources deployed by Barrelman
