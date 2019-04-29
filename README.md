@@ -66,7 +66,7 @@ If it is in your $PATH you will be able to run commands like `barrelman ...`.
 
 ## Quick Start
 
-This quick start will use an example LAMP stack manifest to show some of the basic features of Barrelman.
+This quick start will use an example Go web service manifest to show some of the basic features of Barrelman.
 
 _We assume Barrelman has been installed as described above. Commands are shown using the standalone 
 Barrelman binary. Prepend `helm ` to use Barrelman a Helm plugin._
