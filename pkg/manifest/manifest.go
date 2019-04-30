@@ -10,10 +10,10 @@ import (
 	"github.com/cirrocloud/yamlpack"
 	"github.com/ghodss/yaml"
 
-	"github.com/charter-se/barrelman/pkg/manifest/chartsync"
-	"github.com/charter-se/structured"
-	"github.com/charter-se/structured/errors"
-	"github.com/charter-se/structured/log"
+	"github.com/charter-oss/barrelman/pkg/manifest/chartsync"
+	"github.com/charter-oss/structured"
+	"github.com/charter-oss/structured/errors"
+	"github.com/charter-oss/structured/log"
 )
 
 const (
@@ -85,6 +85,7 @@ type ChartData struct {
 	Timeout      int
 	Wait         *ChartDataWait
 	Install      *ChartDataInstall
+	InstallWait  bool
 	Upgrade      *ChartDataUpgrade
 	Source       *ChartSource
 	Dependencies []string
@@ -262,6 +263,7 @@ func NewChart() *Chart {
 	chart.Data.Wait = &ChartDataWait{}
 	chart.Data.Wait.Labels = make(map[string]string)
 	chart.Data.Install = &ChartDataInstall{}
+	chart.Data.InstallWait = true
 	chart.Data.Upgrade = &ChartDataUpgrade{}
 	chart.Data.Values = make(map[string]interface{})
 	chart.Data.Dependencies = []string{}

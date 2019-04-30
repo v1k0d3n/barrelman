@@ -7,10 +7,10 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/charter-se/barrelman/pkg/cluster"
-	"github.com/charter-se/barrelman/pkg/cluster/mocks"
-	"github.com/charter-se/barrelman/pkg/manifest/chartsync"
-	"github.com/charter-se/structured/errors"
+	"github.com/charter-oss/barrelman/pkg/cluster"
+	"github.com/charter-oss/barrelman/pkg/cluster/mocks"
+	"github.com/charter-oss/barrelman/pkg/manifest/chartsync"
+	"github.com/charter-oss/structured/errors"
 )
 
 func TestDeleteRun(t *testing.T) {
@@ -35,14 +35,6 @@ func TestDeleteRun(t *testing.T) {
 		delCmd := newTestDeleteCmd()
 
 		session := &mocks.Sessioner{}
-
-		Convey("Should error on config file", func() {
-			delCmd.Options.ConfigFile = "notExist"
-			err := delCmd.Run(session)
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "config file does not exist")
-			session.AssertExpectations(t)
-		})
 
 		Convey("Should error on session.Init()", func() {
 			session.On("Init").Return(errors.New("simulated Init error"))

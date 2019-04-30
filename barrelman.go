@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/charter-se/barrelman/cmd"
+	"github.com/charter-oss/barrelman/cmd"
 )
 
 func main() {

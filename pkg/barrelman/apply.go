@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/charter-se/barrelman/pkg/cluster"
-	"github.com/charter-se/barrelman/pkg/manifest"
-	"github.com/charter-se/barrelman/pkg/version"
-	"github.com/charter-se/structured/errors"
-	"github.com/charter-se/structured/log"
+	"github.com/charter-oss/barrelman/pkg/cluster"
+	"github.com/charter-oss/barrelman/pkg/manifest"
+	"github.com/charter-oss/barrelman/pkg/version"
+	"github.com/charter-oss/structured/errors"
+	"github.com/charter-oss/structured/log"
 )
 
 const (
@@ -150,6 +150,7 @@ func (cmd *ApplyCmd) ComputeReleases(
 								ReleaseName:    rel.ReleaseName,
 								Namespace:      v.Namespace,
 								ValueOverrides: v.Overrides,
+								InstallWait:    v.InstallWait,
 							},
 						})
 				} else {
@@ -161,6 +162,7 @@ func (cmd *ApplyCmd) ComputeReleases(
 								ReleaseName:    rel.ReleaseName,
 								Namespace:      v.Namespace,
 								ValueOverrides: v.Overrides,
+								InstallWait:    v.InstallWait,
 							},
 						})
 				}
@@ -175,6 +177,7 @@ func (cmd *ApplyCmd) ComputeReleases(
 						ReleaseName:    v.ReleaseName,
 						Namespace:      v.Namespace,
 						ValueOverrides: v.Overrides,
+						InstallWait:    v.InstallWait,
 					},
 				})
 		}
@@ -265,6 +268,10 @@ func (rt ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) error
 						return errors.Wrap(err, "error deleting release before install (forced)")
 					}
 				}
+				log.WithFields(log.Fields{
+					"Name":      v.ReleaseMeta.ReleaseName,
+					"Namespace": v.ReleaseMeta.Namespace,
+				}).Info("Installing")
 				for i := 0; i < opt.InstallRetry; i++ {
 					msg, relName, err := session.InstallRelease(v.ReleaseMeta)
 					if err != nil {
@@ -286,7 +293,8 @@ func (rt ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) error
 							"Namespace": v.ReleaseMeta.Namespace,
 						}).Info("Deleting (state change)")
 						if err := session.DeleteRelease(dm); err != nil {
-							return errors.Wrap(err, "error deleting release before install (forced)")
+							//deleting kube-proxy or other connection issues can trigger this, don't abort the retry
+							log.Debug(err, "error deleting release before install (forced)")
 						}
 						/////
 						select {
@@ -319,6 +327,10 @@ func (rt ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) error
 				}).Info("Skipping")
 				continue
 			}
+			log.WithFields(log.Fields{
+				"Name":      v.ReleaseMeta.ReleaseName,
+				"Namespace": v.ReleaseMeta.Namespace,
+			}).Info("Upgrading")
 			msg, err := session.UpgradeRelease(v.ReleaseMeta)
 			if err != nil {
 				return errors.WithFields(errors.Fields{

@@ -7,10 +7,10 @@ import (
 	"github.com/stretchr/testify/mock"
 	"k8s.io/helm/pkg/proto/hapi/chart"
 
-	"github.com/charter-se/barrelman/pkg/barrelman"
-	"github.com/charter-se/barrelman/pkg/cluster"
-	"github.com/charter-se/barrelman/pkg/cluster/mocks"
-	"github.com/charter-se/structured/errors"
+	"github.com/charter-oss/barrelman/pkg/barrelman"
+	"github.com/charter-oss/barrelman/pkg/cluster"
+	"github.com/charter-oss/barrelman/pkg/cluster/mocks"
+	"github.com/charter-oss/structured/errors"
 )
 
 func TestNewDeleteCmd(t *testing.T) {
@@ -24,34 +24,11 @@ func TestNewDeleteCmd(t *testing.T) {
 			})
 			So(cmd.Name(), ShouldEqual, "delete")
 		})
-		Convey("Can fail Run", func() {
-			cmd := newDeleteCmd(&barrelman.DeleteCmd{
-				Options:    &barrelman.CmdOptions{},
-				Config:     &barrelman.Config{},
-				LogOptions: &logOpts,
-			})
-
-			err := cmd.RunE(cmd, []string{})
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "config file does not exist")
-		})
 	})
 }
 
 func TestDeleteRun(t *testing.T) {
 	Convey("Delete", t, func() {
-		Convey("Can fail to find config file", func() {
-			c := &barrelman.DeleteCmd{
-				Options: &barrelman.CmdOptions{
-					ConfigFile: "",
-				},
-			}
-			session := &mocks.Sessioner{}
-			err := c.Run(session)
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "config file does not exist")
-		})
-
 		Convey("Can fail to Init", func() {
 			c := &barrelman.DeleteCmd{
 				Options: &barrelman.CmdOptions{

@@ -1,16 +1,14 @@
-module github.com/charter-se/barrelman
+module github.com/charter-oss/barrelman
 
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
-	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/MakeNowJust/heredoc v0.0.0-20171113091838-e9091a26100e // indirect
-	github.com/Masterminds/semver v1.4.2 // indirect
-	github.com/Masterminds/sprig v2.16.0+incompatible
+	github.com/Masterminds/sprig v2.18.0+incompatible
 	github.com/aokoli/goutils v1.0.1 // indirect
 	github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a
 	github.com/chai2010/gettext-go v0.0.0-20170215093142-bf70f2a70fb1 // indirect
-	github.com/charter-se/structured v0.0.0-20190211172727-b8be75e216c8
-	github.com/cirrocloud/yamlpack v0.0.0-20190215235819-74c72b8409c0
+	github.com/charter-oss/structured v0.0.2
+	github.com/cirrocloud/yamlpack v0.0.0-20190425223817-86189e66156c
 	github.com/docker/distribution v2.7.0+incompatible // indirect
 	github.com/docker/docker v0.0.0-20181201151923-ad1354ffb423 // indirect
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
@@ -18,7 +16,7 @@ require (
 	github.com/evanphx/json-patch v4.1.0+incompatible // indirect
 	github.com/exponent-io/jsonpath v0.0.0-20151013193312-d6023ce2651d // indirect
 	github.com/fatih/camelcase v1.0.0 // indirect
-	github.com/ghodss/yaml v1.0.0
+	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/go-openapi/jsonpointer v0.17.2 // indirect
 	github.com/go-openapi/jsonreference v0.17.2 // indirect
 	github.com/go-openapi/spec v0.17.2 // indirect
@@ -27,17 +25,12 @@ require (
 	github.com/golang/groupcache v0.0.0-20181024230925-c65c006176ff // indirect
 	github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c // indirect
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
-	github.com/google/uuid v1.1.0 // indirect
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e // indirect
 	github.com/gregjones/httpcache v0.0.0-20181110185634-c63ab54fda8f // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
-	github.com/huandu/xstrings v1.2.0 // indirect
-	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
-	github.com/jjeffery/errors v1.0.3 // indirect
-	github.com/jjeffery/kv v0.7.0 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
 	github.com/jtolds/gls v0.0.0-20181110203027-b4936e06046b // indirect
 	github.com/mattn/go-colorable v0.0.9 // indirect

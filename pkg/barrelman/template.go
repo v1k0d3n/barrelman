@@ -47,11 +47,11 @@ import (
 	"k8s.io/helm/pkg/tiller"
 	"k8s.io/helm/pkg/timeconv"
 
-	bfest "github.com/charter-se/barrelman/pkg/manifest"
-	"github.com/charter-se/barrelman/pkg/version"
-	"github.com/charter-se/structured"
-	"github.com/charter-se/structured/errors"
-	"github.com/charter-se/structured/log"
+	bfest "github.com/charter-oss/barrelman/pkg/manifest"
+	"github.com/charter-oss/barrelman/pkg/version"
+	"github.com/charter-oss/structured"
+	"github.com/charter-oss/structured/errors"
+	"github.com/charter-oss/structured/log"
 )
 
 const defaultDirectoryPermission = 0755
@@ -340,7 +340,7 @@ func writeToFile(outputDir string, name string, data string) error {
 
 	defer f.Close()
 
-	_, err = f.WriteString(fmt.Sprintf("--- # Source: %s\n%s", name, data))
+	_, err = f.WriteString(fmt.Sprintf("--- # Source: %s\n%s\n", name, data))
 
 	if err != nil {
 		return err

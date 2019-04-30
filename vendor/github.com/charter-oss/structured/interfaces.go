@@ -1,6 +1,6 @@
 package structured
 
-import "github.com/charter-se/structured/log"
+import "github.com/charter-oss/structured/log"
 
 type Logger interface {
 	Debug(...interface{})

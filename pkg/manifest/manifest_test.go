@@ -9,8 +9,8 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"github.com/charter-se/barrelman/pkg/manifest/chartsync"
-	mock_chartsync "github.com/charter-se/barrelman/pkg/manifest/chartsync/mocks"
+	"github.com/charter-oss/barrelman/pkg/manifest/chartsync"
+	mock_chartsync "github.com/charter-oss/barrelman/pkg/manifest/chartsync/mocks"
 )
 
 func TestNewManifest(t *testing.T) {
@@ -197,6 +197,57 @@ func TestManifest(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(path, ShouldContainSubstring, "charts/test-minio")
 			So(charts, ShouldHaveLength, 0) // no depends in this test
+		})
+		Convey("Chart InstallWait", func() {
+			installWaitTrue := &Chart{
+				Metadata: &Metadata{
+					Name: "installWait-true",
+				},
+				Data: &ChartData{
+					InstallWait: true,
+				},
+			}
+
+			installWaitFalse := &Chart{
+				Metadata: &Metadata{
+					Name: "installWait-false",
+				},
+				Data: &ChartData{
+					InstallWait: false,
+				},
+			}
+
+			installWaitDefault := &Chart{
+				Metadata: &Metadata{
+					Name: "installWait-default",
+				},
+				Data: &ChartData{},
+			}
+
+			Convey("Can be true", func() {
+				err := m.AddChart(installWaitTrue)
+				So(err, ShouldBeNil)
+				chart := m.GetChart(installWaitTrue.Metadata.Name)
+				So(chart, ShouldNotBeNil)
+				So(chart.Data, ShouldNotBeNil)
+				So(chart.Data.InstallWait, ShouldBeTrue)
+			})
+			Convey("Can be false", func() {
+				err := m.AddChart(installWaitFalse)
+				So(err, ShouldBeNil)
+				chart := m.GetChart(installWaitFalse.Metadata.Name)
+				So(chart, ShouldNotBeNil)
+				So(chart.Data, ShouldNotBeNil)
+				So(chart.Data.InstallWait, ShouldBeFalse)
+			})
+			Convey("Default is true", func() {
+				err := m.AddChart(installWaitDefault)
+				So(err, ShouldBeNil)
+				chart := m.GetChart(installWaitDefault.Metadata.Name)
+				So(chart, ShouldNotBeNil)
+				So(chart.Data, ShouldNotBeNil)
+				So(chart.Data.InstallWait, ShouldBeFalse)
+			})
 		})
 		Convey("Can process dependencies", func() {
 			m.ChartSync = chartsync.New(getTestDataDir(), make(chartsync.AccountTable))

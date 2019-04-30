@@ -14,8 +14,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	helm_env "k8s.io/helm/pkg/helm/environment"
 
-	"github.com/charter-se/barrelman/pkg/manifest/chartsync"
-	"github.com/charter-se/structured/errors"
+	"github.com/charter-oss/barrelman/pkg/manifest/chartsync"
+	"github.com/charter-oss/structured/errors"
 )
 
 const (

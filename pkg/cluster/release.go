@@ -20,7 +20,7 @@ import (
 	"k8s.io/helm/pkg/proto/hapi/chart"
 	"k8s.io/helm/pkg/proto/hapi/release"
 
-	"github.com/charter-se/structured/errors"
+	"github.com/charter-oss/structured/errors"
 )
 
 const (
