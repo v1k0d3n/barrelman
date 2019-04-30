@@ -305,7 +305,6 @@ func NewChart() *Chart {
 	chart.Data.Wait = &ChartDataWait{}
 	chart.Data.Wait.Labels = make(map[string]string)
 	chart.Data.Install = &ChartDataInstall{}
-	chart.Data.InstallWait = true
 	chart.Data.Upgrade = &ChartDataUpgrade{}
 	chart.Data.Values = make(map[string]interface{})
 	chart.Data.Dependencies = []string{}

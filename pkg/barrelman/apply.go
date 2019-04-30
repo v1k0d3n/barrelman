@@ -261,8 +261,9 @@ func (rt ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) error
 						DeleteTimeout: v.ReleaseMeta.InstallTimeout,
 					}
 					log.WithFields(log.Fields{
-						"Name":      v.ReleaseMeta.ReleaseName,
-						"Namespace": v.ReleaseMeta.Namespace,
+						"Name":        v.ReleaseMeta.ReleaseName,
+						"Namespace":   v.ReleaseMeta.Namespace,
+						"InstallWait": v.ReleaseMeta.InstallWait,
 					}).Info("Deleting (force install)")
 					if err := session.DeleteRelease(dm); err != nil {
 						return errors.Wrap(err, "error deleting release before install (forced)")
@@ -271,6 +272,7 @@ func (rt ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) error
 				log.WithFields(log.Fields{
 					"Name":      v.ReleaseMeta.ReleaseName,
 					"Namespace": v.ReleaseMeta.Namespace,
+					"InstallWait": v.ReleaseMeta.InstallWait,
 				}).Info("Installing")
 				for i := 0; i < opt.InstallRetry; i++ {
 					msg, relName, err := session.InstallRelease(v.ReleaseMeta)
@@ -278,6 +280,7 @@ func (rt ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) error
 						log.WithFields(log.Fields{
 							"Name":      v.ReleaseMeta.ReleaseName,
 							"Namespace": v.ReleaseMeta.Namespace,
+							"InstallWait": v.ReleaseMeta.InstallWait,
 							"Error":     err.Error(),
 						}).Debug("Install reported error")
 						innerErr = err
@@ -291,6 +294,7 @@ func (rt ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) error
 						log.WithFields(log.Fields{
 							"Name":      v.ReleaseMeta.ReleaseName,
 							"Namespace": v.ReleaseMeta.Namespace,
+							"InstallWait": v.ReleaseMeta.InstallWait,
 						}).Info("Deleting (state change)")
 						if err := session.DeleteRelease(dm); err != nil {
 							//deleting kube-proxy or other connection issues can trigger this, don't abort the retry
@@ -306,6 +310,7 @@ func (rt ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) error
 					log.WithFields(log.Fields{
 						"Name":      v.ReleaseMeta.ReleaseName,
 						"Namespace": v.ReleaseMeta.Namespace,
+						"InstallWait": v.ReleaseMeta.InstallWait,
 						"Release":   relName,
 					}).Info(msg)
 					innerErr = nil
@@ -314,6 +319,7 @@ func (rt ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) error
 				return errors.WithFields(errors.Fields{
 					"Name":      v.ReleaseMeta.ReleaseName,
 					"Namespace": v.ReleaseMeta.Namespace,
+					"InstallWait": v.ReleaseMeta.InstallWait,
 				}).Wrap(innerErr, "Error while installing release")
 			}(); err != nil {
 				return err

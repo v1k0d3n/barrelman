@@ -198,6 +198,9 @@ func TestManifest(t *testing.T) {
 			So(path, ShouldContainSubstring, "charts/test-minio")
 			So(charts, ShouldHaveLength, 0) // no depends in this test
 		})
+		Convey("Chart InstallWait defaults to false", func() {
+			So(NewChart().Data.InstallWait, ShouldBeFalse)
+		})
 		Convey("Chart InstallWait", func() {
 			installWaitTrue := &Chart{
 				Metadata: &Metadata{
