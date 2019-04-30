@@ -77,11 +77,13 @@ Requirements:
 - An existing Kubernetes cluster
 - Helm and Tiller installed on the Kubernetes cluster, see [Installing Helm](https://helm.sh/docs/using_helm/#installing-helm)
 
-We have a Barrelman manifest defined in `examples/go-web-service/manifest.yaml` that we will use to 
-deploy our application. Run the following command to deploy the application:
+We have a Barrelman manifest defined in `examples/example-go-web-service/manifest.yaml` that we will use to 
+deploy our application using a Docker container image built from 
+[CirroCloud/example-go-web-service](https://github.com/cirrocloud/example-go-web-service). Run the 
+following command to deploy the application:
 
 ```sh
-cd examples/go-web-service/
+cd examples/example-go-web-service
 barrelman apply manifest.yaml
 ```
 
@@ -89,12 +91,12 @@ You can test the application by port-forwarding to your Kubernetes cluster and t
 by the chart and then browsing to `http://localhost:8080/`.
 
 ```sh
-kubectl -n barrelman-go-web-service port-forward svc/go-web-service 8080:8080
+kubectl -n example-go-web-service port-forward svc/example-go-web-service 8080:8080
 ```
 
 Next we will modify our manifest and scale up the number of pods running our service.
 
-Update the number of replicas set in the `examples/go-web-service/manifest.yaml` file.
+Update the number of replicas set in the `examples/example-go-web-service/manifest.yaml` file.
 
 ```yaml
   values:
@@ -116,7 +118,7 @@ barrelman apply manifest.yaml
 Verify that Kubernetes has scaled up the pods
 
 ```sh
-kubectl -n barrelman-go-web-service get pods
+kubectl -n example-go-web-service get pods
 ```
 
 Finally, let's cleanup by deleting the resources deployed by Barrelman
