@@ -78,4 +78,4 @@ require (
 	vbom.ml/util v0.0.0-20180919145318-efcd4e0f9787 // indirect
 )
 
-replace github.com/spf13/viper => github.com/demond2/viper v1.3.2
+replace github.com/spf13/viper v1.3.2 => github.com/demond2/viper v1.3.2

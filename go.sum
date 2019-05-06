@@ -36,6 +36,8 @@ github.com/charter-oss/structured v0.0.1 h1:iNRGLIKTmGjqS8goJ19RFbIVrgbx3N3P2E/M
 github.com/charter-oss/structured v0.0.1/go.mod h1:K3+upUA8B39IsFIKQzitu+J9GbXqXHNCKVeYz4PNOj4=
 github.com/charter-oss/structured v0.0.2 h1:Sq7xb+m8LDFhVxd27FFpa6QDc141G5cCOQt8eymvqzk=
 github.com/charter-oss/structured v0.0.2/go.mod h1:dMR2DYpS89YKUadRMWoYuWGc7OZ9VsluCK3Gf3psYXQ=
+github.com/charter-se/structured v0.0.0-20190211172727-b8be75e216c8 h1:pd3En4tnJcb25vv+FrPM04gxuLuOkvXan4oL15pDEjg=
+github.com/charter-se/structured v0.0.0-20190211172727-b8be75e216c8/go.mod h1:GjdEbkrvwaYHUWmaB7Rndn0FCRS7QSn8Hf7wiEX9XO8=
 github.com/cirrocloud/yamlpack v0.0.0-20190425223817-86189e66156c h1:m9dtrCnD5kret4UcjjPCRf/NKfi/+D4b3FajdX3/3/M=
 github.com/cirrocloud/yamlpack v0.0.0-20190425223817-86189e66156c/go.mod h1:E6dZiV0VELL9fzffKwW9dasmAY+jkGiVqxBJtfvkY98=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
