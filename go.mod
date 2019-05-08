@@ -8,7 +8,7 @@ require (
 	github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a
 	github.com/chai2010/gettext-go v0.0.0-20170215093142-bf70f2a70fb1 // indirect
 	github.com/charter-oss/structured v0.0.2
-	github.com/cirrocloud/yamlpack v0.0.0-20190425223817-86189e66156c
+	github.com/cirrocloud/yamlpack v0.0.1
 	github.com/docker/distribution v2.7.0+incompatible // indirect
 	github.com/docker/docker v0.0.0-20181201151923-ad1354ffb423 // indirect
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
@@ -33,6 +33,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
 	github.com/jtolds/gls v0.0.0-20181110203027-b4936e06046b // indirect
+	github.com/lithammer/dedent v1.1.0
 	github.com/mattn/go-colorable v0.0.9 // indirect
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
@@ -78,4 +79,4 @@ require (
 	vbom.ml/util v0.0.0-20180919145318-efcd4e0f9787 // indirect
 )
 
-replace github.com/spf13/viper v1.3.2 => github.com/demond2/viper v1.3.2
+replace github.com/spf13/viper => ../../demond2/viper

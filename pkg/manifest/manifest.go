@@ -338,6 +338,9 @@ func (m *Manifest) load() error {
 					"Name": chart.Metadata.Name,
 				}).Wrap(err, "Failed to marshal Override Values")
 			}
+			if chart.Data.Source == nil {
+				return errors.New("chart missing Data.Source")
+			}
 			chart.Data.SyncSource = &chartsync.Source{
 				Location:  chart.Data.Source.Location,
 				SubPath:   chart.Data.Source.Subpath,

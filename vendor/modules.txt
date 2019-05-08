@@ -28,7 +28,7 @@ github.com/chai2010/gettext-go/gettext/po
 github.com/charter-oss/structured/log
 github.com/charter-oss/structured
 github.com/charter-oss/structured/errors
-# github.com/cirrocloud/yamlpack v0.0.0-20190425223817-86189e66156c
+# github.com/cirrocloud/yamlpack v0.0.1
 github.com/cirrocloud/yamlpack
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
@@ -135,6 +135,8 @@ github.com/jtolds/gls
 github.com/kevinburke/ssh_config
 # github.com/konsorten/go-windows-terminal-sequences v1.0.1
 github.com/konsorten/go-windows-terminal-sequences
+# github.com/lithammer/dedent v1.1.0
+github.com/lithammer/dedent
 # github.com/magiconair/properties v1.8.0
 github.com/magiconair/properties
 # github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329
@@ -208,7 +210,7 @@ github.com/spf13/cobra
 github.com/spf13/jwalterweatherman
 # github.com/spf13/pflag v1.0.3
 github.com/spf13/pflag
-# github.com/spf13/viper v1.3.2-0.20190315063904-3954e415200e
+# github.com/spf13/viper v1.3.2-0.20190315063904-3954e415200e => ../../demond2/viper
 github.com/spf13/viper
 # github.com/src-d/gcfg v1.4.0
 github.com/src-d/gcfg
