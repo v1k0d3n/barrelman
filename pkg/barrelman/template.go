@@ -219,7 +219,6 @@ func (cmd *TemplateCmd) Export(as *bfest.ArchiveSpec) error {
 		return errors.Wrap(err, "chart load failed")
 	}
 
-	//config := &chart.Config{Raw: string(rawVals), Values: map[string]*chart.Value{}}
 	config := &chart.Config{Raw: string(rawVals), Values: map[string]*chart.Value{}}
 	if msgs := validation.IsDNS1123Subdomain(as.ReleaseName); as.ReleaseName != "" && len(msgs) > 0 {
 		return fmt.Errorf("release name %s is invalid: %s", as.ReleaseName, strings.Join(msgs, ";"))
