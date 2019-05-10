@@ -31,6 +31,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/sprig"
+	"github.com/cirrocloud/yamlpack"
 	yaml "gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/helm/pkg/chartutil"
@@ -152,6 +153,51 @@ func (cmd *TemplateCmd) Run() error {
 	return nil
 }
 
+func (cmd *TemplateCmd) RunWithSections(ys []*yamlpack.YamlSection) error {
+	var err error
+	ver := version.Get()
+	log.WithFields(log.Fields{
+		"Version": ver.Version,
+		"Commit":  ver.Commit,
+		"Branch":  ver.Branch,
+	}).Info("Barrelman")
+
+	if cmd.Options.ConfigFile != "" {
+		cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
+		if err != nil {
+			return errors.Wrap(err, "got error while loading config")
+		}
+	} else {
+		cmd.Config = GetEmptyConfig()
+	}
+
+	archives, err := processManifestSections(&bfest.Config{
+		DataDir:      cmd.Options.DataDir,
+		ManifestFile: cmd.Options.ManifestFile,
+		AccountTable: cmd.Config.Account,
+	}, ys, cmd.Options.NoSync)
+	if err != nil {
+		return errors.Wrap(err, "template failed")
+	}
+
+	for _, v := range archives.List {
+		log.WithFields(log.Fields{
+			"File":      v.Path,
+			"MetaName":  v.MetaName,
+			"Namespace": v.Namespace,
+			"ChartName": v.ChartName,
+		}).Debug("Template")
+		if err := cmd.Export(v); err != nil {
+			return errors.WithFields(errors.Fields{
+				"file": v.Path,
+				"name": v.MetaName,
+			}).Wrap(err, "Export failed")
+		}
+	}
+	return nil
+}
+
+//func (cmd *TemplateCmd) Export(inChart io.Reader) error {
 func (cmd *TemplateCmd) Export(as *bfest.ArchiveSpec) error {
 
 	// verify that output-dir exists if provided
