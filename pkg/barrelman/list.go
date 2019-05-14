@@ -56,7 +56,7 @@ func (cmd *ListCmd) Run(session cluster.Sessioner) error {
 			"key":       k,
 			"Name":      v.ReleaseName,
 			"Namespace": v.Namespace,
-		}).Warn("Meta")
+		}).Info("Meta")
 	}
 	return nil
 }
