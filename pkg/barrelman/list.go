@@ -55,6 +55,7 @@ func (cmd *ListCmd) Run(session cluster.Sessioner) error {
 		log.WithFields(log.Fields{
 			"key":       k,
 			"Name":      v.ReleaseName,
+			"Revision": v.Revision,
 			"Namespace": v.Namespace,
 		}).Info("Meta")
 	}
