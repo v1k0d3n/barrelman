@@ -41,6 +41,7 @@ type ReleaseMeta struct {
 	ReleaseName      string //Defined in manifest, or presented by k8s
 	Namespace        string
 	Status           Status
+	Revision         int32
 	ValueOverrides   []byte
 	InstallDryRun    bool
 	InstallReuseName bool
@@ -64,6 +65,7 @@ type Release struct {
 	ReleaseName string
 	Namespace   string
 	Status      Status
+	Revision    int32
 }
 
 type ReleaseDiff struct {
@@ -105,6 +107,7 @@ func (s *Session) ListReleases() ([]*Release, error) {
 			ReleaseName: v.GetName(),
 			Namespace:   v.Namespace,
 			Status:      Status(v.Info.Status.Code),
+			Revision:    v.GetVersion(),
 		}
 		res = append(res, rel)
 	}
@@ -211,6 +214,7 @@ func (s *Session) Releases() (map[string]*ReleaseMeta, error) {
 			ChartName:   v.Chart.GetMetadata().Name,
 			Namespace:   v.Namespace,
 			Status:      v.Status,
+			Revision:    v.Revision,
 		}
 	}
 	return ret, nil
