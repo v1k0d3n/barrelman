@@ -9,17 +9,15 @@ import (
 	"path/filepath"
 	"strings"
 
+	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/helm/pkg/helm"
 	helm_env "k8s.io/helm/pkg/helm/environment"
 	"k8s.io/helm/pkg/kube"
 	"k8s.io/helm/pkg/tlsutil"
 	"k8s.io/helm/pkg/version"
-	podutil "k8s.io/kubernetes/pkg/api/pod"
-	"k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	"github.com/charter-oss/structured/errors"
 	"github.com/charter-oss/structured/log"
@@ -40,7 +38,7 @@ type Clusterer interface {
 type Session struct {
 	Helm        helm.Interface
 	Tiller      *kube.Tunnel
-	Clientset   *internalclientset.Clientset
+	Clientset   *kubernetes.Clientset
 	kubeConfig  string
 	kubeContext string
 	settings    helm_env.EnvSettings
@@ -156,11 +154,12 @@ func (s *Session) connect(namespace string) error {
 		s.settings.TLSVerify = true
 	}
 
-	s.Clientset, err = internalclientset.NewForConfig(config)
+	s.Clientset, err = kubernetes.NewForConfig(config)
 	if err != nil {
 		return errors.Wrap(err, "could not get kubernetes client")
 	}
-	podName, err := getTillerPodName(s.Clientset.Core(), namespace)
+
+	podName, err := getTillerPodName(s.Clientset, namespace)
 	if err != nil {
 		return errors.Wrap(err, "could not get Tiller pod name")
 	}
@@ -213,7 +212,7 @@ func (s *Session) connect(namespace string) error {
 	return nil
 }
 
-func getTillerPodName(client internalversion.PodsGetter, namespace string) (string, error) {
+func getTillerPodName(client kubernetes.Interface, namespace string) (string, error) {
 	// TODO use a const for labels
 	selector := labels.Set{"app": "helm", "name": "tiller"}.AsSelector()
 	pod, err := getFirstRunningPod(client, namespace, selector)
@@ -223,9 +222,9 @@ func getTillerPodName(client internalversion.PodsGetter, namespace string) (stri
 	return pod.ObjectMeta.GetName(), nil
 }
 
-func getFirstRunningPod(client internalversion.PodsGetter, namespace string, selector labels.Selector) (*core.Pod, error) {
+func getFirstRunningPod(client kubernetes.Interface, namespace string, selector labels.Selector) (*core.Pod, error) {
 	options := metav1.ListOptions{LabelSelector: selector.String()}
-	pods, err := client.Pods(namespace).List(options)
+	pods, err := client.CoreV1().Pods(namespace).List(options)
 	if err != nil {
 		return nil, err
 	}
@@ -233,8 +232,10 @@ func getFirstRunningPod(client internalversion.PodsGetter, namespace string, sel
 		return nil, errors.New("could not find tiller")
 	}
 	for _, p := range pods.Items {
-		if podutil.IsPodReady(&p) {
-			return &p, nil
+		for _, v := range p.Status.Conditions {
+			if v.Type == core.PodReady {
+				return &p, nil
+			}
 		}
 	}
 	return nil, errors.New("could not find a ready tiller pod")
