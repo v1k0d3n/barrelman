@@ -91,7 +91,7 @@ type Releaser interface {
 	Releases() (map[string]*ReleaseMeta, error)
 	DiffManifests(map[string]*MappingResult, map[string]*MappingResult, []string, int, io.Writer) bool
 	ChartFromArchive(aChart io.Reader) (*chart.Chart, error)
-	Rollback(m *RollbackMeta) error
+	RollbackRelease(m *RollbackMeta) error
 }
 
 //ListReleases returns an array of running releases as reported by the cluster

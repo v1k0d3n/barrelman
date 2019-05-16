@@ -55,8 +55,21 @@ func (cmd *ListCmd) Run(session cluster.Sessioner) error {
 		log.WithFields(log.Fields{
 			"key":       k,
 			"Name":      v.ReleaseName,
-			"Revision": v.Revision,
+			"Revision":  v.Revision,
 			"Namespace": v.Namespace,
+		}).Info("Meta")
+	}
+
+	versions, err := session.GetVersions()
+	if err != nil {
+		return errors.Wrap(err, "Failed to get versions")
+	}
+	for _, v := range versions {
+		log.WithFields(log.Fields{
+			"key":       v.Name,
+			"namespace": v.Namespace,
+			"Revision":  v.Revision,
+			"Chart":     v.Chart,
 		}).Info("Meta")
 	}
 	return nil

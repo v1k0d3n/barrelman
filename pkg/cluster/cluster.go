@@ -26,7 +26,9 @@ import (
 type Sessioner interface {
 	Clusterer
 	Releaser
+	Versioner
 }
+
 type Clusterer interface {
 	Init() error
 	GetKubeConfig() string
