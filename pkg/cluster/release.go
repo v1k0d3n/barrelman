@@ -33,6 +33,7 @@ const (
 	Status_DELETED          = Status(release.Status_DELETED)
 )
 
+//ReleaseMeta is used with the InstallRelease, UpgradeRelease methods
 type ReleaseMeta struct {
 	Chart            *chart.Chart
 	Path             string //Location of Chartfile
@@ -50,16 +51,25 @@ type ReleaseMeta struct {
 	DryRun           bool
 }
 
+//DeleteMeta is used with the DeleteRelease method
 type DeleteMeta struct {
 	ReleaseName   string
 	Namespace     string
 	DeleteTimeout time.Duration
 }
 
+//RollbackMeta is used with the RollbackRelease method
+type RollbackMeta struct {
+	ReleaseName string
+	Namespace   string
+	Revision    int32
+}
+
 type Status release.Status_Code
 
 type Chart = chart.Chart
 
+//Release contains current release information
 type Release struct {
 	Chart       *Chart
 	ReleaseName string
@@ -81,6 +91,7 @@ type Releaser interface {
 	Releases() (map[string]*ReleaseMeta, error)
 	DiffManifests(map[string]*MappingResult, map[string]*MappingResult, []string, int, io.Writer) bool
 	ChartFromArchive(aChart io.Reader) (*chart.Chart, error)
+	Rollback(m *RollbackMeta) error
 }
 
 //ListReleases returns an array of running releases as reported by the cluster
@@ -192,6 +203,20 @@ func (s *Session) DeleteRelease(m *DeleteMeta) error {
 		m.ReleaseName,
 		helm.DeletePurge(true),
 		helm.DeleteTimeout(int64(m.DeleteTimeout.Seconds())),
+	)
+	if err != nil {
+		return errors.New(grpc.ErrorDesc(err))
+	}
+	return nil
+}
+
+//RollbackRelease sets the deployed revision
+func (s *Session) RollbackRelease(m *RollbackMeta) error {
+	_, err := s.Helm.RollbackRelease(
+		m.ReleaseName,
+		helm.RollbackForce(true),
+		helm.RollbackWait(true),
+		helm.RollbackVersion(m.Revision),
 	)
 	if err != nil {
 		return errors.New(grpc.ErrorDesc(err))
