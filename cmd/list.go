@@ -29,12 +29,19 @@ func newListCmd(cmd *barrelman.ListCmd) *cobra.Command {
 			return nil
 		},
 	}
-	cobraCmd.Flags().StringVar(
+
+	f := cobraCmd.Flags()
+	cmd.LogOptions = f.StringSliceP(
+		"log",
+		"l",
+		nil,
+		"log options (e.g. --log=debug,JSON")
+	f.StringVar(
 		&cmd.Options.KubeConfigFile,
 		"kubeconfig",
 		Default().KubeConfigFile,
 		"use alternate kube config file")
-	cobraCmd.Flags().StringVar(
+	f.StringVar(
 		&cmd.Options.KubeContext,
 		"kubecontext",
 		Default().KubeContext,

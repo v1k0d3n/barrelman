@@ -30,6 +30,13 @@ func newDeleteCmd(cmd *barrelman.DeleteCmd) *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.LogOptions = cobraCmd.Flags().StringSliceP(
+		"log",
+		"l",
+		nil,
+		"log options (e.g. --log=debug,JSON")
+
 	cobraCmd.Flags().BoolVar(
 		&cmd.Options.NoSync,
 		"nosync",

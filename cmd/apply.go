@@ -30,6 +30,12 @@ func newApplyCmd(cmd *barrelman.ApplyCmd) *cobra.Command {
 		},
 	}
 
+	cmd.LogOptions = cobraCmd.Flags().StringSliceP(
+		"log",
+		"l",
+		nil,
+		"log options (e.g. --log=debug,JSON")
+
 	cobraCmd.Flags().StringVar(
 		&cmd.Options.KubeConfigFile,
 		"kubeconfig",
