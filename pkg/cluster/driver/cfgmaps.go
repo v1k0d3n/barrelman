@@ -88,7 +88,7 @@ func (cfgmaps *ConfigMaps) Get(key string) (*rspb.Release, error) {
 // that filter(release) == true. An error is returned if the
 // configmap fails to retrieve the releases.
 func (cfgmaps *ConfigMaps) List(filter func(*rspb.Release) bool) ([]*rspb.Release, error) {
-	lsel := kblabels.Set{"OWNER": "TILLER"}.AsSelector()
+	lsel := kblabels.Set{"OWNER": "BARRELMAN"}.AsSelector()
 	opts := metav1.ListOptions{LabelSelector: lsel.String()}
 
 	list, err := cfgmaps.impl.List(opts)
@@ -169,7 +169,6 @@ func (cfgmaps *ConfigMaps) Create(key string, rls *rspb.Release) error {
 		if apierrors.IsAlreadyExists(err) {
 			return storageerrors.ErrReleaseExists(key)
 		}
-
 		cfgmaps.Log("create: failed to create: %s", err)
 		return err
 	}
@@ -247,7 +246,7 @@ func newConfigMapsObject(key string, rls *rspb.Release, lbs labels) (*v1.ConfigM
 	// apply labels
 	lbs.set("NAME", rls.Name)
 	lbs.set("OWNER", owner)
-	lbs.set("STATUS", rspb.Status_Code_name[int32(rls.Info.Status.Code)])
+	//lbs.set("STATUS", rspb.Status_Code_name[int32(rls.Info.Status.Code)])
 	lbs.set("VERSION", strconv.Itoa(int(rls.Version)))
 
 	// create and return configmap object

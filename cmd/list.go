@@ -10,13 +10,14 @@ import (
 
 func newListCmd(cmd *barrelman.ListCmd) *cobra.Command {
 	cobraCmd := &cobra.Command{
-		Use:   "list",
-		Short: "apply something",
-		Long:  `Something something else...`,
+		Use:   "list [manifest name]",
+		Short: "list something",
+		Long:  `lists the current releases associated with the provided manifest name`,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
-				cmd.Options.ManifestFile = args[0]
+				cmd.ManifestName = args[0]
 			}
+
 			cobraCmd.SilenceUsage = true
 			cobraCmd.SilenceErrors = true
 			log.Configure(logSettings(cmd.LogOptions)...)
@@ -36,6 +37,12 @@ func newListCmd(cmd *barrelman.ListCmd) *cobra.Command {
 		"l",
 		nil,
 		"log options (e.g. --log=debug,JSON")
+	f.StringArrayVarP(
+		cmd.ManifestNames,
+		"manifests",
+		"m",
+		[]string{},
+		"list releases by manifest name(s)")
 	f.StringVar(
 		&cmd.Options.KubeConfigFile,
 		"kubeconfig",

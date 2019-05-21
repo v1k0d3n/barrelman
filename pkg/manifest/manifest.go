@@ -309,6 +309,7 @@ func (m *Manifest) load() error {
 			if err != nil {
 				return errors.Wrap(err, "Error loading manifest")
 			}
+			m.Name = k.GetString("metadata.name")
 		case StringChartGroup:
 			chartGroup := NewChartGroup()
 			chartGroup.Version = schem.Version

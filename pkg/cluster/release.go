@@ -65,6 +65,9 @@ type RollbackMeta struct {
 	Revision    int32
 }
 
+type Revision struct {
+}
+
 type Status release.Status_Code
 
 type Chart = chart.Chart
@@ -343,9 +346,7 @@ func Parse(manifest string, defaultNamespace string) map[string]*MappingResult {
 			metadata.Metadata.Namespace = defaultNamespace
 		}
 		name := metadata.String()
-		if _, ok := result[name]; ok {
-			//log.Printf("Error: Found duplicate key %#v in manifest", name)
-		} else {
+		if _, ok := result[name]; !ok {
 			result[name] = &MappingResult{
 				Name:    name,
 				Kind:    metadata.Kind,
