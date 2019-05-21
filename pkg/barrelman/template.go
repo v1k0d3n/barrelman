@@ -127,7 +127,7 @@ func (cmd *TemplateCmd) Run() error {
 		cmd.Config = GetEmptyConfig()
 	}
 
-	archives, err := processManifest(&bfest.Config{
+	archives, manifestName, err := processManifest(&bfest.Config{
 		DataDir:      cmd.Options.DataDir,
 		ManifestFile: cmd.Options.ManifestFile,
 		AccountTable: cmd.Config.Account,
@@ -138,10 +138,11 @@ func (cmd *TemplateCmd) Run() error {
 
 	for _, v := range archives.List {
 		log.WithFields(log.Fields{
-			"File":      v.Path,
-			"MetaName":  v.MetaName,
-			"Namespace": v.Namespace,
-			"ChartName": v.ChartName,
+			"File":         v.Path,
+			"MetaName":     v.MetaName,
+			"Namespace":    v.Namespace,
+			"ChartName":    v.ChartName,
+			"ManifestName": manifestName,
 		}).Debug("Template")
 		if err := cmd.Export(v); err != nil {
 			return errors.WithFields(errors.Fields{

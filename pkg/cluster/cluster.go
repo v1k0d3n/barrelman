@@ -27,6 +27,7 @@ type Sessioner interface {
 	Clusterer
 	Releaser
 	Versioner
+	NewTransactioner
 }
 
 type Clusterer interface {

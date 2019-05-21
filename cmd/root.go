@@ -36,8 +36,9 @@ func newRootCmd(args []string) *cobra.Command {
 	}))
 
 	cobraCmd.AddCommand(newListCmd(&barrelman.ListCmd{
-		Options: options,
-		Config:  config,
+		Options:       options,
+		Config:        config,
+		ManifestNames: &[]string{},
 	}))
 
 	cobraCmd.AddCommand(newTemplateCmd(&barrelman.TemplateCmd{

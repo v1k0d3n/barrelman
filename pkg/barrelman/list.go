@@ -9,10 +9,12 @@ import (
 )
 
 type ListCmd struct {
-	Options    *CmdOptions
-	Config     *Config
-	Log        structured.Logger
-	LogOptions *[]string
+	Options       *CmdOptions
+	Config        *Config
+	ManifestName  string
+	ManifestNames *[]string
+	Log           structured.Logger
+	LogOptions    *[]string
 }
 
 func (cmd *ListCmd) Run(session cluster.Sessioner) error {
@@ -47,30 +49,37 @@ func (cmd *ListCmd) Run(session cluster.Sessioner) error {
 			"file": session.GetKubeContext(),
 		}).Info("Using kube context")
 	}
-	list, err := session.Releases()
-	if err != nil {
-		return errors.Wrap(err, "Failed to get releases")
-	}
-	for k, v := range list {
-		log.WithFields(log.Fields{
-			"key":       k,
-			"Name":      v.ReleaseName,
-			"Revision":  v.Revision,
-			"Namespace": v.Namespace,
-		}).Info("Meta")
+
+	switch len(*cmd.ManifestNames) {
+	case 0:
+		list, err := session.Releases()
+		if err != nil {
+			return errors.Wrap(err, "Failed to get releases")
+		}
+		for k, v := range list {
+			log.WithFields(log.Fields{
+				"key":       k,
+				"Name":      v.ReleaseName,
+				"Revision":  v.Revision,
+				"Namespace": v.Namespace,
+			}).Info("List")
+		}
+	default:
+		allVersions, err := session.GetVersionsFromList(cmd.ManifestNames)
+		if err != nil {
+			return errors.Wrap(err, "Failed to get versions")
+		}
+		for _, versions := range allVersions {
+			for _, v := range versions.Data {
+				log.WithFields(log.Fields{
+					"manifestName": v.Name,
+					"namespace":    v.Namespace,
+					"Revision":     v.Revision,
+					"Chart":        v.Chart,
+				}).Info("Rollback manifest")
+			}
+		}
 	}
 
-	versions, err := session.GetVersions()
-	if err != nil {
-		return errors.Wrap(err, "Failed to get versions")
-	}
-	for _, v := range versions {
-		log.WithFields(log.Fields{
-			"key":       v.Name,
-			"namespace": v.Namespace,
-			"Revision":  v.Revision,
-			"Chart":     v.Chart,
-		}).Info("Meta")
-	}
 	return nil
 }

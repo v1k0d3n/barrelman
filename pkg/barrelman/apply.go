@@ -33,7 +33,10 @@ type ReleaseTarget struct {
 	Changed     bool
 }
 
-type ReleaseTargets []*ReleaseTarget
+type ReleaseTargets struct {
+	ManifestName string
+	Data         []*ReleaseTarget
+}
 
 func (cmd *ApplyCmd) Run(session cluster.Sessioner) error {
 	var err error
@@ -70,7 +73,7 @@ func (cmd *ApplyCmd) Run(session cluster.Sessioner) error {
 		}).Info("Using kube context")
 	}
 
-	archives, err := processManifest(&manifest.Config{
+	archives, manifestName, err := processManifest(&manifest.Config{
 		DataDir:      cmd.Options.DataDir,
 		ManifestFile: cmd.Options.ManifestFile,
 		AccountTable: cmd.Config.Account,
@@ -84,7 +87,7 @@ func (cmd *ApplyCmd) Run(session cluster.Sessioner) error {
 		return errors.Wrap(err, "failed to get current releases")
 	}
 
-	rt, err := cmd.ComputeReleases(session, archives, releases)
+	rt, err := cmd.ComputeReleases(session, manifestName, archives, releases)
 	if err != nil {
 		return err
 	}
@@ -128,9 +131,12 @@ func (cmd *ApplyCmd) isInForce(rel *cluster.ReleaseMeta) bool {
 //states may be one of 'Installable', 'Upgradeable', or 'Replaceable'
 func (cmd *ApplyCmd) ComputeReleases(
 	session cluster.Sessioner,
+	manifestName string,
 	archives *manifest.ArchiveFiles,
-	currentReleases map[string]*cluster.ReleaseMeta) (ReleaseTargets, error) {
-	rt := ReleaseTargets{}
+	currentReleases map[string]*cluster.ReleaseMeta) (*ReleaseTargets, error) {
+	rt := &ReleaseTargets{
+		ManifestName: manifestName,
+	}
 
 	for _, v := range archives.List {
 		releaseExists := false
@@ -142,7 +148,7 @@ func (cmd *ApplyCmd) ComputeReleases(
 			if rel.ReleaseName == v.ReleaseName {
 				releaseExists = true
 				if cmd.isInForce(rel) || rel.Status == cluster.Status_FAILED {
-					rt = append(rt,
+					rt.Data = append(rt.Data,
 						&ReleaseTarget{
 							State: Replaceable,
 							ReleaseMeta: &cluster.ReleaseMeta{
@@ -154,7 +160,7 @@ func (cmd *ApplyCmd) ComputeReleases(
 							},
 						})
 				} else {
-					rt = append(rt,
+					rt.Data = append(rt.Data,
 						&ReleaseTarget{
 							State: Upgradable,
 							ReleaseMeta: &cluster.ReleaseMeta{
@@ -169,7 +175,7 @@ func (cmd *ApplyCmd) ComputeReleases(
 			}
 		}
 		if !releaseExists {
-			rt = append(rt,
+			rt.Data = append(rt.Data,
 				&ReleaseTarget{
 					State: Installable,
 					ReleaseMeta: &cluster.ReleaseMeta{
@@ -185,8 +191,8 @@ func (cmd *ApplyCmd) ComputeReleases(
 	return rt, nil
 }
 
-func (rt ReleaseTargets) dryRun(session cluster.Sessioner) error {
-	for _, v := range rt {
+func (rt *ReleaseTargets) dryRun(session cluster.Sessioner) error {
+	for _, v := range rt.Data {
 		v.ReleaseMeta.DryRun = true
 		switch v.State {
 		case Installable:
@@ -204,9 +210,9 @@ func (rt ReleaseTargets) dryRun(session cluster.Sessioner) error {
 	return nil
 }
 
-func (rt ReleaseTargets) Diff(session cluster.Sessioner) (ReleaseTargets, error) {
+func (rt *ReleaseTargets) Diff(session cluster.Sessioner) (*ReleaseTargets, error) {
 	var err error
-	for _, v := range rt {
+	for _, v := range rt.Data {
 		v.ReleaseMeta.DryRun = true
 		switch v.State {
 		case Upgradable:
@@ -219,8 +225,8 @@ func (rt ReleaseTargets) Diff(session cluster.Sessioner) (ReleaseTargets, error)
 	return rt, nil
 }
 
-func (rt ReleaseTargets) LogDiff() {
-	for _, v := range rt {
+func (rt *ReleaseTargets) LogDiff() {
+	for _, v := range rt.Data {
 		switch v.State {
 		case Installable:
 			log.WithFields(log.Fields{
@@ -243,8 +249,15 @@ func (rt ReleaseTargets) LogDiff() {
 	}
 }
 
-func (rt ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) error {
-	for _, v := range rt {
+func (rt *ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) error {
+
+	transaction, err := session.NewTransaction(rt.ManifestName)
+	if err != nil {
+		return errors.Wrap(err, "failed to create new transaction durring apply")
+	}
+	defer transaction.Cancel()
+
+	for _, v := range rt.Data {
 		v.ReleaseMeta.DryRun = false
 		v.ReleaseMeta.InstallTimeout = 120
 		switch v.State {
@@ -270,18 +283,18 @@ func (rt ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) error
 					}
 				}
 				log.WithFields(log.Fields{
-					"Name":      v.ReleaseMeta.ReleaseName,
-					"Namespace": v.ReleaseMeta.Namespace,
+					"Name":        v.ReleaseMeta.ReleaseName,
+					"Namespace":   v.ReleaseMeta.Namespace,
 					"InstallWait": v.ReleaseMeta.InstallWait,
 				}).Info("Installing")
 				for i := 0; i < opt.InstallRetry; i++ {
 					msg, relName, err := session.InstallRelease(v.ReleaseMeta)
 					if err != nil {
 						log.WithFields(log.Fields{
-							"Name":      v.ReleaseMeta.ReleaseName,
-							"Namespace": v.ReleaseMeta.Namespace,
+							"Name":        v.ReleaseMeta.ReleaseName,
+							"Namespace":   v.ReleaseMeta.Namespace,
 							"InstallWait": v.ReleaseMeta.InstallWait,
-							"Error":     err.Error(),
+							"Error":       err.Error(),
 						}).Debug("Install reported error")
 						innerErr = err
 						//The state has changed underneath us, but the release needs installed anyhow
@@ -292,8 +305,8 @@ func (rt ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) error
 							DeleteTimeout: v.ReleaseMeta.InstallTimeout,
 						}
 						log.WithFields(log.Fields{
-							"Name":      v.ReleaseMeta.ReleaseName,
-							"Namespace": v.ReleaseMeta.Namespace,
+							"Name":        v.ReleaseMeta.ReleaseName,
+							"Namespace":   v.ReleaseMeta.Namespace,
 							"InstallWait": v.ReleaseMeta.InstallWait,
 						}).Info("Deleting (state change)")
 						if err := session.DeleteRelease(dm); err != nil {
@@ -308,17 +321,18 @@ func (rt ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) error
 						continue
 					}
 					log.WithFields(log.Fields{
-						"Name":      v.ReleaseMeta.ReleaseName,
-						"Namespace": v.ReleaseMeta.Namespace,
+						"Name":        v.ReleaseMeta.ReleaseName,
+						"Namespace":   v.ReleaseMeta.Namespace,
 						"InstallWait": v.ReleaseMeta.InstallWait,
-						"Release":   relName,
+						"Release":     relName,
 					}).Info(msg)
+
 					innerErr = nil
 					return nil
 				}
 				return errors.WithFields(errors.Fields{
-					"Name":      v.ReleaseMeta.ReleaseName,
-					"Namespace": v.ReleaseMeta.Namespace,
+					"Name":        v.ReleaseMeta.ReleaseName,
+					"Namespace":   v.ReleaseMeta.Namespace,
 					"InstallWait": v.ReleaseMeta.InstallWait,
 				}).Wrap(innerErr, "Error while installing release")
 			}(); err != nil {
@@ -356,5 +370,5 @@ func (rt ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) error
 		}
 
 	}
-	return nil
+	return transaction.Complete()
 }
