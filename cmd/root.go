@@ -25,42 +25,30 @@ func newRootCmd(args []string) *cobra.Command {
 		Default().ConfigFile,
 		"specify manifest (YAML) file or a URL")
 
-	logOptions := &[]string{}
-	tmpLogOptions := flags.StringSliceP(
-		"log",
-		"l",
-		nil,
-		"log options (e.g. --log=debug,JSON")
-
 	cobraCmd.AddCommand(newDeleteCmd(&barrelman.DeleteCmd{
-		Options:    options,
-		Config:     config,
-		LogOptions: logOptions,
+		Options: options,
+		Config:  config,
 	}))
 
 	cobraCmd.AddCommand(newApplyCmd(&barrelman.ApplyCmd{
-		Options:    options,
-		Config:     config,
-		LogOptions: logOptions,
+		Options: options,
+		Config:  config,
 	}))
 
 	cobraCmd.AddCommand(newListCmd(&barrelman.ListCmd{
-		Options:    options,
-		Config:     config,
-		LogOptions: logOptions,
+		Options: options,
+		Config:  config,
 	}))
+
 	cobraCmd.AddCommand(newTemplateCmd(&barrelman.TemplateCmd{
-		Options:    options,
-		Config:     config,
-		LogOptions: logOptions,
+		Options: options,
+		Config:  config,
 	}))
 
 	cobraCmd.AddCommand(newVersionCmd(&barrelman.VersionCmd{}))
 
 	flags.Parse(args)
-	//We are triggering Cobra to set that value twice somewhere
-	//This snapshots the values before we pass them to the command
-	*logOptions = *tmpLogOptions
+
 	return cobraCmd
 }
 

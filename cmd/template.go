@@ -65,6 +65,7 @@ func newTemplateCmd(cmd *barrelman.TemplateCmd) *cobra.Command {
 	}
 
 	f := cobraCmd.Flags()
+	cmd.LogOptions = f.StringSliceP("log", "l", nil, "log options (e.g. --log=debug,JSON")
 	f.BoolVar(&cmd.ShowNotes, "notes", false, "show the computed NOTES.txt file as well")
 	f.StringVarP(&cmd.ReleaseName, "name", "n", "release-name", "release name")
 	f.BoolVar(&cmd.ReleaseIsUpgrade, "is-upgrade", false, "set .Release.IsUpgrade instead of .Release.IsInstall")
