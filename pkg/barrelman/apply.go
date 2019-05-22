@@ -196,12 +196,12 @@ func (rt *ReleaseTargets) dryRun(session cluster.Sessioner) error {
 		v.ReleaseMeta.DryRun = true
 		switch v.State {
 		case Installable:
-			_, _, err := session.InstallRelease(v.ReleaseMeta)
+			_, _, _, err := session.InstallRelease(v.ReleaseMeta)
 			if err != nil {
 				return err
 			}
 		case Upgradable:
-			_, err := session.UpgradeRelease(v.ReleaseMeta)
+			_, _, err := session.UpgradeRelease(v.ReleaseMeta)
 			if err != nil {
 				return err
 			}
@@ -264,7 +264,6 @@ func (rt *ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) erro
 		case Installable, Replaceable:
 			if err := func() error {
 				//This closure removes a "break OUT"
-
 				var innerErr error
 				if v.State == Replaceable {
 					//The release exists, it needs to be deleted
@@ -288,7 +287,7 @@ func (rt *ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) erro
 					"InstallWait": v.ReleaseMeta.InstallWait,
 				}).Info("Installing")
 				for i := 0; i < opt.InstallRetry; i++ {
-					msg, relName, err := session.InstallRelease(v.ReleaseMeta)
+					msg, relName, relVersion, err := session.InstallRelease(v.ReleaseMeta)
 					if err != nil {
 						log.WithFields(log.Fields{
 							"Name":        v.ReleaseMeta.ReleaseName,
@@ -325,8 +324,13 @@ func (rt *ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) erro
 						"Namespace":   v.ReleaseMeta.Namespace,
 						"InstallWait": v.ReleaseMeta.InstallWait,
 						"Release":     relName,
+						"Version":     relVersion,
 					}).Info(msg)
-
+					transaction.Versions().AddReleaseVersion(&cluster.Version{
+						Name:      relName,
+						Namespace: v.ReleaseMeta.Namespace,
+						Revision:  relVersion,
+					})
 					innerErr = nil
 					return nil
 				}
@@ -345,13 +349,14 @@ func (rt *ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) erro
 					"Name":      v.ReleaseMeta.ReleaseName,
 					"Namespace": v.ReleaseMeta.Namespace,
 				}).Info("Skipping")
+				// transaction, merge previous forward
 				continue
 			}
 			log.WithFields(log.Fields{
 				"Name":      v.ReleaseMeta.ReleaseName,
 				"Namespace": v.ReleaseMeta.Namespace,
 			}).Info("Upgrading")
-			msg, err := session.UpgradeRelease(v.ReleaseMeta)
+			msg, relVersion, err := session.UpgradeRelease(v.ReleaseMeta)
 			if err != nil {
 				return errors.WithFields(errors.Fields{
 					"Name":      v.ReleaseMeta.ReleaseName,
@@ -361,7 +366,13 @@ func (rt *ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) erro
 			log.WithFields(log.Fields{
 				"Name":      v.ReleaseMeta.ReleaseName,
 				"Namespace": v.ReleaseMeta.Namespace,
+				"Version":   relVersion,
 			}).Info(msg)
+			transaction.Versions().AddReleaseVersion(&cluster.Version{
+				Name:      v.ReleaseMeta.ReleaseName,
+				Namespace: v.ReleaseMeta.Namespace,
+				Revision:  relVersion,
+			})
 		default:
 			log.WithFields(log.Fields{
 				"Name":      v.ReleaseMeta.ReleaseName,
