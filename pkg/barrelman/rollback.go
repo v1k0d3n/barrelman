@@ -75,6 +75,14 @@ func (cmd *RollbackCmd) Run(session cluster.Sessioner) error {
 			"Revision":     v.Revision,
 		}).Info("Rollback manifest")
 	}
+
+	// Rollback supports transactions
+	transaction, err := session.NewTransaction(cmd.ManifestName)
+	if err != nil {
+		return errors.Wrap(err, "failed to create new transaction durring apply")
+	}
+	defer transaction.Cancel()
+
 	versionTable := versions.Table()
 	if cmd.ManifestVersion != 0 {
 		releaseMeta, ok := versionTable.Data[cmd.ManifestVersion]
@@ -107,14 +115,19 @@ func (cmd *RollbackCmd) Run(session cluster.Sessioner) error {
 				"key":   releaseName,
 				"value": releaseVersion,
 			}).Debug("Rollback entry")
-			if err := session.RollbackRelease(&cluster.RollbackMeta{
+			newVersion, err := session.RollbackRelease(&cluster.RollbackMeta{
 				ReleaseName: releaseName,
 				Revision:    releaseVersion,
-			}); err != nil {
+			})
+			if err != nil {
 				return errors.Wrap(err, "Rollback of release failed")
 			}
+			transaction.Versions().AddReleaseVersion(&cluster.Version{
+				Name:     releaseName,
+				Revision: newVersion,
+			})
 		}
 	}
 
-	return nil
+	return transaction.Complete()
 }

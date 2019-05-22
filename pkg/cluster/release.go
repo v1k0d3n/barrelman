@@ -6,8 +6,8 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"math"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -22,6 +22,7 @@ import (
 	"k8s.io/helm/pkg/proto/hapi/release"
 
 	"github.com/charter-oss/structured/errors"
+	"github.com/charter-oss/structured/log"
 )
 
 const (
@@ -87,16 +88,16 @@ type ReleaseDiff struct {
 
 type Releaser interface {
 	ListReleases() ([]*Release, error)
-	InstallRelease(*ReleaseMeta) (string, string, int32, error)
+	InstallRelease(m *ReleaseMeta, manifestName string) (string, string, int32, error)
 	DiffRelease(m *ReleaseMeta) (bool, []byte, error)
-	UpgradeRelease(m *ReleaseMeta) (string, int32, error)
+	UpgradeRelease(m *ReleaseMeta, manifestName string) (string, int32, error)
 	DeleteReleases(dm []*DeleteMeta) error
 	DeleteRelease(m *DeleteMeta) error
 	Releases() (map[string]*ReleaseMeta, error)
 	ReleasesByManifest(manifest string) (map[string]*ReleaseMeta, error)
 	DiffManifests(map[string]*MappingResult, map[string]*MappingResult, []string, int, io.Writer) bool
 	ChartFromArchive(aChart io.Reader) (*chart.Chart, error)
-	RollbackRelease(m *RollbackMeta) error
+	RollbackRelease(m *RollbackMeta) (int32, error)
 }
 
 //ListReleases returns an array of running releases as reported by the cluster
@@ -149,9 +150,9 @@ func (s *Session) ListReleasesByManifest(manifestName string) ([]*Release, error
 }
 
 //InstallRelease uploads a chart and starts a release
-func (s *Session) InstallRelease(m *ReleaseMeta) (string, string, int32, error) {
+func (s *Session) InstallRelease(m *ReleaseMeta, manifestName string) (string, string, int32, error) {
 	res, err := s.Helm.InstallReleaseFromChart(
-		setChartManifestTags(m.Chart, "Manifest=scratch-manifest"),
+		setChartManifestTags(m.Chart, "Manifest="+manifestName),
 		m.Namespace,
 		helm.ReleaseName(m.ReleaseName),
 		helm.ValueOverrides(m.ValueOverrides),
@@ -197,10 +198,10 @@ func (s *Session) DiffRelease(m *ReleaseMeta) (bool, []byte, error) {
 }
 
 //UpgradeRelease applies changes to an already running release, potentially triggering a restart
-func (s *Session) UpgradeRelease(m *ReleaseMeta) (string, int32, error) {
+func (s *Session) UpgradeRelease(m *ReleaseMeta, manifestName string) (string, int32, error) {
 	res, err := s.Helm.UpdateReleaseFromChart(
 		m.ReleaseName,
-		setChartManifestTags(m.Chart, "Manifest=scratch-manifest"),
+		setChartManifestTags(m.Chart, "Manifest="+manifestName),
 		helm.UpgradeForce(true),
 		helm.UpgradeDryRun(m.DryRun),
 		helm.UpdateValueOverrides(m.ValueOverrides),
@@ -235,23 +236,25 @@ func (s *Session) DeleteRelease(m *DeleteMeta) error {
 }
 
 //RollbackRelease sets the deployed revision
-func (s *Session) RollbackRelease(m *RollbackMeta) error {
-	_, err := s.Helm.RollbackRelease(
+func (s *Session) RollbackRelease(m *RollbackMeta) (int32, error) {
+	resp, err := s.Helm.RollbackRelease(
 		m.ReleaseName,
 		helm.RollbackForce(true),
 		helm.RollbackWait(true),
 		helm.RollbackVersion(m.Revision),
 	)
 	if err != nil {
-		return errors.New(grpc.ErrorDesc(err))
+		return 0, errors.New(grpc.ErrorDesc(err))
 	}
-	return nil
+
+	return resp.Release.Version, nil
 }
 
 //Releases queries a cluster and returns a map of currently deployed releases
 func (s *Session) Releases() (map[string]*ReleaseMeta, error) {
 	return s.ReleasesByManifest("")
 }
+
 func (s *Session) ReleasesByManifest(manifestName string) (map[string]*ReleaseMeta, error) {
 	ret := make(map[string]*ReleaseMeta)
 
@@ -278,10 +281,16 @@ func setChartManifestTags(chart *Chart, tags string) *Chart {
 }
 
 func getChartManifestTag(chart *Chart) string {
-	rx := regexp.MustCompile("Manifest=(.+) ")
+	log.WithFields(log.Fields{
+		"TagLine": chart.Metadata.Tags,
+	}).Debug("Evaluating tags")
+	rx := regexp.MustCompile(`Manifest=([\.|\-|\d|\w]+)`)
 	tags := rx.FindStringSubmatch(chart.Metadata.Tags)
 	if len(tags) > 0 {
-		return tags[0]
+		log.WithFields(log.Fields{
+			"Manifest": tags[1],
+		}).Debug("Got manifest Tag")
+		return tags[1]
 	}
 	return ""
 }
@@ -377,7 +386,10 @@ func Parse(manifest string, defaultNamespace string) map[string]*MappingResult {
 		}
 		var metadata metadata
 		if err := yaml.Unmarshal([]byte(content), &metadata); err != nil {
-			log.Fatalf("YAML unmarshal error: %s\nCan't unmarshal %s", err, content)
+			log.Error(errors.WithFields(errors.Fields{
+				"Content": content,
+			}).Wrap(err, "Can't unmarshal yaml"))
+			os.Exit(1)
 		}
 
 		if metadata.Metadata.Namespace == "" {

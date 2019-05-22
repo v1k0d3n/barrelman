@@ -196,12 +196,12 @@ func (rt *ReleaseTargets) dryRun(session cluster.Sessioner) error {
 		v.ReleaseMeta.DryRun = true
 		switch v.State {
 		case Installable:
-			_, _, _, err := session.InstallRelease(v.ReleaseMeta)
+			_, _, _, err := session.InstallRelease(v.ReleaseMeta, rt.ManifestName)
 			if err != nil {
 				return err
 			}
 		case Upgradable:
-			_, _, err := session.UpgradeRelease(v.ReleaseMeta)
+			_, _, err := session.UpgradeRelease(v.ReleaseMeta, rt.ManifestName)
 			if err != nil {
 				return err
 			}
@@ -287,7 +287,7 @@ func (rt *ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) erro
 					"InstallWait": v.ReleaseMeta.InstallWait,
 				}).Info("Installing")
 				for i := 0; i < opt.InstallRetry; i++ {
-					msg, relName, relVersion, err := session.InstallRelease(v.ReleaseMeta)
+					msg, relName, relVersion, err := session.InstallRelease(v.ReleaseMeta, rt.ManifestName)
 					if err != nil {
 						log.WithFields(log.Fields{
 							"Name":        v.ReleaseMeta.ReleaseName,
@@ -356,7 +356,7 @@ func (rt *ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) erro
 				"Name":      v.ReleaseMeta.ReleaseName,
 				"Namespace": v.ReleaseMeta.Namespace,
 			}).Info("Upgrading")
-			msg, relVersion, err := session.UpgradeRelease(v.ReleaseMeta)
+			msg, relVersion, err := session.UpgradeRelease(v.ReleaseMeta, rt.ManifestName)
 			if err != nil {
 				return errors.WithFields(errors.Fields{
 					"Name":      v.ReleaseMeta.ReleaseName,

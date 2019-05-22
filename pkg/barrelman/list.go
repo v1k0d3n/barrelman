@@ -54,16 +54,17 @@ func (cmd *ListCmd) Run(session cluster.Sessioner) error {
 		return errors.Wrap(err, "Failed to get releases")
 	}
 	for k, v := range list {
-		var tags string
-		if v.Chart == nil {
-			continue
-		}
-		if v.Chart.Metadata != nil {
-			tags = v.Chart.Metadata.Tags
-		}
+		// var tags string
+		// if v.Chart == nil {
+		// 	log.
+		// 	continue
+		// }
+		// if v.Chart.Metadata != nil {
+		// 	tags = v.Chart.Metadata.Tags
+		// }
 		log.WithFields(log.Fields{
-			"key":       k,
-			"tags":      tags,
+			"key": k,
+			//	"tags":      tags,
 			"Name":      v.ReleaseName,
 			"Revision":  v.Revision,
 			"Namespace": v.Namespace,
