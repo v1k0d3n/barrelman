@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"math"
+	"regexp"
 	"strings"
 	"time"
 
@@ -86,12 +87,13 @@ type ReleaseDiff struct {
 
 type Releaser interface {
 	ListReleases() ([]*Release, error)
-	InstallRelease(*ReleaseMeta) (string, string, error)
+	InstallRelease(*ReleaseMeta) (string, string, int32, error)
 	DiffRelease(m *ReleaseMeta) (bool, []byte, error)
-	UpgradeRelease(m *ReleaseMeta) (string, error)
+	UpgradeRelease(m *ReleaseMeta) (string, int32, error)
 	DeleteReleases(dm []*DeleteMeta) error
 	DeleteRelease(m *DeleteMeta) error
 	Releases() (map[string]*ReleaseMeta, error)
+	ReleasesByManifest(manifest string) (map[string]*ReleaseMeta, error)
 	DiffManifests(map[string]*MappingResult, map[string]*MappingResult, []string, int, io.Writer) bool
 	ChartFromArchive(aChart io.Reader) (*chart.Chart, error)
 	RollbackRelease(m *RollbackMeta) error
@@ -99,7 +101,15 @@ type Releaser interface {
 
 //ListReleases returns an array of running releases as reported by the cluster
 func (s *Session) ListReleases() ([]*Release, error) {
-	var res []*Release
+	return s.ListReleasesByManifest("")
+}
+
+//ListReleases by Manifest returns an array of running releases as reported by the cluster
+// filtered by the ManifestName label
+func (s *Session) ListReleasesByManifest(manifestName string) ([]*Release, error) {
+	var releases []*Release
+	var filteredReleases []*Release
+
 	r, err := s.Helm.ListReleases(
 		helm.ReleaseListStatuses([]release.Status_Code{
 			release.Status_DELETED,
@@ -123,15 +133,25 @@ func (s *Session) ListReleases() ([]*Release, error) {
 			Status:      Status(v.Info.Status.Code),
 			Revision:    v.GetVersion(),
 		}
-		res = append(res, rel)
+		releases = append(releases, rel)
 	}
-	return res, err
+	if manifestName == "" {
+		return releases, err
+	}
+
+	for _, v := range releases {
+		if getChartManifestTag(v.Chart) == manifestName {
+			filteredReleases = append(filteredReleases, v)
+			fmt.Printf("Tags: %v\n", getChartManifestTag(v.Chart))
+		}
+	}
+	return filteredReleases, err
 }
 
 //InstallRelease uploads a chart and starts a release
-func (s *Session) InstallRelease(m *ReleaseMeta) (string, string, error) {
+func (s *Session) InstallRelease(m *ReleaseMeta) (string, string, int32, error) {
 	res, err := s.Helm.InstallReleaseFromChart(
-		m.Chart,
+		setChartManifestTags(m.Chart, "Manifest=scratch-manifest"),
 		m.Namespace,
 		helm.ReleaseName(m.ReleaseName),
 		helm.ValueOverrides(m.ValueOverrides),
@@ -142,13 +162,14 @@ func (s *Session) InstallRelease(m *ReleaseMeta) (string, string, error) {
 	)
 
 	if err != nil {
-		return "", "", errors.WithFields(errors.Fields{
+		return "", "", 0, errors.WithFields(errors.Fields{
 			"File":      m.Path,
 			"Name":      m.MetaName,
 			"Namespace": m.Namespace,
 		}).Wrap(err, "failed install")
 	}
-	return res.Release.Info.Description, res.Release.Name, err
+
+	return res.Release.Info.Description, res.Release.Name, res.Release.Version, err
 }
 
 //DiffRelease compares the differences between a running release and a proposed release
@@ -176,18 +197,18 @@ func (s *Session) DiffRelease(m *ReleaseMeta) (bool, []byte, error) {
 }
 
 //UpgradeRelease applies changes to an already running release, potentially triggering a restart
-func (s *Session) UpgradeRelease(m *ReleaseMeta) (string, error) {
+func (s *Session) UpgradeRelease(m *ReleaseMeta) (string, int32, error) {
 	res, err := s.Helm.UpdateReleaseFromChart(
 		m.ReleaseName,
-		m.Chart,
+		setChartManifestTags(m.Chart, "Manifest=scratch-manifest"),
 		helm.UpgradeForce(true),
 		helm.UpgradeDryRun(m.DryRun),
 		helm.UpdateValueOverrides(m.ValueOverrides),
 	)
 	if err != nil {
-		return "", errors.Wrap(err, "Error during UpgradeRelease")
+		return "", 0, errors.Wrap(err, "Error during UpgradeRelease")
 	}
-	return res.Release.Info.Description, err
+	return res.Release.Info.Description, res.Release.Version, err
 }
 
 //DeleteReleases calls DeleteRelease on an array of Releases
@@ -229,9 +250,12 @@ func (s *Session) RollbackRelease(m *RollbackMeta) error {
 
 //Releases queries a cluster and returns a map of currently deployed releases
 func (s *Session) Releases() (map[string]*ReleaseMeta, error) {
+	return s.ReleasesByManifest("")
+}
+func (s *Session) ReleasesByManifest(manifestName string) (map[string]*ReleaseMeta, error) {
 	ret := make(map[string]*ReleaseMeta)
 
-	releaseList, err := s.ListReleases()
+	releaseList, err := s.ListReleasesByManifest(manifestName)
 	if err != nil {
 		return ret, errors.Wrap(err, "failed to list releases")
 	}
@@ -246,6 +270,20 @@ func (s *Session) Releases() (map[string]*ReleaseMeta, error) {
 		}
 	}
 	return ret, nil
+}
+
+func setChartManifestTags(chart *Chart, tags string) *Chart {
+	chart.Metadata.Tags = tags
+	return chart
+}
+
+func getChartManifestTag(chart *Chart) string {
+	rx := regexp.MustCompile("Manifest=(.+) ")
+	tags := rx.FindStringSubmatch(chart.Metadata.Tags)
+	if len(tags) > 0 {
+		return tags[0]
+	}
+	return ""
 }
 
 // The following was taken from https://github.com/databus23/helm-diff

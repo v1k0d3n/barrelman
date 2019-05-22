@@ -9,12 +9,11 @@ import (
 )
 
 type ListCmd struct {
-	Options       *CmdOptions
-	Config        *Config
-	ManifestName  string
-	ManifestNames *[]string
-	Log           structured.Logger
-	LogOptions    *[]string
+	Options      *CmdOptions
+	Config       *Config
+	ManifestName string
+	Log          structured.Logger
+	LogOptions   *[]string
 }
 
 func (cmd *ListCmd) Run(session cluster.Sessioner) error {
@@ -50,35 +49,25 @@ func (cmd *ListCmd) Run(session cluster.Sessioner) error {
 		}).Info("Using kube context")
 	}
 
-	switch len(*cmd.ManifestNames) {
-	case 0:
-		list, err := session.Releases()
-		if err != nil {
-			return errors.Wrap(err, "Failed to get releases")
+	list, err := session.ReleasesByManifest(cmd.ManifestName)
+	if err != nil {
+		return errors.Wrap(err, "Failed to get releases")
+	}
+	for k, v := range list {
+		var tags string
+		if v.Chart == nil {
+			continue
 		}
-		for k, v := range list {
-			log.WithFields(log.Fields{
-				"key":       k,
-				"Name":      v.ReleaseName,
-				"Revision":  v.Revision,
-				"Namespace": v.Namespace,
-			}).Info("List")
+		if v.Chart.Metadata != nil {
+			tags = v.Chart.Metadata.Tags
 		}
-	default:
-		allVersions, err := session.GetVersionsFromList(cmd.ManifestNames)
-		if err != nil {
-			return errors.Wrap(err, "Failed to get versions")
-		}
-		for _, versions := range allVersions {
-			for _, v := range versions.Data {
-				log.WithFields(log.Fields{
-					"manifestName": v.Name,
-					"namespace":    v.Namespace,
-					"Revision":     v.Revision,
-					"Chart":        v.Chart,
-				}).Info("Rollback manifest")
-			}
-		}
+		log.WithFields(log.Fields{
+			"key":       k,
+			"tags":      tags,
+			"Name":      v.ReleaseName,
+			"Revision":  v.Revision,
+			"Namespace": v.Namespace,
+		}).Info("List")
 	}
 
 	return nil

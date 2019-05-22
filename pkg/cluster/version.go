@@ -12,13 +12,19 @@ import (
 	"k8s.io/helm/pkg/proto/hapi/release"
 )
 
+type Versioner interface {
+	GetVersionsFromList(manifestNames *[]string) ([]*Versions, error)
+	GetVersions(manifestName string) (*Versions, error)
+}
+
 type Versions struct {
 	Name string
 	Data []*Version
 }
-type Versioner interface {
-	GetVersionsFromList(manifestNames *[]string) ([]*Versions, error)
-	GetVersions(manifestName string) (*Versions, error)
+
+type VersionTable struct {
+	Name string
+	Data map[int32]*Version
 }
 
 type VersionSync struct {
@@ -29,7 +35,7 @@ type Version struct {
 	Name      string
 	Namespace string
 	Revision  int32
-	Chart     string
+	Chart     *chart.Chart
 }
 
 func (s *Session) NewConfigMaps() *driver.ConfigMaps {
@@ -42,7 +48,7 @@ func (s *Session) WriteVersions(versions *Versions) error {
 		return errors.Wrap(err, "GetVersion failed to get release list during write")
 	}
 
-	values, err := versions.GetRawTable()
+	values, err := versions.RawReleaseTable()
 	if err != nil {
 		return err
 	}
@@ -55,7 +61,8 @@ func (s *Session) WriteVersions(versions *Versions) error {
 				Name: versions.Name,
 			},
 			Values: &chart.Config{
-				Raw: values,
+				Raw:    values,
+				Values: versions.ChartValues(),
 			},
 		},
 		Version: version,
@@ -101,21 +108,63 @@ func (s *Session) GetVersions(manifestName string) (*Versions, error) {
 			Name:      v.Name,
 			Namespace: v.Namespace,
 			Revision:  v.Version,
+			Chart:     v.Chart,
 		})
 	}
 	return versions, nil
 }
 
-func (versions *Versions) AddRelease(rls *release.Release) error {
-	versions.Data = append(versions.Data, &Version{
-		Name:      rls.Name,
-		Namespace: rls.Namespace,
-		Revision:  rls.Version,
-	})
+func (versions *Versions) AddReleaseVersion(rlsVersion *Version) error {
+	log.WithFields(log.Fields{
+		"Name":    rlsVersion.Name,
+		"Version": rlsVersion.Revision,
+	}).Debug("Add release version")
+	versions.Data = append(versions.Data, rlsVersion)
+	log.WithFields(log.Fields{
+		"Len": len(versions.Data),
+	}).Warn("version.Data")
 	return nil
 }
 
-func (versions *Versions) GetRawTable() (string, error) {
+func (versions *Versions) Table() *VersionTable {
+	versionTable := &VersionTable{
+		Name: versions.Name,
+		Data: make(map[int32]*Version),
+	}
+	for _, version := range versions.Data {
+		versionTable.Data[version.Revision] = version
+	}
+	return versionTable
+}
+
+func (versions *Versions) Lookup(name string) *Version {
+	for _, version := range versions.Data {
+		if version.Name == name {
+			return version
+		}
+	}
+	return nil
+}
+
+func (version *Version) ReleaseTable() (map[string]*chart.Value, error) {
+	if version.Chart == nil {
+		return nil, errors.New("Chart (ConfigMap) does not exist in version")
+	}
+	if version.Chart.Values == nil {
+		return nil, errors.New("Values does not exist in version, cannot extract release table")
+	}
+	return version.Chart.Values.Values, nil
+}
+
+func (versions *Versions) ChartValues() map[string]*chart.Value {
+	values := make(map[string]*chart.Value)
+	for k, v := range versions.Table().Data {
+		values[v.Name] = &chart.Value{fmt.Sprintf("%d", k)}
+	}
+	return values
+}
+
+func (versions *Versions) RawReleaseTable() (string, error) {
 	type entry struct {
 		Name      string
 		Namespace string
