@@ -37,12 +37,6 @@ func newListCmd(cmd *barrelman.ListCmd) *cobra.Command {
 		"l",
 		nil,
 		"log options (e.g. --log=debug,JSON")
-	f.StringVarP(
-		&cmd.ManifestName,
-		"manifest",
-		"m",
-		"",
-		"list releases by manifest name")
 	f.StringVar(
 		&cmd.Options.KubeConfigFile,
 		"kubeconfig",
