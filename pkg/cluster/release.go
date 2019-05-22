@@ -143,7 +143,6 @@ func (s *Session) ListReleasesByManifest(manifestName string) ([]*Release, error
 	for _, v := range releases {
 		if getChartManifestTag(v.Chart) == manifestName {
 			filteredReleases = append(filteredReleases, v)
-			fmt.Printf("Tags: %v\n", getChartManifestTag(v.Chart))
 		}
 	}
 	return filteredReleases, err
@@ -240,7 +239,6 @@ func (s *Session) RollbackRelease(m *RollbackMeta) (int32, error) {
 	resp, err := s.Helm.RollbackRelease(
 		m.ReleaseName,
 		helm.RollbackForce(true),
-		helm.RollbackWait(true),
 		helm.RollbackVersion(m.Revision),
 	)
 	if err != nil {
