@@ -171,7 +171,7 @@ func (s *Session) connect(namespace string) error {
 	}
 
 	options := []helm.Option{
-		helm.Host("44.28.1.125:44134")
+		helm.Host("44.28.1.125:44134"),
 		//helm.Host(fmt.Sprintf(":%v", s.Tiller.Local)),
 		helm.ConnectTimeout(120),
 	}
