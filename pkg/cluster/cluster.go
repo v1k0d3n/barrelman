@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/charter-oss/structured/errors"
+	"github.com/charter-oss/structured/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/helm/pkg/helm"
@@ -20,9 +22,6 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-
-	"github.com/charter-oss/structured/errors"
-	"github.com/charter-oss/structured/log"
 )
 
 type Sessioner interface {
@@ -84,7 +83,7 @@ func (s *Session) Init() error {
 		return errors.Wrap(err, "helm.PingTiller() failed")
 	}
 
-	tillerVersion, err := s.Helm.GetVersion()
+	tillerVersion, err := s.Helm.GetVersion(helm.VersionTimeoutOption(120))
 	if err != nil {
 		return errors.Wrap(err, "failed to get Tiller version")
 	}

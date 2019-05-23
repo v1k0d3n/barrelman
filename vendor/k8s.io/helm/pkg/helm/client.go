@@ -21,6 +21,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -192,6 +193,16 @@ func (h *Client) UpdateReleaseFromChart(rlsName string, chart *chart.Chart, opts
 	}
 
 	return h.update(ctx, req)
+}
+
+func VersionTimeoutOption(timeout int) VersionOption {
+	d := time.Time(time.Now().Add(time.Duration(timeout)))
+	return func(opt *options) {
+		opt.before = func(ctx context.Context, req proto.Message) error {
+			ctx, _ = context.WithDeadline(ctx, d)
+			return nil
+		}
+	}
 }
 
 // GetVersion returns the server version.

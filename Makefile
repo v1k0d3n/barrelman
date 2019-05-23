@@ -27,7 +27,7 @@ LDFLAGS         =-w -s -X $(SET_VERSION) -X $(SET_COMMIT) -X $(SET_BRANCH)
 all: test build build-linux docker-push
 
 build:
-	$(GOBUILD) -ldflags "$(LDFLAGS)" -o $(BINARY_NAME) -v
+	$(GOBUILD) -mod=vendor -ldflags "$(LDFLAGS)" -o $(BINARY_NAME) -v
 
 test:
 	$(GOTEST) -v ./...
@@ -40,7 +40,7 @@ clean:
 	rm -f testdata/*.tgz
 
 run:
-	$(GOBUILD) -o $(BINARY_NAME) -v ./...
+	$(GOBUILD) -mod=vendor -o $(BINARY_NAME) -v ./...
 	./$(BINARY_NAME)
 
 deps:
@@ -49,9 +49,9 @@ deps:
 
 # Go Cross-Compilation Tasks:
 build-linux:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -ldflags "$(LDFLAGS)" -a -installsuffix cgo -o $(BINARY_LINUX) -v
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -mod=vendor -ldflags "$(LDFLAGS)" -a -installsuffix cgo -o $(BINARY_LINUX) -v
 build-darwin:
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GOBUILD) -ldflags "$(LDFLAGS)" -a -installsuffix cgo -o $(BINARY_DARWIN) -v
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GOBUILD) -mod=vendor -ldflags "$(LDFLAGS)" -a -installsuffix cgo -o $(BINARY_DARWIN) -v
 
 
 # Docker Tasks:
