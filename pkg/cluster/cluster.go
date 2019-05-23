@@ -177,7 +177,7 @@ func (s *Session) connect(namespace string) error {
 	}).Debug("Connecting to tiller")
 
 	options := []helm.Option{
-		helm.Host(fmt.Sprintf(":%v", s.Tiller.Local)),
+		helm.Host(fmt.Sprintf("127.0.0.1:%v", s.Tiller.Local)),
 		helm.ConnectTimeout(5),
 	}
 
