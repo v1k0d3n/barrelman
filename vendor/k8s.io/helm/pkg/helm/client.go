@@ -46,7 +46,7 @@ type Client struct {
 func NewClient(opts ...Option) *Client {
 	var c Client
 	// set some sane defaults
-	c.Option(ConnectTimeout(5))
+	c.Option(ConnectTimeout(120))
 	return c.Option(opts...)
 }
 

@@ -78,6 +78,11 @@ func (s *Session) Init() error {
 		return errors.Wrap(err, "connection to kubernetes failed")
 	}
 
+	err = s.Helm.PingTiller()
+	if err != nil {
+		return errors.Wrap(err, "helm.PingTiller() failed")
+	}
+
 	tillerVersion, err := s.Helm.GetVersion(helm.VersionTimeoutOption(120))
 	if err != nil {
 		return errors.Wrap(err, "failed to get Tiller version")
@@ -167,7 +172,7 @@ func (s *Session) connect(namespace string) error {
 
 	options := []helm.Option{
 		helm.Host(fmt.Sprintf(":%v", s.Tiller.Local)),
-		helm.ConnectTimeout(5),
+		helm.ConnectTimeout(120),
 	}
 
 	if s.settings.TLSVerify || s.settings.TLSEnable {
