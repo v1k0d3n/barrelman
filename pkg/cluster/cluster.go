@@ -171,6 +171,11 @@ func (s *Session) connect(namespace string) error {
 		return errors.Wrap(err, "could not get Tiller tunnel")
 	}
 
+	log.WithFields(log.Fields{
+		"LocalPort":  s.Tiller.Local,
+		"RemoteHost": config.Host,
+	}).Debug("Connecting to tiller")
+
 	options := []helm.Option{
 		helm.Host(fmt.Sprintf(":%v", s.Tiller.Local)),
 		helm.ConnectTimeout(5),

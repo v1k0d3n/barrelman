@@ -191,8 +191,9 @@ github.com/russross/blackfriday
 github.com/sergi/go-diff/diffmatchpatch
 # github.com/sirupsen/logrus v1.4.1
 github.com/sirupsen/logrus
-# github.com/smartystreets/assertions v0.0.0-20180301161246-7678a5452ebe
+# github.com/smartystreets/assertions v0.0.0-20190401211740-f487f9de1cd3
 github.com/smartystreets/assertions
+github.com/smartystreets/assertions/internal/go-diff/diffmatchpatch
 github.com/smartystreets/assertions/internal/go-render/render
 github.com/smartystreets/assertions/internal/oglematchers
 # github.com/smartystreets/goconvey v0.0.0-20170602164621-9e8dc3f972df
@@ -247,7 +248,7 @@ golang.org/x/crypto/internal/chacha20
 golang.org/x/crypto/poly1305
 golang.org/x/crypto/ed25519/internal/edwards25519
 golang.org/x/crypto/internal/subtle
-# golang.org/x/net v0.0.0-20181201002055-351d144fa1fc
+# golang.org/x/net v0.0.0-20181220203305-927f97764cc3
 golang.org/x/net/http2
 golang.org/x/net/context
 golang.org/x/net/trace
@@ -286,7 +287,7 @@ google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
 # google.golang.org/genproto v0.0.0-20181202183823-bd91e49a0898
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.16.0
+# google.golang.org/grpc v1.19.0
 google.golang.org/grpc
 google.golang.org/grpc/metadata
 google.golang.org/grpc/balancer
@@ -299,9 +300,11 @@ google.golang.org/grpc/encoding/proto
 google.golang.org/grpc/grpclog
 google.golang.org/grpc/internal
 google.golang.org/grpc/internal/backoff
+google.golang.org/grpc/internal/binarylog
 google.golang.org/grpc/internal/channelz
 google.golang.org/grpc/internal/envconfig
 google.golang.org/grpc/internal/grpcrand
+google.golang.org/grpc/internal/grpcsync
 google.golang.org/grpc/internal/transport
 google.golang.org/grpc/keepalive
 google.golang.org/grpc/naming
@@ -314,6 +317,9 @@ google.golang.org/grpc/status
 google.golang.org/grpc/tap
 google.golang.org/grpc/health/grpc_health_v1
 google.golang.org/grpc/balancer/base
+google.golang.org/grpc/credentials/internal
+google.golang.org/grpc/binarylog/grpc_binarylog_v1
+google.golang.org/grpc/internal/syscall
 # gopkg.in/inf.v0 v0.9.1
 gopkg.in/inf.v0
 # gopkg.in/square/go-jose.v2 v2.2.0
