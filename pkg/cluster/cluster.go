@@ -66,7 +66,7 @@ func (s *Session) SetKubeContext(c string) {
 	s.kubeContext = c
 }
 
-//Init establishes connextions to the cluster
+//Init establishes connections to the cluster
 func (s *Session) Init() error {
 
 	tillerNamespace := os.Getenv("TILLER_NAMESPACE")
@@ -74,34 +74,14 @@ func (s *Session) Init() error {
 		tillerNamespace = "kube-system"
 	}
 
-	err := s.connect(tillerNamespace)
-	if err != nil {
+	if err := s.connect(tillerNamespace); err != nil {
 		return errors.Wrap(err, "connection to kubernetes failed")
 	}
 
-	err = s.Helm.PingTiller()
-	if err != nil {
-		return errors.Wrap(err, "helm.PingTiller() failed")
+	if err := s.connectionHealthCheck(); err != nil {
+		return errors.Wrap(err, "kubernetes connection failed health check")
 	}
 
-	tillerVersion, err := s.Helm.GetVersion()
-	if err != nil {
-		return errors.Wrap(err, "failed to get Tiller version")
-	}
-
-	compatible := version.IsCompatible(version.Version, tillerVersion.Version.SemVer)
-	log.WithFields(log.Fields{
-		"tillerVersion":          tillerVersion.Version.SemVer,
-		"clientServerCompatible": compatible,
-		"Host":                   fmt.Sprintf(":%v", s.Tiller.Local),
-	}).Debug("Connected to Tiller")
-	if !compatible {
-		return errors.WithFields(errors.Fields{
-			"tillerVersion": tillerVersion.Version.SemVer,
-			"helmVersion":   version.Version,
-			"Host":          fmt.Sprintf(":%v", s.Tiller.Local),
-		}).New("incompatible version numbers")
-	}
 	return nil
 }
 
@@ -202,13 +182,37 @@ func (s *Session) connect(namespace string) error {
 
 	s.Helm = helm.NewClient(options...)
 
-	clientVersion, err := s.Helm.GetVersion()
+	return nil
+}
+
+// connectionHealthCheck verifies connectivity and version compatability
+func (s *Session) connectionHealthCheck() error {
+
+	// NOTE: Its possible Helm client may not be connected until this point
+	err := s.Helm.PingTiller()
 	if err != nil {
-		return errors.Wrap(err, "failed to get helm client version")
+		return errors.Wrap(err, "helm.PingTiller() failed")
 	}
+
+	tillerVersion, err := s.Helm.GetVersion()
+	if err != nil {
+		return errors.Wrap(err, "failed to get Tiller version")
+	}
+
+	compatible := version.IsCompatible(version.Version, tillerVersion.Version.SemVer)
 	log.WithFields(log.Fields{
-		"Version": clientVersion.Version,
-	}).Debug("Helm client")
+		"tillerVersion":          tillerVersion.Version.SemVer,
+		"clientServerCompatible": compatible,
+		"Host":                   fmt.Sprintf(":%v", s.Tiller.Local),
+	}).Debug("Connected to Tiller")
+
+	if !compatible {
+		return errors.WithFields(errors.Fields{
+			"tillerVersion": tillerVersion.Version.SemVer,
+			"helmVersion":   version.Version,
+			"Host":          fmt.Sprintf(":%v", s.Tiller.Local),
+		}).New("incompatible version numbers")
+	}
 
 	return nil
 }
