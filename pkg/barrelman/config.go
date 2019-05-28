@@ -2,6 +2,8 @@ package barrelman
 
 import (
 	"fmt"
+	"github.com/charter-oss/barrelman/pkg/version"
+	"github.com/charter-oss/structured/log"
 	"io"
 	"os"
 	"regexp"
@@ -28,6 +30,12 @@ var (
 	settings helm_env.EnvSettings
 )
 
+type ConfigCmd struct {
+	Options    *CmdOptions
+	Config     *Config
+	LogOptions *[]string
+}
+
 type Config struct {
 	Account chartsync.AccountTable
 }
@@ -53,7 +61,7 @@ func GetConfigFromFile(s string) (*Config, error) {
 	}
 	f, err := os.Open(s)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error Opening file %v", err)
 	}
 	defer func() {
 		f.Close()
@@ -193,5 +201,22 @@ func (v *valueFiles) Set(value string) error {
 	for _, filePath := range strings.Split(value, ",") {
 		*v = append(*v, filePath)
 	}
+	return nil
+}
+
+func (cmd *ConfigCmd) Run() error {
+
+	ver := version.Get()
+	log.WithFields(log.Fields{
+		"Version": ver.Version,
+		"Commit":  ver.Commit,
+		"Branch":  ver.Branch,
+	}).Info("Barrelman")
+
+	config, err := GetConfigFromFile("/home/armorking/.config.yaml")
+	if err != nil {
+		return fmt.Errorf("ERROR %v", err)
+	}
+	fmt.Print("Config is: ", config)
 	return nil
 }

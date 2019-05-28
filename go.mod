@@ -30,7 +30,6 @@ require (
 	github.com/gregjones/httpcache v0.0.0-20181110185634-c63ab54fda8f // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
 	github.com/jtolds/gls v0.0.0-20181110203027-b4936e06046b // indirect
 	github.com/lithammer/dedent v1.1.0
@@ -47,11 +46,10 @@ require (
 	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90 // indirect
 	github.com/prometheus/common v0.2.0 // indirect
 	github.com/prometheus/procfs v0.0.0-20190208162519-de1b801bf34b // indirect
-	github.com/russross/blackfriday v1.5.2 // indirect
 	github.com/smartystreets/assertions v0.0.0-20180301161246-7678a5452ebe // indirect
 	github.com/smartystreets/goconvey v0.0.0-20170602164621-9e8dc3f972df
-	github.com/spf13/cobra v0.0.3
-	github.com/spf13/viper v1.3.2-0.20190315063904-3954e415200e
+	github.com/spf13/cobra v0.0.4
+	github.com/spf13/viper v1.3.2
 	github.com/stretchr/testify v1.2.2
 	github.com/technosophos/moniker v0.0.0-20180509230615-a5dbd03a2245 // indirect
 	golang.org/x/oauth2 v0.0.0-20181128211412-28207608b838 // indirect
@@ -79,4 +77,4 @@ require (
 	vbom.ml/util v0.0.0-20180919145318-efcd4e0f9787 // indirect
 )
 
-replace github.com/spf13/viper => ../../demond2/viper
+replace github.com/spf13/viper => /home/armorking/go-workspace/src/viper
