@@ -11,12 +11,23 @@ import (
 	"github.com/charter-oss/structured/log"
 )
 
+type State int
+
 const (
-	Installable = iota
+	// NoChange means no differences were detected between the proposed and running releases
+	NoChange State = iota
+	// Installable means there is no running release so an Install will be performed
+	Installable
+	// Upgradable indicates there is a running release that will be upgraded
 	Upgradable
+	// Replaceable means that the conditions were met to perform a "force" upgrade (delete/install)
 	Replaceable
+	// Deletable means the target release will be deleted
 	Deletable
-	NoChange
+	// Rollbackable is a situion where the release has been deleted but not purged
+	// and we want to install again. The solution is to rollback to the last revision first
+	// then Upgrade
+	Rollbackable
 )
 
 type ApplyCmd struct {
@@ -26,15 +37,18 @@ type ApplyCmd struct {
 }
 
 type ReleaseTarget struct {
-	ReleaseMeta *cluster.ReleaseMeta
-	Chart       *cluster.Chart
-	State       int
-	Diff        []byte
-	Changed     bool
+	ReleaseMeta    *cluster.ReleaseMeta
+	Chart          *cluster.Chart
+	State          State
+	Diff           []byte
+	Changed        bool
+	ReleaseVersion *cluster.Version
 }
 
 type ReleaseTargets struct {
 	ManifestName string
+	session      cluster.Sessioner
+	transaction  cluster.Transactioner
 	Data         []*ReleaseTarget
 }
 
@@ -82,12 +96,17 @@ func (cmd *ApplyCmd) Run(session cluster.Sessioner) error {
 		return errors.Wrap(err, "apply failed")
 	}
 
-	releases, err := session.Releases()
+	transaction, err := session.NewTransaction(manifestName)
+	if err != nil {
+		return errors.Wrap(err, "failed to create new transaction durring apply")
+	}
+
+	releases, err := session.ReleasesByManifest(manifestName)
 	if err != nil {
 		return errors.Wrap(err, "failed to get current releases")
 	}
 
-	rt, err := cmd.ComputeReleases(session, manifestName, archives, releases)
+	rt, err := cmd.ComputeReleases(session, transaction, manifestName, archives, releases)
 	if err != nil {
 		return err
 	}
@@ -108,12 +127,18 @@ func (cmd *ApplyCmd) Run(session cluster.Sessioner) error {
 		rt.LogDiff()
 		return nil
 	}
-	err = rt.Apply(session, cmd.Options)
+
+	err = rt.Apply(cmd.Options)
 	if err != nil {
+		if innerErr := transaction.Cancel(); innerErr != nil {
+			err = errors.WithFields(errors.Fields{
+				"TransactionError": innerErr.Error(),
+			}).Wrap(err, "transaction error while Canceling")
+		}
 		return errors.Wrap(err, "Manifest upgrade failed")
 	}
 
-	return nil
+	return transaction.Complete()
 }
 
 //IsReplaceable checks a release against the --force flag values to see if an existing release should be replaced via delete
@@ -128,67 +153,76 @@ func (cmd *ApplyCmd) isInForce(rel *cluster.ReleaseMeta) bool {
 }
 
 //ComputeReleases configures each potential release with a current state
-//states may be one of 'Installable', 'Upgradeable', or 'Replaceable'
+//states may be one of 'Installable', 'Upgradeable', 'Replaceable', 'NoChange'
 func (cmd *ApplyCmd) ComputeReleases(
 	session cluster.Sessioner,
+	transaction cluster.Transactioner,
 	manifestName string,
 	archives *manifest.ArchiveFiles,
 	currentReleases map[string]*cluster.ReleaseMeta) (*ReleaseTargets, error) {
-	rt := &ReleaseTargets{
+	rts := &ReleaseTargets{
 		ManifestName: manifestName,
+		session:      session,
+		transaction:  transaction,
 	}
 
+	//These archives are created from the manifest, they may potentially be installed/upgraded
 	for _, v := range archives.List {
 		releaseExists := false
 		inChart, err := session.ChartFromArchive(v.Reader)
 		if err != nil {
 			return nil, errors.Wrap(err, "Failed to generate chart from archive")
 		}
+
+		rt := &ReleaseTarget{
+			State: NoChange, //Unless modified below
+			ReleaseMeta: &cluster.ReleaseMeta{
+				Chart:          inChart,
+				ReleaseName:    v.ReleaseName,
+				Namespace:      v.Namespace,
+				ValueOverrides: v.Overrides,
+				InstallWait:    v.InstallWait,
+			},
+		}
+
+		//Evaluate archive vs current releases
 		for _, rel := range currentReleases {
 			if rel.ReleaseName == v.ReleaseName {
+				rt.ReleaseVersion = &cluster.Version{
+					Name:      rel.ReleaseName,
+					Namespace: rel.Namespace,
+					Revision:  rel.Revision,
+				}
 				releaseExists = true
-				if cmd.isInForce(rel) || rel.Status == cluster.Status_FAILED {
-					rt.Data = append(rt.Data,
-						&ReleaseTarget{
-							State: Replaceable,
-							ReleaseMeta: &cluster.ReleaseMeta{
-								Chart:          inChart,
-								ReleaseName:    rel.ReleaseName,
-								Namespace:      v.Namespace,
-								ValueOverrides: v.Overrides,
-								InstallWait:    v.InstallWait,
-							},
-						})
+				if rel.Status == cluster.Status_DELETED {
+					// Current release has been deleted, a state that is resisitant to Upgrade/Install
+					// Rollback to the current revision, then Upgrade
+					rt.State = Rollbackable
+				} else if cmd.isInForce(rel) && rel.Status == cluster.Status_FAILED {
+					// Current release is in FAILED state AND force is enabled for this release
+					// setup for delete and install
+					rt.State = Replaceable
 				} else {
-					rt.Data = append(rt.Data,
-						&ReleaseTarget{
-							State: Upgradable,
-							ReleaseMeta: &cluster.ReleaseMeta{
-								Chart:          inChart,
-								ReleaseName:    rel.ReleaseName,
-								Namespace:      v.Namespace,
-								ValueOverrides: v.Overrides,
-								InstallWait:    v.InstallWait,
-							},
-						})
+					// All other cases use Upgrade
+					rt.State = Upgradable
 				}
 			}
 		}
 		if !releaseExists {
-			rt.Data = append(rt.Data,
-				&ReleaseTarget{
-					State: Installable,
-					ReleaseMeta: &cluster.ReleaseMeta{
-						Chart:          inChart,
-						ReleaseName:    v.ReleaseName,
-						Namespace:      v.Namespace,
-						ValueOverrides: v.Overrides,
-						InstallWait:    v.InstallWait,
-					},
-				})
+			//There is no existing releases, just Install
+			rt.State = Installable
+			rt.ReleaseVersion = &cluster.Version{}
 		}
+		log.WithFields(log.Fields{
+			"ReleaseName": v.ReleaseName,
+			"TargetState": rt.State.String(),
+		}).Debug("computed release state")
+		rts.Data = append(rts.Data, rt)
+
+		// Add this release tartget to the transaction
+		rts.transaction.Versions().AddReleaseVersion(rt.ReleaseVersion)
 	}
-	return rt, nil
+	return rts, nil
 }
 
 func (rt *ReleaseTargets) dryRun(session cluster.Sessioner) error {
@@ -249,13 +283,7 @@ func (rt *ReleaseTargets) LogDiff() {
 	}
 }
 
-func (rt *ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) error {
-
-	transaction, err := session.NewTransaction(rt.ManifestName)
-	if err != nil {
-		return errors.Wrap(err, "failed to create new transaction durring apply")
-	}
-	defer transaction.Cancel()
+func (rt *ReleaseTargets) Apply(opt *CmdOptions) error {
 
 	for _, v := range rt.Data {
 		v.ReleaseMeta.DryRun = false
@@ -277,9 +305,10 @@ func (rt *ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) erro
 						"Namespace":   v.ReleaseMeta.Namespace,
 						"InstallWait": v.ReleaseMeta.InstallWait,
 					}).Info("Deleting (force install)")
-					if err := session.DeleteRelease(dm); err != nil {
+					if err := rt.session.DeleteRelease(dm); err != nil {
 						return errors.Wrap(err, "error deleting release before install (forced)")
 					}
+					v.ReleaseVersion.SetModified()
 				}
 				log.WithFields(log.Fields{
 					"Name":        v.ReleaseMeta.ReleaseName,
@@ -287,7 +316,7 @@ func (rt *ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) erro
 					"InstallWait": v.ReleaseMeta.InstallWait,
 				}).Info("Installing")
 				for i := 0; i < opt.InstallRetry; i++ {
-					msg, relName, relVersion, err := session.InstallRelease(v.ReleaseMeta, rt.ManifestName)
+					msg, relName, relVersion, err := rt.session.InstallRelease(v.ReleaseMeta, rt.ManifestName)
 					if err != nil {
 						log.WithFields(log.Fields{
 							"Name":        v.ReleaseMeta.ReleaseName,
@@ -308,7 +337,7 @@ func (rt *ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) erro
 							"Namespace":   v.ReleaseMeta.Namespace,
 							"InstallWait": v.ReleaseMeta.InstallWait,
 						}).Info("Deleting (state change)")
-						if err := session.DeleteRelease(dm); err != nil {
+						if err := rt.session.DeleteRelease(dm); err != nil {
 							//deleting kube-proxy or other connection issues can trigger this, don't abort the retry
 							log.Debug(err, "error deleting release before install (forced)")
 						}
@@ -326,11 +355,7 @@ func (rt *ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) erro
 						"Release":     relName,
 						"Version":     relVersion,
 					}).Info(msg)
-					transaction.Versions().AddReleaseVersion(&cluster.Version{
-						Name:      relName,
-						Namespace: v.ReleaseMeta.Namespace,
-						Revision:  relVersion,
-					})
+					v.ReleaseVersion.SetModified()
 					innerErr = nil
 					return nil
 				}
@@ -343,20 +368,34 @@ func (rt *ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) erro
 				return err
 			}
 
-		case Upgradable:
-			if !v.Changed {
+		case Upgradable, Rollbackable:
+			if !v.Changed && v.State != Rollbackable {
 				log.WithFields(log.Fields{
 					"Name":      v.ReleaseMeta.ReleaseName,
 					"Namespace": v.ReleaseMeta.Namespace,
-				}).Info("Skipping")
+				}).Info("Skipping due to no change")
 				// transaction, merge previous forward
 				continue
+			}
+			if v.State == Rollbackable {
+				log.WithFields(log.Fields{
+					"Name":      v.ReleaseMeta.ReleaseName,
+					"Namespace": v.ReleaseMeta.Namespace,
+					"Revision":  v.ReleaseMeta.Revision,
+				}).Info("Rollback before Upgrade")
+				_, err := rt.session.RollbackRelease(&cluster.RollbackMeta{
+					ReleaseName: v.ReleaseMeta.ReleaseName,
+					Revision:    v.ReleaseMeta.Revision,
+				})
+				if err != nil {
+					return errors.Wrap(err, "Rollback of release failed")
+				}
 			}
 			log.WithFields(log.Fields{
 				"Name":      v.ReleaseMeta.ReleaseName,
 				"Namespace": v.ReleaseMeta.Namespace,
 			}).Info("Upgrading")
-			msg, relVersion, err := session.UpgradeRelease(v.ReleaseMeta, rt.ManifestName)
+			msg, relVersion, err := rt.session.UpgradeRelease(v.ReleaseMeta, rt.ManifestName)
 			if err != nil {
 				return errors.WithFields(errors.Fields{
 					"Name":      v.ReleaseMeta.ReleaseName,
@@ -368,11 +407,7 @@ func (rt *ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) erro
 				"Namespace": v.ReleaseMeta.Namespace,
 				"Version":   relVersion,
 			}).Info(msg)
-			transaction.Versions().AddReleaseVersion(&cluster.Version{
-				Name:      v.ReleaseMeta.ReleaseName,
-				Namespace: v.ReleaseMeta.Namespace,
-				Revision:  relVersion,
-			})
+			v.ReleaseVersion.SetModified()
 		default:
 			log.WithFields(log.Fields{
 				"Name":      v.ReleaseMeta.ReleaseName,
@@ -381,5 +416,21 @@ func (rt *ReleaseTargets) Apply(session cluster.Sessioner, opt *CmdOptions) erro
 		}
 
 	}
-	return transaction.Complete()
+	return nil
+}
+
+func (state State) String() string {
+	switch state {
+	case Installable:
+		return "Installable"
+	case Upgradable:
+		return "Upgradeable"
+	case Replaceable:
+		return "Replaceable"
+	case Deletable:
+		return "Deleteable"
+	case NoChange:
+		return "NoChange"
+	}
+	return "UnknownState"
 }

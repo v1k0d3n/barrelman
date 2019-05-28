@@ -2,12 +2,15 @@ package cluster
 
 import (
 	"fmt"
+	"sort"
+	"time"
 
-	"github.com/ghodss/yaml"
+	"k8s.io/helm/pkg/timeconv"
 
 	"github.com/charter-oss/barrelman/pkg/cluster/driver"
 	"github.com/charter-oss/structured/errors"
 	"github.com/charter-oss/structured/log"
+	"github.com/ghodss/yaml"
 	"k8s.io/helm/pkg/proto/hapi/chart"
 	"k8s.io/helm/pkg/proto/hapi/release"
 )
@@ -36,6 +39,8 @@ type Version struct {
 	Namespace string
 	Revision  int32
 	Chart     *chart.Chart
+	Info      *release.Info
+	Modified  bool
 }
 
 func (s *Session) NewConfigMaps() *driver.ConfigMaps {
@@ -48,21 +53,30 @@ func (s *Session) WriteVersions(versions *Versions) error {
 		return errors.Wrap(err, "GetVersion failed to get release list during write")
 	}
 
-	values, err := versions.RawReleaseTable()
+	rawReleaseValues, err := versions.RawReleaseTable()
 	if err != nil {
 		return err
+	}
+	releaseValues := versions.ChartValues()
+
+	for r, v := range releaseValues {
+		log.WithFields(log.Fields{
+			"Release": r,
+			"Version": v.GetValue(),
+		}).Debug("Adding release to metaversion")
 	}
 
 	version := CalculateLastVersion(releases) + 1
 	rls := &release.Release{
 		Name: versions.Name,
+		Info: &release.Info{LastDeployed: timeconv.Timestamp(time.Now())},
 		Chart: &chart.Chart{
 			Metadata: &chart.Metadata{
 				Name: versions.Name,
 			},
 			Values: &chart.Config{
-				Raw:    values,
-				Values: versions.ChartValues(),
+				Raw:    rawReleaseValues,
+				Values: releaseValues,
 			},
 		},
 		Version: version,
@@ -103,17 +117,21 @@ func (s *Session) GetVersions(manifestName string) (*Versions, error) {
 	for _, v := range releases {
 		log.WithFields(log.Fields{
 			"ReleaseName": v.Name,
+			"Revision":    v.Version,
 		}).Debug("Adding rollback release")
 		versions.Data = append(versions.Data, &Version{
 			Name:      v.Name,
 			Namespace: v.Namespace,
 			Revision:  v.Version,
 			Chart:     v.Chart,
+			Info:      v.Info,
 		})
 	}
 	return versions, nil
 }
 
+// AddReleaseVersion add a release to the transaction for further processing
+// Does not imply release has been modified
 func (versions *Versions) AddReleaseVersion(rlsVersion *Version) error {
 	log.WithFields(log.Fields{
 		"Name":    rlsVersion.Name,
@@ -154,6 +172,14 @@ func (version *Version) ReleaseTable() (map[string]*chart.Value, error) {
 		return nil, errors.New("Values does not exist in version, cannot extract release table")
 	}
 	return version.Chart.Values.Values, nil
+}
+
+func (version *Version) SetModified() {
+	version.Modified = true
+}
+
+func (version *Version) IsModified() bool {
+	return version.Modified
 }
 
 func (versions *Versions) ChartValues() map[string]*chart.Value {
@@ -209,4 +235,39 @@ func CalculateLastVersion(releases []*release.Release) int32 {
 	}
 	return highestVersion
 
+}
+
+// Version sorter for formatting of release information
+
+// By is the type of a "less" function that defines the ordering of its Planet arguments.
+type By func(p1, p2 *Version) bool
+
+// Sort is a method on the function type, By, that sorts the argument slice according to the function.
+func (by By) Sort(versions []*Version) {
+	ps := &versionSorter{
+		versions: versions,
+		by:       by, // The Sort method's receiver is the function (closure) that defines the sort order.
+	}
+	sort.Sort(ps)
+}
+
+// versionSorter joins a By function and a slice of Versions to be sorted.
+type versionSorter struct {
+	versions []*Version
+	by       func(r1, r2 *Version) bool // Closure used in the Less method.
+}
+
+// Len is part of sort.Interface.
+func (v *versionSorter) Len() int {
+	return len(v.versions)
+}
+
+// Swap is part of sort.Interface.
+func (v *versionSorter) Swap(i, j int) {
+	v.versions[i], v.versions[j] = v.versions[j], v.versions[i]
+}
+
+// Less is part of sort.Interface. It is implemented by calling the "by" closure in the sorter.
+func (v *versionSorter) Less(i, j int) bool {
+	return v.by(v.versions[i], v.versions[j])
 }

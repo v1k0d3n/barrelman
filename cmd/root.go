@@ -1,13 +1,21 @@
 package cmd
 
 import (
+	"io/ioutil"
 	"os"
+
+	discardLog "log"
 
 	"github.com/spf13/cobra"
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
 	"github.com/charter-oss/structured/log"
+	"google.golang.org/grpc/grpclog"
 )
+
+func init() {
+	grpclog.SetLogger(discardLog.New(ioutil.Discard, "", discardLog.LstdFlags))
+}
 
 func newRootCmd(args []string) *cobra.Command {
 	cobraCmd := &cobra.Command{}
@@ -41,6 +49,16 @@ func newRootCmd(args []string) *cobra.Command {
 	}))
 
 	cobraCmd.AddCommand(newRollbackCmd(&barrelman.RollbackCmd{
+		Options: options,
+		Config:  config,
+	}))
+
+	cobraCmd.AddCommand(newHistoryCmd(&barrelman.HistoryCmd{
+		Options: options,
+		Config:  config,
+	}))
+
+	cobraCmd.AddCommand(newDescribeCmd(&barrelman.DescribeCmd{
 		Options: options,
 		Config:  config,
 	}))

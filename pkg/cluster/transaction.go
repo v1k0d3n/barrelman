@@ -30,11 +30,22 @@ type NewTransactioner interface {
 	NewTransaction(string) (*Transaction, error)
 }
 
+type Transactioner interface {
+	WriteNewVersion() error
+	Complete() error
+	Versions() *Versions
+	Cancel() error
+	Canceled() bool
+	Started() bool
+	Completed() bool
+}
+
 type Transaction struct {
 	ManifestName string
 	startState   *State
 	endState     *State
 	canceled     bool
+	changed      bool
 	session      *Session
 }
 
@@ -53,11 +64,15 @@ type ChangedRelease struct {
 // the Startstate field
 // this transaction can then be used to track changes and perform rollbacks
 func (s *Session) NewTransaction(manifestName string) (*Transaction, error) {
+	currentVersions, err := s.GetVersions(manifestName)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get current versions while creating rollback transaction")
+	}
 	transaction := &Transaction{
 		ManifestName: manifestName,
 		session:      s,
 		startState: &State{
-			Versions: NewVersions(manifestName),
+			Versions: currentVersions,
 		},
 		endState: &State{
 			Versions: NewVersions(manifestName),
@@ -107,6 +122,7 @@ func (t *Transaction) completeTransaction() error {
 	t.endState.completed = true // we do not attempt this twice
 	changedList, changed := t.calculateChanged()
 	if changed {
+		//Log the changed releases
 		for _, v := range changedList {
 			log.WithFields(log.Fields{
 				"ReleaseName":     v.ReleaseName,
@@ -114,13 +130,29 @@ func (t *Transaction) completeTransaction() error {
 				"NewVersion":      v.NewVersion,
 			}).Debug("Release was changed")
 		}
-		if err := t.session.WriteVersions(t.endState.Versions); err != nil {
+		//Write all releases to new new version
+		if err := t.WriteNewVersion(); err != nil {
 			return errors.Wrap(err, "Failed to write new rollback state")
 		}
 	} else {
+		//No changes, no new version
 		log.Debug("No change")
 	}
 	return nil
+}
+
+func (t *Transaction) WriteNewVersion() error {
+	return t.session.WriteVersions(t.Versions())
+}
+
+// SetChanged sets a global transaction changed flag allowing it to generate a new version
+func (t *Transaction) SetChanged() {
+	t.changed = true
+}
+
+// Changed returns the global transaction changed flag allowing it to generate a new version
+func (t *Transaction) Changed() bool {
+	return t.changed
 }
 
 // Complete populates endState with the currently running versions
@@ -170,35 +202,49 @@ func (t *Transaction) Completed() bool {
 
 func (t *Transaction) calculateChanged() ([]*ChangedRelease, bool) {
 	changedReleases := []*ChangedRelease{}
-	log.WithFields(log.Fields{
-		"Len": len(t.endState.Versions.Data),
-	}).Warn("calculateChanged()")
-	for _, endState := range t.endState.Versions.Data {
-		log.WithFields(log.Fields{
-			"Release": endState.Name,
-		}).Warn("checking endState for change")
-		// check if endState has a release that was in StartState
-		if startState := t.startState.Versions.Lookup(endState.Name); startState != nil {
-			// compare versions
-			if endState.Revision != startState.Revision {
-				changedReleases = append(changedReleases, &ChangedRelease{
-					ReleaseName:     endState.Name,
-					OriginalVersion: startState.Revision,
-					NewVersion:      endState.Revision,
-				})
-			}
-		} else {
-			// endState has a release that was not in the startState
+	for _, version := range t.endState.Versions.Data {
+		if version.IsModified() {
 			changedReleases = append(changedReleases, &ChangedRelease{
-				ReleaseName: endState.Name,
-				NewVersion:  endState.Revision,
+				ReleaseName: version.Name,
+				NewVersion:  version.Revision,
 			})
 		}
 	}
+	// for _, endState := range t.endState.Versions.Data {
+	// 	log.WithFields(log.Fields{
+	// 		"Release": endState.Name,
+	// 	}).Warn("checking endState for change")
+	// 	// check if endState has a release that was in StartState
+	// 	if startState := t.startState.Versions.Lookup(endState.Name); startState != nil {
+	// 		// compare versions
+	// 		if endState.Revision != startState.Revision {
+	// 			log.WithFields(log.Fields{
+	// 				"Release":         endState.Name,
+	// 				"OriginalVersion": startState.Revision,
+	// 				"NewVersion":      endState.Revision,
+	// 			}).Warn("different versions")
+	// 			changedReleases = append(changedReleases, &ChangedRelease{
+	// 				ReleaseName:     endState.Name,
+	// 				OriginalVersion: startState.Revision,
+	// 				NewVersion:      endState.Revision,
+	// 			})
+	// 		}
+	// 	} else {
+	// 		// endState has a release that was not in the startState
+	// 		log.WithFields(log.Fields{
+	// 			"Release":    endState.Name,
+	// 			"NewVersion": endState.Revision,
+	// 		}).Warn("New version")
+	// 		changedReleases = append(changedReleases, &ChangedRelease{
+	// 			ReleaseName: endState.Name,
+	// 			NewVersion:  endState.Revision,
+	// 		})
+	// 	}
+	// }
 	log.WithFields(log.Fields{
 		"Len": len(changedReleases),
 	}).Warn("len(changedReleases)")
-	return changedReleases, len(changedReleases) > 0
+	return changedReleases, len(changedReleases) > 0 || t.changed
 }
 
 func (state *State) Completed() bool {
