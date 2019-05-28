@@ -225,7 +225,7 @@ func (s *Session) DeleteReleases(dm []*DeleteMeta) error {
 func (s *Session) DeleteRelease(m *DeleteMeta) error {
 	_, err := s.Helm.DeleteRelease(
 		m.ReleaseName,
-		helm.DeletePurge(true),
+		helm.DeletePurge(false),
 		helm.DeleteTimeout(int64(m.DeleteTimeout.Seconds())),
 	)
 	if err != nil {

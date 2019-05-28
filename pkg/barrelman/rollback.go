@@ -7,6 +7,7 @@ import (
 	"github.com/charter-oss/barrelman/pkg/version"
 	"github.com/charter-oss/structured/errors"
 	"github.com/charter-oss/structured/log"
+	"k8s.io/helm/pkg/proto/hapi/chart"
 )
 
 type RollbackCmd struct {
@@ -102,6 +103,11 @@ func (cmd *RollbackCmd) Run(session cluster.Sessioner) error {
 				"Revision":    v.Value,
 			}).Debug("Rollback release")
 		}
+
+		if err := cmd.deleteMissing(session, releaseMeta.Chart.Values.Values); err != nil {
+			return errors.Wrap(err, "failed to remove release that does not exist in rollback")
+		}
+
 		for releaseName, releaseVersion := range releaseMeta.Chart.Values.Values {
 
 			//Convert the *chart.Value to int32
@@ -122,12 +128,40 @@ func (cmd *RollbackCmd) Run(session cluster.Sessioner) error {
 			if err != nil {
 				return errors.Wrap(err, "Rollback of release failed")
 			}
-			transaction.Versions().AddReleaseVersion(&cluster.Version{
+			if err := transaction.Versions().AddReleaseVersion(&cluster.Version{
 				Name:     releaseName,
 				Revision: newVersion,
-			})
+			}); err != nil {
+				return errors.Wrap(err, "Failed to add release to transaction during rollback")
+			}
+			transaction.SetChanged()
 		}
 	}
 
 	return transaction.Complete()
+}
+
+func (cmd *RollbackCmd) deleteMissing(session cluster.Sessioner, releaseList map[string]*chart.Value) error {
+	list, err := session.ReleasesByManifest(cmd.ManifestName)
+	if err != nil {
+		return errors.Wrap(err, "Failed to get releases")
+	}
+	for k, v := range list {
+		log.WithFields(log.Fields{
+			"k":           k,
+			"ReleaseName": v.ReleaseName,
+		}).Debug("evaluating release for removal")
+		if _, ok := releaseList[k]; !ok {
+			if err := session.DeleteRelease(&cluster.DeleteMeta{
+				ReleaseName: v.ReleaseName,
+			}); err != nil {
+				return err
+			}
+			log.WithFields(log.Fields{
+				"ReleaseName": v.ReleaseName,
+			}).Debug("deleted release")
+		}
+	}
+
+	return nil
 }
