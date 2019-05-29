@@ -203,7 +203,51 @@ func (cmd *ApplyCmd) ComputeReleases(
 		// Add this release tartget to the transaction
 		rts.transaction.Versions().AddReleaseVersion(rt.ReleaseVersion)
 	}
+
+	// iterate current releases, any that do not exist in rollbackReleaseList set to delete
+	for _, rel := range currentReleases {
+		if rel.Status == cluster.Status_DELETED {
+			log.WithFields(log.Fields{
+				"RunningReleaseName": rel.ReleaseName,
+			}).Debug("Already deleted")
+			// Already deleted, so noop
+			continue
+		} else {
+			log.WithFields(log.Fields{
+				"RunningReleaseName": rel.ReleaseName,
+				"Status":             rel.Status,
+			}).Debug("not deleted")
+		}
+
+		// if the current release exists in manifest, move on
+		if rts.HasRelease(rel.ReleaseName) {
+			continue
+		}
+
+		rv := &cluster.Version{
+			Name:      rel.ReleaseName,
+			Namespace: rel.Namespace,
+		}
+		rts.Data = append(rts.Data, &ReleaseTarget{
+			ReleaseMeta: &cluster.ReleaseMeta{
+				ReleaseName: rel.ReleaseName,
+				Namespace:   rel.Namespace,
+			},
+			TransitionState: Deletable,
+			ReleaseVersion:  &cluster.Version{},
+		})
+		rv.SetModified()
+	}
 	return rts, nil
+}
+
+func (rt *ReleaseTargets) HasRelease(releaseName string) bool {
+	for _, v := range rt.Data {
+		if v.ReleaseMeta.ReleaseName == releaseName {
+			return true
+		}
+	}
+	return false
 }
 
 func (rt *ReleaseTargets) dryRun(session cluster.Sessioner) error {
@@ -389,6 +433,23 @@ func (rt *ReleaseTargets) Apply(opt *CmdOptions) error {
 				"Version":   relVersion,
 			}).Info(msg)
 			v.ReleaseVersion.SetModified()
+		case Deletable:
+			//The release exists, it needs to be deleted
+			dm := &cluster.DeleteMeta{
+				ReleaseName:   v.ReleaseMeta.ReleaseName,
+				Namespace:     v.ReleaseMeta.Namespace,
+				DeleteTimeout: v.ReleaseMeta.InstallTimeout,
+			}
+			log.WithFields(log.Fields{
+				"Name":        v.ReleaseMeta.ReleaseName,
+				"Namespace":   v.ReleaseMeta.Namespace,
+				"InstallWait": v.ReleaseMeta.InstallWait,
+			}).Info("Deleting (removed from manifest)")
+			if err := rt.session.DeleteRelease(dm); err != nil {
+				return errors.Wrap(err, "error deleting release before install (forced)")
+			}
+			v.ReleaseVersion.SetModified()
+
 		default:
 			log.WithFields(log.Fields{
 				"Name":      v.ReleaseMeta.ReleaseName,
@@ -398,20 +459,4 @@ func (rt *ReleaseTargets) Apply(opt *CmdOptions) error {
 
 	}
 	return nil
-}
-
-func (state TransitionState) String() string {
-	switch state {
-	case Installable:
-		return "Installable"
-	case Upgradable:
-		return "Upgradeable"
-	case Replaceable:
-		return "Replaceable"
-	case Undeleteable:
-		return "Undeleteable"
-	case NoChange:
-		return "NoChange"
-	}
-	return "UnknownState"
 }

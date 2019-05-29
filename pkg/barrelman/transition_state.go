@@ -19,3 +19,19 @@ const (
 	// then Upgrade
 	Undeleteable
 )
+
+func (state TransitionState) String() string {
+	switch state {
+	case Installable:
+		return "Installable"
+	case Upgradable:
+		return "Upgradeable"
+	case Replaceable:
+		return "Replaceable"
+	case Undeleteable:
+		return "Undeleteable"
+	case NoChange:
+		return "NoChange"
+	}
+	return "UnknownState"
+}
