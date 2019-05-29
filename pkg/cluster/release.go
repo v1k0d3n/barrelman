@@ -114,7 +114,7 @@ func (s *Session) ListReleasesByManifest(manifestName string) ([]*Release, error
 	r, err := s.Helm.ListReleases(
 		helm.ReleaseListStatuses([]release.Status_Code{
 			release.Status_DELETED,
-			release.Status_SUPERSEDED,
+			//			release.Status_SUPERSEDED,
 			release.Status_DEPLOYED,
 			release.Status_FAILED,
 			release.Status_PENDING_INSTALL,
@@ -127,6 +127,7 @@ func (s *Session) ListReleasesByManifest(manifestName string) ([]*Release, error
 		return nil, errors.Wrap(err, "failed to Helm.ListReleases()")
 	}
 	for _, v := range r.GetReleases() {
+		fmt.Printf("STATUS_CODE: %v\n", Status(v.Info.Status.Code))
 		rel := &Release{
 			Chart:       v.GetChart(),
 			ReleaseName: v.GetName(),
