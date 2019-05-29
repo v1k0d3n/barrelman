@@ -11,25 +11,6 @@ import (
 	"github.com/charter-oss/structured/log"
 )
 
-type State int
-
-const (
-	// NoChange means no differences were detected between the proposed and running releases
-	NoChange State = iota
-	// Installable means there is no running release so an Install will be performed
-	Installable
-	// Upgradable indicates there is a running release that will be upgraded
-	Upgradable
-	// Replaceable means that the conditions were met to perform a "force" upgrade (delete/install)
-	Replaceable
-	// Deletable means the target release will be deleted
-	Deletable
-	// Rollbackable is a situion where the release has been deleted but not purged
-	// and we want to install again. The solution is to rollback to the last revision first
-	// then Upgrade
-	Rollbackable
-)
-
 type ApplyCmd struct {
 	Options    *CmdOptions
 	Config     *Config
@@ -37,12 +18,12 @@ type ApplyCmd struct {
 }
 
 type ReleaseTarget struct {
-	ReleaseMeta    *cluster.ReleaseMeta
-	Chart          *cluster.Chart
-	State          State
-	Diff           []byte
-	Changed        bool
-	ReleaseVersion *cluster.Version
+	ReleaseMeta     *cluster.ReleaseMeta
+	Chart           *cluster.Chart
+	TransitionState TransitionState
+	Diff            []byte
+	Changed         bool
+	ReleaseVersion  *cluster.Version
 }
 
 type ReleaseTargets struct {
@@ -175,7 +156,7 @@ func (cmd *ApplyCmd) ComputeReleases(
 		}
 
 		rt := &ReleaseTarget{
-			State: NoChange, //Unless modified below
+			TransitionState: NoChange, //Unless modified below
 			ReleaseMeta: &cluster.ReleaseMeta{
 				Chart:          inChart,
 				ReleaseName:    v.ReleaseName,
@@ -197,25 +178,25 @@ func (cmd *ApplyCmd) ComputeReleases(
 				if rel.Status == cluster.Status_DELETED {
 					// Current release has been deleted, a state that is resisitant to Upgrade/Install
 					// Rollback to the current revision, then Upgrade
-					rt.State = Rollbackable
+					rt.TransitionState = Undeleteable
 				} else if cmd.isInForce(rel) && rel.Status == cluster.Status_FAILED {
 					// Current release is in FAILED state AND force is enabled for this release
 					// setup for delete and install
-					rt.State = Replaceable
+					rt.TransitionState = Replaceable
 				} else {
 					// All other cases use Upgrade
-					rt.State = Upgradable
+					rt.TransitionState = Upgradable
 				}
 			}
 		}
 		if !releaseExists {
 			//There is no existing releases, just Install
-			rt.State = Installable
+			rt.TransitionState = Installable
 			rt.ReleaseVersion = &cluster.Version{}
 		}
 		log.WithFields(log.Fields{
 			"ReleaseName": v.ReleaseName,
-			"TargetState": rt.State.String(),
+			"TargetState": rt.TransitionState.String(),
 		}).Debug("computed release state")
 		rts.Data = append(rts.Data, rt)
 
@@ -228,7 +209,7 @@ func (cmd *ApplyCmd) ComputeReleases(
 func (rt *ReleaseTargets) dryRun(session cluster.Sessioner) error {
 	for _, v := range rt.Data {
 		v.ReleaseMeta.DryRun = true
-		switch v.State {
+		switch v.TransitionState {
 		case Installable:
 			_, _, _, err := session.InstallRelease(v.ReleaseMeta, rt.ManifestName)
 			if err != nil {
@@ -248,7 +229,7 @@ func (rt *ReleaseTargets) Diff(session cluster.Sessioner) (*ReleaseTargets, erro
 	var err error
 	for _, v := range rt.Data {
 		v.ReleaseMeta.DryRun = true
-		switch v.State {
+		switch v.TransitionState {
 		case Upgradable:
 			v.Changed, v.Diff, err = session.DiffRelease(v.ReleaseMeta)
 			if err != nil {
@@ -261,7 +242,7 @@ func (rt *ReleaseTargets) Diff(session cluster.Sessioner) (*ReleaseTargets, erro
 
 func (rt *ReleaseTargets) LogDiff() {
 	for _, v := range rt.Data {
-		switch v.State {
+		switch v.TransitionState {
 		case Installable:
 			log.WithFields(log.Fields{
 				"Name":      v.ReleaseMeta.ReleaseName,
@@ -288,12 +269,12 @@ func (rt *ReleaseTargets) Apply(opt *CmdOptions) error {
 	for _, v := range rt.Data {
 		v.ReleaseMeta.DryRun = false
 		v.ReleaseMeta.InstallTimeout = 120
-		switch v.State {
+		switch v.TransitionState {
 		case Installable, Replaceable:
 			if err := func() error {
 				//This closure removes a "break OUT"
 				var innerErr error
-				if v.State == Replaceable {
+				if v.TransitionState == Replaceable {
 					//The release exists, it needs to be deleted
 					dm := &cluster.DeleteMeta{
 						ReleaseName:   v.ReleaseMeta.ReleaseName,
@@ -368,8 +349,8 @@ func (rt *ReleaseTargets) Apply(opt *CmdOptions) error {
 				return err
 			}
 
-		case Upgradable, Rollbackable:
-			if !v.Changed && v.State != Rollbackable {
+		case Upgradable, Undeleteable:
+			if !v.Changed && v.TransitionState != Undeleteable {
 				log.WithFields(log.Fields{
 					"Name":      v.ReleaseMeta.ReleaseName,
 					"Namespace": v.ReleaseMeta.Namespace,
@@ -377,12 +358,12 @@ func (rt *ReleaseTargets) Apply(opt *CmdOptions) error {
 				// transaction, merge previous forward
 				continue
 			}
-			if v.State == Rollbackable {
+			if v.TransitionState == Undeleteable {
 				log.WithFields(log.Fields{
 					"Name":      v.ReleaseMeta.ReleaseName,
 					"Namespace": v.ReleaseMeta.Namespace,
 					"Revision":  v.ReleaseMeta.Revision,
-				}).Info("Rollback before Upgrade")
+				}).Info("Rollback before Upgrade (undelete)")
 				_, err := rt.session.RollbackRelease(&cluster.RollbackMeta{
 					ReleaseName: v.ReleaseMeta.ReleaseName,
 					Revision:    v.ReleaseMeta.Revision,
@@ -419,7 +400,7 @@ func (rt *ReleaseTargets) Apply(opt *CmdOptions) error {
 	return nil
 }
 
-func (state State) String() string {
+func (state TransitionState) String() string {
 	switch state {
 	case Installable:
 		return "Installable"
@@ -427,8 +408,8 @@ func (state State) String() string {
 		return "Upgradeable"
 	case Replaceable:
 		return "Replaceable"
-	case Deletable:
-		return "Deleteable"
+	case Undeleteable:
+		return "Undeleteable"
 	case NoChange:
 		return "NoChange"
 	}
