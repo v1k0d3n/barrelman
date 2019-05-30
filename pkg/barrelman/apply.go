@@ -179,7 +179,7 @@ func (cmd *ApplyCmd) ComputeReleases(
 					// Current release has been deleted, a state that is resisitant to Upgrade/Install
 					// Rollback to the current revision, then Upgrade
 					rt.TransitionState = Undeleteable
-				} else if cmd.isInForce(rel) && rel.Status == cluster.Status_FAILED {
+				} else if cmd.isInForce(rel) || rel.Status == cluster.Status_FAILED {
 					// Current release is in FAILED state AND force is enabled for this release
 					// setup for delete and install
 					rt.TransitionState = Replaceable
