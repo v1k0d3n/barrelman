@@ -81,9 +81,6 @@ func (cmd *DescribeCmd) Run(session cluster.Sessioner) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to get release table from Rollback ConfigMap")
 		}
-		log.WithFields(log.Fields{
-			"Len": len(releaseTable),
-		}).Warn("ReleaseTable")
 		for k, v := range releaseTable {
 			log.WithFields(log.Fields{
 				"ManifestVersion": cmd.ManifestVersion,

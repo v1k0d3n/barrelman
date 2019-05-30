@@ -138,10 +138,6 @@ func (rts *RollbackTargets) Apply() error {
 				"TransitionState": rt.TransitionState.String(),
 			}).New("Invalid transition state for rollback")
 		case Upgradable, Undeleteable, Replaceable:
-			log.WithFields(log.Fields{
-				"ReleaseName": rt.ReleaseName,
-				"Version":     rt.Revision,
-			}).Debug("Release rolling back")
 			newRevision, err := rts.session.RollbackRelease(&cluster.RollbackMeta{
 				ReleaseName: rt.ReleaseName,
 				Revision:    rt.Revision,
@@ -237,8 +233,8 @@ func (cmd *RollbackCmd) ComputeRollback(
 		}
 
 		log.WithFields(log.Fields{
-			"ReleaseName": rt.ReleaseName,
-			"TargetState": rt.TransitionState.String(),
+			"ReleaseName":     rt.ReleaseName,
+			"TransitionState": rt.TransitionState.String(),
 		}).Debug("computed transition state")
 		rts.Data = append(rts.Data, rt)
 
@@ -253,11 +249,6 @@ func (cmd *RollbackCmd) ComputeRollback(
 			}).Debug("Already deleted")
 			// Already deleted, so noop
 			continue
-		} else {
-			log.WithFields(log.Fields{
-				"RunningReleaseName": rel.ReleaseName,
-				"Status":             rel.Status,
-			}).Debug("not deleted")
 		}
 
 		// if the current release exists in rollback, move on
