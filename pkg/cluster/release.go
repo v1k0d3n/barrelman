@@ -127,7 +127,6 @@ func (s *Session) ListReleasesByManifest(manifestName string) ([]*Release, error
 		return nil, errors.Wrap(err, "failed to Helm.ListReleases()")
 	}
 	for _, v := range r.GetReleases() {
-		fmt.Printf("STATUS_CODE: %v\n", Status(v.Info.Status.Code))
 		rel := &Release{
 			Chart:       v.GetChart(),
 			ReleaseName: v.GetName(),
@@ -280,9 +279,6 @@ func setChartManifestTags(chart *Chart, tags string) *Chart {
 }
 
 func getChartManifestTag(chart *Chart) string {
-	log.WithFields(log.Fields{
-		"TagLine": chart.Metadata.Tags,
-	}).Debug("Evaluating tags")
 	rx := regexp.MustCompile(`Manifest=([\.|\-|\d|\w]+)`)
 	tags := rx.FindStringSubmatch(chart.Metadata.Tags)
 	if len(tags) > 0 {

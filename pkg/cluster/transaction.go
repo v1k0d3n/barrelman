@@ -201,6 +201,7 @@ func (t *Transaction) Completed() bool {
 }
 
 func (t *Transaction) calculateChanged() ([]*ChangedRelease, bool) {
+
 	changedReleases := []*ChangedRelease{}
 	for _, version := range t.endState.Versions.Data {
 		if version.IsModified() {
@@ -210,40 +211,7 @@ func (t *Transaction) calculateChanged() ([]*ChangedRelease, bool) {
 			})
 		}
 	}
-	// for _, endState := range t.endState.Versions.Data {
-	// 	log.WithFields(log.Fields{
-	// 		"Release": endState.Name,
-	// 	}).Warn("checking endState for change")
-	// 	// check if endState has a release that was in StartState
-	// 	if startState := t.startState.Versions.Lookup(endState.Name); startState != nil {
-	// 		// compare versions
-	// 		if endState.Revision != startState.Revision {
-	// 			log.WithFields(log.Fields{
-	// 				"Release":         endState.Name,
-	// 				"OriginalVersion": startState.Revision,
-	// 				"NewVersion":      endState.Revision,
-	// 			}).Warn("different versions")
-	// 			changedReleases = append(changedReleases, &ChangedRelease{
-	// 				ReleaseName:     endState.Name,
-	// 				OriginalVersion: startState.Revision,
-	// 				NewVersion:      endState.Revision,
-	// 			})
-	// 		}
-	// 	} else {
-	// 		// endState has a release that was not in the startState
-	// 		log.WithFields(log.Fields{
-	// 			"Release":    endState.Name,
-	// 			"NewVersion": endState.Revision,
-	// 		}).Warn("New version")
-	// 		changedReleases = append(changedReleases, &ChangedRelease{
-	// 			ReleaseName: endState.Name,
-	// 			NewVersion:  endState.Revision,
-	// 		})
-	// 	}
-	// }
-	log.WithFields(log.Fields{
-		"Len": len(changedReleases),
-	}).Warn("len(changedReleases)")
+
 	return changedReleases, len(changedReleases) > 0 || t.changed
 }
 

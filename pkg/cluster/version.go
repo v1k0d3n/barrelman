@@ -115,10 +115,6 @@ func (s *Session) GetVersions(manifestName string) (*Versions, error) {
 		return nil, errors.Wrap(err, "GetVersion failed to get release list")
 	}
 	for _, v := range releases {
-		log.WithFields(log.Fields{
-			"ReleaseName": v.Name,
-			"Revision":    v.Version,
-		}).Debug("Adding rollback release")
 		versions.Data = append(versions.Data, &Version{
 			Name:      v.Name,
 			Namespace: v.Namespace,
@@ -138,9 +134,6 @@ func (versions *Versions) AddReleaseVersion(rlsVersion *Version) error {
 		"Version": rlsVersion.Revision,
 	}).Debug("Add release version")
 	versions.Data = append(versions.Data, rlsVersion)
-	log.WithFields(log.Fields{
-		"Len": len(versions.Data),
-	}).Warn("version.Data")
 	return nil
 }
 
@@ -239,7 +232,7 @@ func CalculateLastVersion(releases []*release.Release) int32 {
 
 // Version sorter for formatting of release information
 
-// By is the type of a "less" function that defines the ordering of its Planet arguments.
+// By is the type of a "less" function that defines the ordering of its arguments.
 type By func(p1, p2 *Version) bool
 
 // Sort is a method on the function type, By, that sorts the argument slice according to the function.
