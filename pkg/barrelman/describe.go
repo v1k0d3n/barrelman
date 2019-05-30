@@ -70,14 +70,14 @@ func (cmd *DescribeCmd) Run(session cluster.Sessioner) error {
 	versionTable := versions.Table()
 
 	if cmd.ManifestVersion != 0 {
-		releaseMeta, ok := versionTable.Data[cmd.ManifestVersion]
+		version, ok := versionTable.Data[cmd.ManifestVersion]
 		if !ok {
 			return errors.WithFields(errors.Fields{
 				"ManifestVersion": cmd.ManifestVersion,
 				"ManifestName":    cmd.ManifestName,
 			}).New("Failed to rollback to version, No such version")
 		}
-		releaseTable, err := releaseMeta.ReleaseTable()
+		releaseTable, err := version.ReleaseTable()
 		if err != nil {
 			return errors.Wrap(err, "failed to get release table from Rollback ConfigMap")
 		}

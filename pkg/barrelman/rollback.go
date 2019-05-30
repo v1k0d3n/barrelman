@@ -1,12 +1,14 @@
 package barrelman
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/charter-oss/barrelman/pkg/cluster"
 	"github.com/charter-oss/barrelman/pkg/version"
 	"github.com/charter-oss/structured/errors"
 	"github.com/charter-oss/structured/log"
+	"github.com/davecgh/go-spew/spew"
 	"k8s.io/helm/pkg/proto/hapi/chart"
 )
 
@@ -19,7 +21,7 @@ type RollbackCmd struct {
 }
 
 type RollbackTarget struct {
-	ReleaseName     string
+	ReleaseMeta     *cluster.ReleaseMeta
 	TransitionState TransitionState
 	ReleaseVersion  *cluster.Version
 	Revision        int32
@@ -77,7 +79,7 @@ func (cmd *RollbackCmd) Run(session cluster.Sessioner) error {
 			"manifestName": v.Name,
 			"namespace":    v.Namespace,
 			"Revision":     v.Revision,
-		}).Info("Rollback manifest")
+		}).Debug("Rollback manifest")
 	}
 
 	// Rollback supports transactions
@@ -116,6 +118,16 @@ func (cmd *RollbackCmd) Run(session cluster.Sessioner) error {
 			return errors.Wrap(err, "failed to compute plan for rollback")
 		}
 
+		// _, err = rts.Diff(session)
+		// if err != nil {
+		// 	return err
+		// }
+
+		// if cmd.Options.Diff {
+		// 	rts.LogDiff()
+		// 	return nil
+		// }
+
 		if err := rts.Apply(); err != nil {
 			return errors.Wrap(err, "Rollback failed")
 		}
@@ -130,40 +142,41 @@ func (rts *RollbackTargets) Apply() error {
 		switch rt.TransitionState {
 		case NoChange:
 			log.WithFields(log.Fields{
-				"ReleaseName": rt.ReleaseName,
+				"ReleaseName": rt.ReleaseMeta.ReleaseName,
 			}).Debug("No change in rollback")
 		case Installable:
 			return errors.WithFields(errors.Fields{
-				"ReleaseName":     rt.ReleaseName,
+				"ReleaseName":     rt.ReleaseMeta.ReleaseName,
 				"TransitionState": rt.TransitionState.String(),
 			}).New("Invalid transition state for rollback")
 		case Upgradable, Undeleteable, Replaceable:
 			newRevision, err := rts.session.RollbackRelease(&cluster.RollbackMeta{
-				ReleaseName: rt.ReleaseName,
+				ReleaseName: rt.ReleaseMeta.ReleaseName,
 				Revision:    rt.Revision,
 			})
 			if err != nil {
 				return errors.Wrap(err, "rollback failed")
 			}
 			log.WithFields(log.Fields{
-				"ReleaseName": rt.ReleaseName,
+				"ReleaseName": rt.ReleaseMeta.ReleaseName,
 				"Version":     newRevision,
 			}).Debug("Release rolled back")
 			rt.ReleaseVersion.SetModified()
 		case Deletable:
 			log.WithFields(log.Fields{
-				"Name": rt.ReleaseName,
+				"Name": rt.ReleaseMeta.ReleaseName,
 			}).Info("Deleting")
 			if err := rts.session.DeleteRelease(&cluster.DeleteMeta{
-				ReleaseName: rt.ReleaseName,
+				ReleaseName: rt.ReleaseMeta.ReleaseName,
 				Namespace:   rt.ReleaseVersion.Namespace,
 			}); err != nil {
 				return errors.Wrap(err, "error deleting release during rollback")
 			}
 			rt.ReleaseVersion.SetModified()
 		default:
+			// Not a thing
 			return errors.WithFields(errors.Fields{
-				"ReleaseName":     rt.ReleaseName,
+				"ReleaseName":     rt.ReleaseMeta.ReleaseName,
 				"TransitionState": rt.TransitionState.String(),
 			}).New("Unhandled transition state")
 		}
@@ -194,20 +207,36 @@ func (cmd *RollbackCmd) ComputeRollback(
 		revision := int32(tmpVersion)
 
 		rt := &RollbackTarget{
-			ReleaseName:     releaseName,
+			ReleaseMeta: &cluster.ReleaseMeta{
+				ReleaseName: releaseName,
+			},
 			Revision:        revision,
 			TransitionState: NoChange, //Unless modified below
 		}
 
 		//Evaluate rollback vs current releases
 		for _, rel := range currentReleases {
-			if rel.ReleaseName == rt.ReleaseName {
+			if rel.ReleaseName == rt.ReleaseMeta.ReleaseName {
 				releaseExists = true
+
 				rt.ReleaseVersion = &cluster.Version{
 					Name:      rel.ReleaseName,
 					Namespace: rel.Namespace,
 					Revision:  rel.Revision,
 				}
+
+				// The To Chart is needed to perform diffs
+				// not technically needed for the rollback
+				// but for operator analysis and avoiding rolling on no change
+				toMeta, err := session.GetRelease(rel.ReleaseName, rel.Revision)
+				if err != nil {
+					return nil, errors.Wrap(err, "failed to get release")
+				}
+				rt.ReleaseVersion.Chart = toMeta.Chart
+				log.WithFields(log.Fields{
+					"ChartName": rt.ReleaseVersion.Chart.Metadata.Name,
+				}).Warn("Retreived chart")
+
 				if rel.Status == cluster.Status_DELETED {
 					// Current release has been deleted, we track it seperately
 					rt.TransitionState = Undeleteable
@@ -228,12 +257,12 @@ func (cmd *RollbackCmd) ComputeRollback(
 		if !releaseExists {
 			//There is no existing releases, we can't roll to this
 			return nil, errors.WithFields(errors.Fields{
-				"ReleaseName": rt.ReleaseName,
+				"ReleaseName": rt.ReleaseMeta.ReleaseName,
 			}).New("Cannot roll to release, it doesn't exist")
 		}
 
 		log.WithFields(log.Fields{
-			"ReleaseName":     rt.ReleaseName,
+			"ReleaseName":     rt.ReleaseMeta.ReleaseName,
 			"TransitionState": rt.TransitionState.String(),
 		}).Debug("computed transition state")
 		rts.Data = append(rts.Data, rt)
@@ -261,11 +290,53 @@ func (cmd *RollbackCmd) ComputeRollback(
 			Namespace: rel.Namespace,
 		}
 		rts.Data = append(rts.Data, &RollbackTarget{
-			ReleaseName:     rel.ReleaseName,
+			ReleaseMeta: &cluster.ReleaseMeta{
+				ReleaseName: rel.ReleaseName,
+			},
 			ReleaseVersion:  rv,
 			TransitionState: Deletable,
 		})
 		rv.SetModified()
 	}
 	return rts, nil
+}
+
+func (rt *RollbackTargets) Diff(session cluster.Sessioner) (*RollbackTargets, error) {
+	var err error
+	for _, v := range rt.Data {
+		v.ReleaseMeta.DryRun = true
+		switch v.TransitionState {
+		case Upgradable, Replaceable, Undeleteable:
+			spew.Dump(v.ReleaseMeta)
+			v.Changed, v.Diff, err = session.DiffRelease(v.ReleaseMeta)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return rt, nil
+}
+
+func (rt *RollbackTargets) LogDiff() {
+	for _, v := range rt.Data {
+		switch v.TransitionState {
+		case Installable:
+			log.WithFields(log.Fields{
+				"Name":      v.ReleaseMeta.ReleaseName,
+				"Namespace": v.ReleaseMeta.Namespace,
+			}).Info("Would install")
+		case Upgradable:
+			if v.Changed {
+				log.WithFields(log.Fields{
+					"Name": v.ReleaseMeta.ReleaseName,
+				}).Info("Diff")
+				//Print the byte content and keep formatting, its fancy
+				fmt.Printf("----%v\n%v_____\n", v.ReleaseMeta.MetaName, string(v.Diff))
+			} else {
+				log.WithFields(log.Fields{
+					"Name": v.ReleaseMeta.ReleaseName,
+				}).Info("No change")
+			}
+		}
+	}
 }

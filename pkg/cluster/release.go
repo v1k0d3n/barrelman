@@ -97,6 +97,7 @@ type Releaser interface {
 	ReleasesByManifest(manifest string) (map[string]*ReleaseMeta, error)
 	DiffManifests(map[string]*MappingResult, map[string]*MappingResult, []string, int, io.Writer) bool
 	ChartFromArchive(aChart io.Reader) (*chart.Chart, error)
+	GetRelease(releaseName string, revision int32) (*ReleaseMeta, error)
 	RollbackRelease(m *RollbackMeta) (int32, error)
 }
 
@@ -127,9 +128,12 @@ func (s *Session) ListReleasesByManifest(manifestName string) ([]*Release, error
 		return nil, errors.Wrap(err, "failed to Helm.ListReleases()")
 	}
 	for _, v := range r.GetReleases() {
+		log.WithFields(log.Fields{
+			"ReleaseName": v.Name,
+		}).Warn("Adding chart to *Release")
 		rel := &Release{
 			Chart:       v.GetChart(),
-			ReleaseName: v.GetName(),
+			ReleaseName: v.Name,
 			Namespace:   v.Namespace,
 			Status:      Status(v.Info.Status.Code),
 			Revision:    v.GetVersion(),
@@ -194,6 +198,23 @@ func (s *Session) DiffRelease(m *ReleaseMeta) (bool, []byte, error) {
 	manifestsChanged := DiffManifests(currentParsed, newParsed, []string{}, int(10), buf)
 	valuesChanged := DiffOverrides(currentR.Release.Config.Raw, res.Release.Config.Raw, buf)
 	return manifestsChanged || valuesChanged, buf.Bytes(), err
+}
+
+// GetRelease retrieves release data by release revision
+func (s *Session) GetRelease(releaseName string, revision int32) (*ReleaseMeta, error) {
+	currentR, err := s.Helm.ReleaseContent(releaseName, helm.ContentReleaseVersion(revision))
+	if err != nil {
+		return nil, errors.WithFields(errors.Fields{
+			"ReleaseName": releaseName,
+			"Revision":    revision,
+		}).Wrap(err, "failed to get release by version")
+	}
+	return &ReleaseMeta{
+		Chart:       currentR.Release.Chart,
+		ReleaseName: currentR.Release.Name,
+		Namespace:   currentR.Release.Namespace,
+		Revision:    currentR.Release.Version,
+	}, nil
 }
 
 //UpgradeRelease applies changes to an already running release, potentially triggering a restart
@@ -263,6 +284,7 @@ func (s *Session) ReleasesByManifest(manifestName string) (map[string]*ReleaseMe
 
 	for _, v := range releaseList {
 		ret[v.ReleaseName] = &ReleaseMeta{
+			Chart:       v.Chart,
 			ReleaseName: v.ReleaseName,
 			ChartName:   v.Chart.GetMetadata().Name,
 			Namespace:   v.Namespace,
