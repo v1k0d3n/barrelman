@@ -83,6 +83,7 @@ func (config *Config) LoadAcc(b *BarrelmanConfig) (*Config, error) {
 	}
 
 	account := b.Viper.Get("account")
+	fmt.Println(account)
 	// This block supports the YAML format :
 	// 	account:
 	//   - github.com:
@@ -204,7 +205,7 @@ func (v *valueFiles) Set(value string) error {
 	return nil
 }
 
-func (cmd *ConfigCmd) Run() error {
+func (cmd *ConfigCmd) Run(KubeConfig string) error {
 
 	ver := version.Get()
 	log.WithFields(log.Fields{
@@ -213,7 +214,7 @@ func (cmd *ConfigCmd) Run() error {
 		"Branch":  ver.Branch,
 	}).Info("Barrelman")
 
-	config, err := GetConfigFromFile("/home/armorking/.config.yaml")
+	config, err := GetConfigFromFile(KubeConfig)
 	if err != nil {
 		return fmt.Errorf("ERROR %v", err)
 	}

@@ -13,7 +13,9 @@ func newConfigCmd(cmd *barrelman.ConfigCmd) *cobra.Command {
 		Long:  `Something something else...`,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
 
-			cmd.Run()
+			if err := cmd.Run(cmd.Options.KubeConfigFile); err!=nil {
+				return err
+			}
 			return nil
 		},
 	}
@@ -23,35 +25,6 @@ func newConfigCmd(cmd *barrelman.ConfigCmd) *cobra.Command {
 		"kubeconfig",
 		Default().KubeConfigFile,
 		"use alternate kube config file")
-	cobraCmd.Flags().StringVar(
-		&cmd.Options.KubeContext,
-		"kubecontext",
-		Default().KubeContext,
-		"use alternate kube context")
-	cobraCmd.Flags().BoolVar(
-		&cmd.Options.DryRun,
-		"dry-run",
-		false,
-		"test all charts with server")
-	cobraCmd.Flags().BoolVar(
-		&cmd.Options.Diff,
-		"diff",
-		false,
-		"Display differences")
-	cobraCmd.Flags().BoolVar(
-		&cmd.Options.NoSync,
-		"nosync",
-		false,
-		"disable remote sync")
-	cmd.Options.Force = cobraCmd.Flags().StringSlice(
-		"force",
-		*(Default().Force),
-		"force apply chart name(s)")
-	cobraCmd.Flags().IntVar(
-		&cmd.Options.InstallRetry,
-		"install-retry",
-		Default().InstallRetry,
-		"retry install (n) times")
 
 	return cobraCmd
 }
