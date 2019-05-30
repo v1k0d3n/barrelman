@@ -170,9 +170,10 @@ func (cmd *ApplyCmd) ComputeReleases(
 		for _, rel := range currentReleases {
 			if rel.ReleaseName == v.ReleaseName {
 				rt.ReleaseVersion = &cluster.Version{
-					Name:      rel.ReleaseName,
-					Namespace: rel.Namespace,
-					Revision:  rel.Revision,
+					Name:             rel.ReleaseName,
+					Namespace:        rel.Namespace,
+					Revision:         rel.Revision,
+					PreviousRevision: rel.Revision,
 				}
 				releaseExists = true
 				if rel.Status == cluster.Status_DELETED {
@@ -192,7 +193,10 @@ func (cmd *ApplyCmd) ComputeReleases(
 		if !releaseExists {
 			//There is no existing releases, just Install
 			rt.TransitionState = Installable
-			rt.ReleaseVersion = &cluster.Version{}
+			rt.ReleaseVersion = &cluster.Version{
+				Name:      v.ReleaseName,
+				Namespace: v.Namespace,
+			}
 		}
 		log.WithFields(log.Fields{
 			"ReleaseName": v.ReleaseName,
@@ -380,7 +384,7 @@ func (rt *ReleaseTargets) Apply(opt *CmdOptions) error {
 						"Release":     relName,
 						"Version":     relVersion,
 					}).Info(msg)
-					v.ReleaseVersion.SetModified()
+					v.ReleaseVersion.SetRevision(relVersion)
 					innerErr = nil
 					return nil
 				}
@@ -432,7 +436,7 @@ func (rt *ReleaseTargets) Apply(opt *CmdOptions) error {
 				"Namespace": v.ReleaseMeta.Namespace,
 				"Version":   relVersion,
 			}).Info(msg)
-			v.ReleaseVersion.SetModified()
+			v.ReleaseVersion.SetRevision(relVersion)
 		case Deletable:
 			//The release exists, it needs to be deleted
 			dm := &cluster.DeleteMeta{

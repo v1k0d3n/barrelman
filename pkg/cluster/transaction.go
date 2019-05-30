@@ -56,8 +56,8 @@ type State struct {
 
 type ChangedRelease struct {
 	ReleaseName     string
-	OriginalVersion int32
-	NewVersion      int32
+	Version         int32
+	PreviousVersion int32
 }
 
 // NewTransaction initializes a transaction data structure
@@ -126,8 +126,8 @@ func (t *Transaction) completeTransaction() error {
 		for _, v := range changedList {
 			log.WithFields(log.Fields{
 				"ReleaseName":     v.ReleaseName,
-				"OriginalVersion": v.OriginalVersion,
-				"NewVersion":      v.NewVersion,
+				"PreviousVersion": v.PreviousVersion,
+				"Version":         v.Version,
 			}).Debug("Release was changed")
 		}
 		//Write all releases to new new version
@@ -206,8 +206,9 @@ func (t *Transaction) calculateChanged() ([]*ChangedRelease, bool) {
 	for _, version := range t.endState.Versions.Data {
 		if version.IsModified() {
 			changedReleases = append(changedReleases, &ChangedRelease{
-				ReleaseName: version.Name,
-				NewVersion:  version.Revision,
+				ReleaseName:     version.Name,
+				Version:         version.Revision,
+				PreviousVersion: version.PreviousRevision,
 			})
 		}
 	}

@@ -35,12 +35,13 @@ type VersionSync struct {
 }
 
 type Version struct {
-	Name      string
-	Namespace string
-	Revision  int32
-	Chart     *chart.Chart
-	Info      *release.Info
-	Modified  bool
+	Name             string
+	Namespace        string
+	Revision         int32
+	PreviousRevision int32
+	Chart            *chart.Chart
+	Info             *release.Info
+	Modified         bool
 }
 
 func (s *Session) NewConfigMaps() *driver.ConfigMaps {
@@ -165,6 +166,11 @@ func (version *Version) ReleaseTable() (map[string]*chart.Value, error) {
 		return nil, errors.New("Values does not exist in version, cannot extract release table")
 	}
 	return version.Chart.Values.Values, nil
+}
+
+func (version *Version) SetRevision(newVersion int32) {
+	version.Revision = newVersion
+	version.SetModified()
 }
 
 func (version *Version) SetModified() {
