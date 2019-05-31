@@ -109,6 +109,14 @@ func (cmd *ApplyCmd) Run(session cluster.Sessioner) error {
 		return nil
 	}
 
+	for _, v := range rt.Data {
+		log.WithFields(log.Fields{
+			"ReleaseMetaRevision": v.ReleaseMeta.Revision,
+			"ReleaseVersion":      v.ReleaseVersion.Revision,
+			"ReleaseName":         v.ReleaseMeta.ReleaseName,
+		}).Warn("Data")
+	}
+
 	err = rt.Apply(cmd.Options)
 	if err != nil {
 		if innerErr := transaction.Cancel(); innerErr != nil {
@@ -200,8 +208,9 @@ func (cmd *ApplyCmd) ComputeReleases(
 		}
 		log.WithFields(log.Fields{
 			"ReleaseName": v.ReleaseName,
+			"Revision":    rt.ReleaseVersion.Revision,
 			"TargetState": rt.TransitionState.String(),
-		}).Debug("computed release state")
+		}).Warn("computed release state")
 		rts.Data = append(rts.Data, rt)
 
 		// Add this release tartget to the transaction
@@ -317,6 +326,11 @@ func (rt *ReleaseTargets) Apply(opt *CmdOptions) error {
 	for _, v := range rt.Data {
 		v.ReleaseMeta.DryRun = false
 		v.ReleaseMeta.InstallTimeout = 120
+		log.WithFields(log.Fields{
+			"ReleaseName": v.ReleaseMeta.ReleaseName,
+			"Revision":    v.ReleaseVersion.Revision,
+			"Transition":  v.TransitionState.String(),
+		}).Warn("Applying transition to release")
 		switch v.TransitionState {
 		case Installable, Replaceable:
 			if err := func() error {
@@ -413,8 +427,8 @@ func (rt *ReleaseTargets) Apply(opt *CmdOptions) error {
 					"Revision":  v.ReleaseMeta.Revision,
 				}).Info("Rollback before Upgrade (undelete)")
 				_, err := rt.session.RollbackRelease(&cluster.RollbackMeta{
-					ReleaseName: v.ReleaseMeta.ReleaseName,
-					Revision:    v.ReleaseMeta.Revision,
+					ReleaseName: v.ReleaseVersion.Name,
+					Revision:    v.ReleaseVersion.Revision,
 				})
 				if err != nil {
 					return errors.Wrap(err, "Rollback of release failed")
