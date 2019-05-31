@@ -130,13 +130,14 @@ func (s *Session) ListReleasesByManifest(manifestName string) ([]*Release, error
 	for _, v := range r.GetReleases() {
 		log.WithFields(log.Fields{
 			"ReleaseName": v.Name,
+			"Revision":    v.Version,
 		}).Warn("Adding chart to *Release")
 		rel := &Release{
 			Chart:       v.GetChart(),
 			ReleaseName: v.Name,
 			Namespace:   v.Namespace,
 			Status:      Status(v.Info.Status.Code),
-			Revision:    v.GetVersion(),
+			Revision:    v.Version,
 		}
 		releases = append(releases, rel)
 	}
@@ -164,7 +165,6 @@ func (s *Session) InstallRelease(m *ReleaseMeta, manifestName string) (string, s
 		helm.InstallWait(m.InstallWait),
 		helm.InstallTimeout(int64(m.InstallTimeout.Seconds())),
 	)
-
 	if err != nil {
 		return "", "", 0, errors.WithFields(errors.Fields{
 			"File":      m.Path,
