@@ -47,6 +47,7 @@ type Version struct {
 func (s *Session) NewConfigMaps() *driver.ConfigMaps {
 	return driver.NewConfigMaps(s.Clientset.Core().ConfigMaps(s.Tiller.Namespace))
 }
+
 func (s *Session) WriteVersions(versions *Versions) error {
 	cmap := s.NewConfigMaps()
 	releases, err := cmap.List(getReleaseFilter(versions.Name))
@@ -138,12 +139,17 @@ func (versions *Versions) AddReleaseVersion(rlsVersion *Version) error {
 	return nil
 }
 
+// Table returns a map of release group versions keyed by version
 func (versions *Versions) Table() *VersionTable {
 	versionTable := &VersionTable{
 		Name: versions.Name,
 		Data: make(map[int32]*Version),
 	}
 	for _, version := range versions.Data {
+		log.WithFields(log.Fields{
+			"ReleaseName": version.Name,
+			"Revision":    version.Revision,
+		}).Warn("Table() data")
 		versionTable.Data[version.Revision] = version
 	}
 	return versionTable
@@ -183,8 +189,11 @@ func (version *Version) IsModified() bool {
 
 func (versions *Versions) ChartValues() map[string]*chart.Value {
 	values := make(map[string]*chart.Value)
-	for k, v := range versions.Table().Data {
-		values[v.Name] = &chart.Value{fmt.Sprintf("%d", k)}
+	for _, v := range versions.Data {
+		log.WithFields(log.Fields{
+			"ReleaseName": v.Name,
+		}).Warn("ChartValues()")
+		values[v.Name] = &chart.Value{fmt.Sprintf("%d", v.Revision)}
 	}
 	return values
 }
