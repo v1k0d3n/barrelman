@@ -8,7 +8,6 @@ import (
 	"github.com/charter-oss/barrelman/pkg/version"
 	"github.com/charter-oss/structured/errors"
 	"github.com/charter-oss/structured/log"
-	"github.com/davecgh/go-spew/spew"
 	"k8s.io/helm/pkg/proto/hapi/chart"
 )
 
@@ -118,15 +117,16 @@ func (cmd *RollbackCmd) Run(session cluster.Sessioner) error {
 			return errors.Wrap(err, "failed to compute plan for rollback")
 		}
 
-		// _, err = rts.Diff(session)
-		// if err != nil {
-		// 	return err
-		// }
+		_, err = rts.Diff(session)
+		if err != nil {
+			return err
+		}
 
-		// if cmd.Options.Diff {
-		// 	rts.LogDiff()
-		// 	return nil
-		// }
+		if cmd.Options.Diff {
+			log.Warn("Logging diff")
+			rts.LogDiff()
+			return nil
+		}
 
 		if err := rts.Apply(); err != nil {
 			return errors.Wrap(err, "Rollback failed")
@@ -149,7 +149,7 @@ func (rts *RollbackTargets) Apply() error {
 				"ReleaseName":     rt.ReleaseMeta.ReleaseName,
 				"TransitionState": rt.TransitionState.String(),
 			}).New("Invalid transition state for rollback")
-		case Upgradable, Undeleteable, Replaceable:
+		case Upgradable, Undeletable, Replaceable:
 			newRevision, err := rts.session.RollbackRelease(&cluster.RollbackMeta{
 				ReleaseName: rt.ReleaseMeta.ReleaseName,
 				Revision:    rt.Revision,
@@ -239,7 +239,7 @@ func (cmd *RollbackCmd) ComputeRollback(
 
 				if rel.Status == cluster.Status_DELETED {
 					// Current release has been deleted, we track it seperately
-					rt.TransitionState = Undeleteable
+					rt.TransitionState = Undeletable
 				} else if rel.Status == cluster.Status_FAILED {
 					// Current release is in FAILED state AND force is enabled for this release
 					// setup for delete and install
@@ -306,9 +306,12 @@ func (rt *RollbackTargets) Diff(session cluster.Sessioner) (*RollbackTargets, er
 	for _, v := range rt.Data {
 		v.ReleaseMeta.DryRun = true
 		switch v.TransitionState {
-		case Upgradable, Replaceable, Undeleteable:
-			spew.Dump(v.ReleaseMeta)
-			v.Changed, v.Diff, err = session.DiffRelease(v.ReleaseMeta)
+		case Upgradable, Replaceable:
+			v.Changed, v.Diff, err = session.DiffRelease(&cluster.ReleaseMeta{
+				Chart:       v.ReleaseVersion.Chart,
+				ReleaseName: v.ReleaseVersion.Name,
+				Namespace:   v.ReleaseVersion.Namespace,
+			})
 			if err != nil {
 				return nil, err
 			}
@@ -320,7 +323,12 @@ func (rt *RollbackTargets) Diff(session cluster.Sessioner) (*RollbackTargets, er
 func (rt *RollbackTargets) LogDiff() {
 	for _, v := range rt.Data {
 		switch v.TransitionState {
-		case Installable:
+		case Deletable:
+			log.WithFields(log.Fields{
+				"Name":      v.ReleaseMeta.ReleaseName,
+				"Namespace": v.ReleaseMeta.Namespace,
+			}).Info("Would delete")
+		case Installable, Undeletable:
 			log.WithFields(log.Fields{
 				"Name":      v.ReleaseMeta.ReleaseName,
 				"Namespace": v.ReleaseMeta.Namespace,

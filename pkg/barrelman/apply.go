@@ -109,14 +109,6 @@ func (cmd *ApplyCmd) Run(session cluster.Sessioner) error {
 		return nil
 	}
 
-	for _, v := range rt.Data {
-		log.WithFields(log.Fields{
-			"ReleaseMetaRevision": v.ReleaseMeta.Revision,
-			"ReleaseVersion":      v.ReleaseVersion.Revision,
-			"ReleaseName":         v.ReleaseMeta.ReleaseName,
-		}).Warn("Data")
-	}
-
 	err = rt.Apply(cmd.Options)
 	if err != nil {
 		if innerErr := transaction.Cancel(); innerErr != nil {
@@ -187,7 +179,7 @@ func (cmd *ApplyCmd) ComputeReleases(
 				if rel.Status == cluster.Status_DELETED {
 					// Current release has been deleted, a state that is resisitant to Upgrade/Install
 					// Rollback to the current revision, then Upgrade
-					rt.TransitionState = Undeleteable
+					rt.TransitionState = Undeletable
 				} else if cmd.isInForce(rel) || rel.Status == cluster.Status_FAILED {
 					// Current release is in FAILED state AND force is enabled for this release
 					// setup for delete and install
@@ -206,11 +198,6 @@ func (cmd *ApplyCmd) ComputeReleases(
 				Namespace: v.Namespace,
 			}
 		}
-		log.WithFields(log.Fields{
-			"ReleaseName": v.ReleaseName,
-			"Revision":    rt.ReleaseVersion.Revision,
-			"TargetState": rt.TransitionState.String(),
-		}).Warn("computed release state")
 		rts.Data = append(rts.Data, rt)
 
 		// Add this release tartget to the transaction
@@ -326,11 +313,6 @@ func (rt *ReleaseTargets) Apply(opt *CmdOptions) error {
 	for _, v := range rt.Data {
 		v.ReleaseMeta.DryRun = false
 		v.ReleaseMeta.InstallTimeout = 120
-		log.WithFields(log.Fields{
-			"ReleaseName": v.ReleaseMeta.ReleaseName,
-			"Revision":    v.ReleaseVersion.Revision,
-			"Transition":  v.TransitionState.String(),
-		}).Warn("Applying transition to release")
 		switch v.TransitionState {
 		case Installable, Replaceable:
 			if err := func() error {
@@ -411,8 +393,8 @@ func (rt *ReleaseTargets) Apply(opt *CmdOptions) error {
 				return err
 			}
 
-		case Upgradable, Undeleteable:
-			if !v.Changed && v.TransitionState != Undeleteable {
+		case Upgradable, Undeletable:
+			if !v.Changed && v.TransitionState != Undeletable {
 				log.WithFields(log.Fields{
 					"Name":      v.ReleaseMeta.ReleaseName,
 					"Namespace": v.ReleaseMeta.Namespace,
@@ -420,7 +402,7 @@ func (rt *ReleaseTargets) Apply(opt *CmdOptions) error {
 				// transaction, merge previous forward
 				continue
 			}
-			if v.TransitionState == Undeleteable {
+			if v.TransitionState == Undeletable {
 				log.WithFields(log.Fields{
 					"Name":      v.ReleaseMeta.ReleaseName,
 					"Namespace": v.ReleaseMeta.Namespace,
