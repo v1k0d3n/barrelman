@@ -101,12 +101,6 @@ func (cmd *RollbackCmd) Run(session cluster.Sessioner) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to get release table from Rollback ConfigMap")
 		}
-		for k, v := range releaseTable {
-			log.WithFields(log.Fields{
-				"ReleaseName": k,
-				"Revision":    v.Value,
-			}).Debug("Rollback release")
-		}
 
 		currentReleases, err := session.ReleasesByManifest(cmd.ManifestName)
 		if err != nil {
@@ -159,12 +153,12 @@ func (rts *RollbackTargets) Apply() error {
 			log.WithFields(log.Fields{
 				"ReleaseName": rt.ReleaseMeta.ReleaseName,
 				"Version":     newRevision,
-			}).Debug("Release rolled back")
+			}).Info("Release rolled back")
 			rt.ReleaseVersion.SetModified()
 		case Deletable:
 			log.WithFields(log.Fields{
-				"Name": rt.ReleaseMeta.ReleaseName,
-			}).Info("Deleting")
+				"ReleaseName": rt.ReleaseMeta.ReleaseName,
+			}).Info("Rollback to deleted")
 			if err := rts.session.DeleteRelease(&cluster.DeleteMeta{
 				ReleaseName: rt.ReleaseMeta.ReleaseName,
 				Namespace:   rt.ReleaseVersion.Namespace,
