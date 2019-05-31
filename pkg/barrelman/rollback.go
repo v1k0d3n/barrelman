@@ -228,11 +228,12 @@ func (cmd *RollbackCmd) ComputeRollback(
 				// The To Chart is needed to perform diffs
 				// not technically needed for the rollback
 				// but for operator analysis and avoiding rolling on no change
-				toMeta, err := session.GetRelease(rel.ReleaseName, rel.Revision)
+				toMeta, err := session.GetRelease(rel.ReleaseName, revision)
 				if err != nil {
 					return nil, errors.Wrap(err, "failed to get release")
 				}
 				rt.ReleaseVersion.Chart = toMeta.Chart
+				rt.ReleaseMeta.Config = toMeta.Config
 				log.WithFields(log.Fields{
 					"ChartName": rt.ReleaseVersion.Chart.Metadata.Name,
 				}).Warn("Retreived chart")
@@ -308,9 +309,10 @@ func (rt *RollbackTargets) Diff(session cluster.Sessioner) (*RollbackTargets, er
 		switch v.TransitionState {
 		case Upgradable, Replaceable:
 			v.Changed, v.Diff, err = session.DiffRelease(&cluster.ReleaseMeta{
-				Chart:       v.ReleaseVersion.Chart,
-				ReleaseName: v.ReleaseVersion.Name,
-				Namespace:   v.ReleaseVersion.Namespace,
+				Chart:          v.ReleaseVersion.Chart,
+				ReleaseName:    v.ReleaseVersion.Name,
+				Namespace:      v.ReleaseVersion.Namespace,
+				ValueOverrides: []byte(v.ReleaseMeta.Config.Raw),
 			})
 			if err != nil {
 				return nil, err
