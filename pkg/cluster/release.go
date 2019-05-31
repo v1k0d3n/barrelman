@@ -192,9 +192,6 @@ func (s *Session) DiffRelease(m *ReleaseMeta) (bool, []byte, error) {
 		return false, []byte{}, errors.Wrap(err, "Failed to get results from Tiller")
 	}
 
-	log.WithFields(log.Fields{
-		"ValuesOverrides": string(m.ValueOverrides),
-	}).Warn("DiffRelease")
 	newParsed := ParseRelease(res.Release)
 
 	manifestsChanged := DiffManifests(currentParsed, newParsed, []string{}, int(10), buf)
@@ -211,10 +208,6 @@ func (s *Session) GetRelease(releaseName string, revision int32) (*ReleaseMeta, 
 			"Revision":    revision,
 		}).Wrap(err, "failed to get release by version")
 	}
-	log.WithFields(log.Fields{
-		"ReleaseName": releaseName,
-		"Revision":    revision,
-	}).Warn("Got release by version")
 	return &ReleaseMeta{
 		Chart:       currentR.Release.Chart,
 		ReleaseName: currentR.Release.Name,
@@ -374,7 +367,7 @@ func splitSpec(token string) (string, string) {
 
 func DiffOverrides(current string, proposed string, to io.Writer) (changed bool) {
 	if current != proposed {
-		fmt.Fprintf(to, ansi.Color("Override Values has changed:", "yellow")+"\n")
+		fmt.Fprintf(to, ansi.Color("Override Values has changed:", "magenta")+"\n")
 		diffs := diffStrings(current, proposed)
 		if len(diffs) > 0 {
 			changed = true
