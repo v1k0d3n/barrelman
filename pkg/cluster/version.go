@@ -146,10 +146,6 @@ func (versions *Versions) Table() *VersionTable {
 		Data: make(map[int32]*Version),
 	}
 	for _, version := range versions.Data {
-		log.WithFields(log.Fields{
-			"ReleaseName": version.Name,
-			"Revision":    version.Revision,
-		}).Warn("Table() data")
 		versionTable.Data[version.Revision] = version
 	}
 	return versionTable
@@ -190,9 +186,6 @@ func (version *Version) IsModified() bool {
 func (versions *Versions) ChartValues() map[string]*chart.Value {
 	values := make(map[string]*chart.Value)
 	for _, v := range versions.Data {
-		log.WithFields(log.Fields{
-			"ReleaseName": v.Name,
-		}).Warn("ChartValues()")
 		values[v.Name] = &chart.Value{fmt.Sprintf("%d", v.Revision)}
 	}
 	return values
