@@ -123,7 +123,6 @@ func (cmd *RollbackCmd) Run(session cluster.Sessioner) error {
 		}
 
 		if cmd.Options.Diff {
-			log.Warn("Logging diff")
 			rts.LogDiff()
 			return nil
 		}
@@ -234,9 +233,6 @@ func (cmd *RollbackCmd) ComputeRollback(
 				}
 				rt.ReleaseVersion.Chart = toMeta.Chart
 				rt.ReleaseMeta.Config = toMeta.Config
-				log.WithFields(log.Fields{
-					"ChartName": rt.ReleaseVersion.Chart.Metadata.Name,
-				}).Warn("Retreived chart")
 
 				if rel.Status == cluster.Status_DELETED {
 					// Current release has been deleted, we track it seperately
