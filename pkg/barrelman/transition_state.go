@@ -17,7 +17,7 @@ const (
 	// Undeleteable is a situion where the release has been deleted but not purged
 	// and we want to install again. The solution is to rollback to the last revision first
 	// then Upgrade
-	Undeleteable
+	Undeletable
 )
 
 func (state TransitionState) String() string {
@@ -28,8 +28,10 @@ func (state TransitionState) String() string {
 		return "Upgradeable"
 	case Replaceable:
 		return "Replaceable"
-	case Undeleteable:
-		return "Undeleteable"
+	case Deletable:
+		return "Deletable"
+	case Undeletable:
+		return "Undeletable"
 	case NoChange:
 		return "NoChange"
 	}

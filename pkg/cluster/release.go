@@ -128,10 +128,6 @@ func (s *Session) ListReleasesByManifest(manifestName string) ([]*Release, error
 		return nil, errors.Wrap(err, "failed to Helm.ListReleases()")
 	}
 	for _, v := range r.GetReleases() {
-		log.WithFields(log.Fields{
-			"ReleaseName": v.Name,
-			"Revision":    v.Version,
-		}).Warn("Adding chart to *Release")
 		rel := &Release{
 			Chart:       v.GetChart(),
 			ReleaseName: v.Name,
