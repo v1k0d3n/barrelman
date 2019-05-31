@@ -38,6 +38,7 @@ const (
 //ReleaseMeta is used with the InstallRelease, UpgradeRelease methods
 type ReleaseMeta struct {
 	Chart            *chart.Chart
+	Config           *chart.Config
 	Path             string //Location of Chartfile
 	MetaName         string //As presented in manifest
 	ChartName        string //Defined in manifest, but alignes in processing
@@ -81,6 +82,7 @@ type Release struct {
 	Namespace   string
 	Status      Status
 	Revision    int32
+	Config      *chart.Config
 }
 
 type ReleaseDiff struct {
@@ -115,7 +117,6 @@ func (s *Session) ListReleasesByManifest(manifestName string) ([]*Release, error
 	r, err := s.Helm.ListReleases(
 		helm.ReleaseListStatuses([]release.Status_Code{
 			release.Status_DELETED,
-			//			release.Status_SUPERSEDED,
 			release.Status_DEPLOYED,
 			release.Status_FAILED,
 			release.Status_PENDING_INSTALL,
@@ -134,6 +135,7 @@ func (s *Session) ListReleasesByManifest(manifestName string) ([]*Release, error
 			Namespace:   v.Namespace,
 			Status:      Status(v.Info.Status.Code),
 			Revision:    v.Version,
+			Config:      v.Config,
 		}
 		releases = append(releases, rel)
 	}
@@ -189,6 +191,10 @@ func (s *Session) DiffRelease(m *ReleaseMeta) (bool, []byte, error) {
 	if err != nil {
 		return false, []byte{}, errors.Wrap(err, "Failed to get results from Tiller")
 	}
+
+	log.WithFields(log.Fields{
+		"ValuesOverrides": string(m.ValueOverrides),
+	}).Warn("DiffRelease")
 	newParsed := ParseRelease(res.Release)
 
 	manifestsChanged := DiffManifests(currentParsed, newParsed, []string{}, int(10), buf)
@@ -205,11 +211,16 @@ func (s *Session) GetRelease(releaseName string, revision int32) (*ReleaseMeta, 
 			"Revision":    revision,
 		}).Wrap(err, "failed to get release by version")
 	}
+	log.WithFields(log.Fields{
+		"ReleaseName": releaseName,
+		"Revision":    revision,
+	}).Warn("Got release by version")
 	return &ReleaseMeta{
 		Chart:       currentR.Release.Chart,
 		ReleaseName: currentR.Release.Name,
 		Namespace:   currentR.Release.Namespace,
 		Revision:    currentR.Release.Version,
+		Config:      currentR.Release.Config,
 	}, nil
 }
 
@@ -286,6 +297,7 @@ func (s *Session) ReleasesByManifest(manifestName string) (map[string]*ReleaseMe
 			Namespace:   v.Namespace,
 			Status:      v.Status,
 			Revision:    v.Revision,
+			Config:      v.Config,
 		}
 	}
 	return ret, nil
