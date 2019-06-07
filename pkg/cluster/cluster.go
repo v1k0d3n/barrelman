@@ -100,41 +100,8 @@ func (s *Session) connect(namespace string) error {
 		}).Wrap(err, "could not get kubernetes config for context")
 	}
 
-	// Setup TLS as done in helm/cmd/helm
-
-	if os.Getenv("HELM_TLS_ENABLE") == "true" || os.Getenv("HELM_TLS_ENABLE") == "1" {
-		s.settings.TLSEnable = true
-	}
-
-	if os.Getenv("HELM_HOME") == "" {
-		os.Setenv("HELM_HOME", helm_env.DefaultHelmHome)
-	}
-
-	log.Debugf("TLSCaCert: %s", helm_env.DefaultTLSCaCert)
-
-	log.Debugf("using HELM_HOME home %s", os.Getenv("HELM_HOME"))
-
-	if os.Getenv("HELM_TLS_CA_CERT") != "" {
-		s.settings.TLSCaCertFile = os.Getenv("HELM_TLS_CA_CERT")
-	} else {
-		s.settings.TLSCaCertFile = os.ExpandEnv(helm_env.DefaultTLSCaCert)
-	}
-
-	if os.Getenv("HELM_TLS_CERT") != "" {
-		s.settings.TLSCertFile = os.Getenv("HELM_TLS_CERT")
-	} else {
-		s.settings.TLSCertFile = os.ExpandEnv(helm_env.DefaultTLSCert)
-	}
-
-	if os.Getenv("HELM_TLS_KEY") != "" {
-		s.settings.TLSKeyFile = os.Getenv("HELM_TLS_KEY")
-	} else {
-		s.settings.TLSKeyFile = os.ExpandEnv(helm_env.DefaultTLSKeyFile)
-	}
-
-	if os.Getenv("HELM_TLS_VERIFY") == "true" || os.Getenv("HELM_TLS_VERIFY") == "1" {
-		s.settings.TLSVerify = true
-	}
+	// pupulate session TLS configuration from environment
+	s.setTLSConfig()
 
 	s.Clientset, err = internalclientset.NewForConfig(config)
 	if err != nil {
@@ -183,6 +150,44 @@ func (s *Session) connect(namespace string) error {
 	s.Helm = helm.NewClient(options...)
 
 	return nil
+}
+
+func (s *Session) setTLSConfig() {
+	// Setup TLS as done in helm/cmd/helm
+
+	if os.Getenv("HELM_TLS_ENABLE") == "true" || os.Getenv("HELM_TLS_ENABLE") == "1" {
+		s.settings.TLSEnable = true
+	}
+
+	if os.Getenv("HELM_HOME") == "" {
+		os.Setenv("HELM_HOME", helm_env.DefaultHelmHome)
+	}
+
+	log.Debugf("TLSCaCert: %s", helm_env.DefaultTLSCaCert)
+
+	log.Debugf("using HELM_HOME home %s", os.Getenv("HELM_HOME"))
+
+	if os.Getenv("HELM_TLS_CA_CERT") != "" {
+		s.settings.TLSCaCertFile = os.Getenv("HELM_TLS_CA_CERT")
+	} else {
+		s.settings.TLSCaCertFile = os.ExpandEnv(helm_env.DefaultTLSCaCert)
+	}
+
+	if os.Getenv("HELM_TLS_CERT") != "" {
+		s.settings.TLSCertFile = os.Getenv("HELM_TLS_CERT")
+	} else {
+		s.settings.TLSCertFile = os.ExpandEnv(helm_env.DefaultTLSCert)
+	}
+
+	if os.Getenv("HELM_TLS_KEY") != "" {
+		s.settings.TLSKeyFile = os.Getenv("HELM_TLS_KEY")
+	} else {
+		s.settings.TLSKeyFile = os.ExpandEnv(helm_env.DefaultTLSKeyFile)
+	}
+
+	if os.Getenv("HELM_TLS_VERIFY") == "true" || os.Getenv("HELM_TLS_VERIFY") == "1" {
+		s.settings.TLSVerify = true
+	}
 }
 
 // connectionHealthCheck verifies connectivity and version compatability
