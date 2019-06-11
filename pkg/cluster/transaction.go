@@ -10,24 +10,26 @@ import (
 // The release information is versioned and can be re-applied
 
 // Barrelman Rollback
-// The state is the combined release versions metadata needed to
-// command Tiller to re-apply a given release version.
+// Barrelman records state information in a configmap at the succesful completion of a state change
+// Barrelman Rollback commands Tiller to rollback each release
+// to the corresponding release version recorded in a Barrelman state.
 
 // State versioning
 // States are versioned as well, and a version of the state can be applied to the system.
-// Barrelman will command Tiller to re-apply each release version as necassary to make the
-// current running release versions match the stored state.
 
 // A transaction is the bounding ends of a state change.
-
 // A transaction can be canceled which causes the in-progress state change to be rolled back
-// to the previous state.
+// to the initial/starting state.
+
+// Barrelman saves states (version of release groups) after an operation has been completed or sucessfully canceled.
+// The initial state is not necassarily saved to a Barrelman configmap before changes are applied,
+// however successful cancelation will result in the initial state being applied and a new versioned state will be saved.
 
 // Once a manifest has been applied with changes, and fully succeeeds, a new state will be recorded.
 // Partially applied manifests will not result in a new state being recorded.
 
 type NewTransactioner interface {
-	NewTransaction(string) (*Transaction, error)
+	NewTransaction(string) (Transactioner, error)
 }
 
 type Transactioner interface {
@@ -61,9 +63,8 @@ type ChangedRelease struct {
 }
 
 // NewTransaction initializes a transaction data structure
-// the Startstate field
 // this transaction can then be used to track changes and perform rollbacks
-func (s *Session) NewTransaction(manifestName string) (*Transaction, error) {
+func (s *Session) NewTransaction(manifestName string) (Transactioner, error) {
 	currentVersions, err := s.GetVersions(manifestName)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get current versions while creating rollback transaction")

@@ -85,14 +85,25 @@ type Release struct {
 	Config      *chart.Config
 }
 
+type InstallReleaseResponse struct {
+	Description    string
+	ReleaseName    string
+	ReleaseVersion int32
+}
+
+type UpgradeReleaseResponse struct {
+	Description    string
+	ReleaseVersion int32
+}
+
 type ReleaseDiff struct {
 }
 
 type Releaser interface {
 	ListReleases() ([]*Release, error)
-	InstallRelease(m *ReleaseMeta, manifestName string) (string, string, int32, error)
+	InstallRelease(m *ReleaseMeta, manifestName string) (*InstallReleaseResponse, error)
 	DiffRelease(m *ReleaseMeta) (bool, []byte, error)
-	UpgradeRelease(m *ReleaseMeta, manifestName string) (string, int32, error)
+	UpgradeRelease(m *ReleaseMeta, manifestName string) (*UpgradeReleaseResponse, error)
 	DeleteReleases(dm []*DeleteMeta) error
 	DeleteRelease(m *DeleteMeta) error
 	Releases() (map[string]*ReleaseMeta, error)
@@ -152,7 +163,7 @@ func (s *Session) ListReleasesByManifest(manifestName string) ([]*Release, error
 }
 
 //InstallRelease uploads a chart and starts a release
-func (s *Session) InstallRelease(m *ReleaseMeta, manifestName string) (string, string, int32, error) {
+func (s *Session) InstallRelease(m *ReleaseMeta, manifestName string) (*InstallReleaseResponse, error) {
 	res, err := s.Helm.InstallReleaseFromChart(
 		setChartManifestTags(m.Chart, "Manifest="+manifestName),
 		m.Namespace,
@@ -164,14 +175,18 @@ func (s *Session) InstallRelease(m *ReleaseMeta, manifestName string) (string, s
 		helm.InstallTimeout(int64(m.InstallTimeout.Seconds())),
 	)
 	if err != nil {
-		return "", "", 0, errors.WithFields(errors.Fields{
+		return &InstallReleaseResponse{}, errors.WithFields(errors.Fields{
 			"File":      m.Path,
 			"Name":      m.MetaName,
 			"Namespace": m.Namespace,
 		}).Wrap(err, "failed install")
 	}
 
-	return res.Release.Info.Description, res.Release.Name, res.Release.Version, err
+	return &InstallReleaseResponse{
+		Description:    res.Release.Info.Description,
+		ReleaseName:    res.Release.Name,
+		ReleaseVersion: res.Release.Version,
+	}, err
 }
 
 //DiffRelease compares the differences between a running release and a proposed release
@@ -218,7 +233,7 @@ func (s *Session) GetRelease(releaseName string, revision int32) (*ReleaseMeta, 
 }
 
 //UpgradeRelease applies changes to an already running release, potentially triggering a restart
-func (s *Session) UpgradeRelease(m *ReleaseMeta, manifestName string) (string, int32, error) {
+func (s *Session) UpgradeRelease(m *ReleaseMeta, manifestName string) (*UpgradeReleaseResponse, error) {
 	res, err := s.Helm.UpdateReleaseFromChart(
 		m.ReleaseName,
 		setChartManifestTags(m.Chart, "Manifest="+manifestName),
@@ -227,9 +242,12 @@ func (s *Session) UpgradeRelease(m *ReleaseMeta, manifestName string) (string, i
 		helm.UpdateValueOverrides(m.ValueOverrides),
 	)
 	if err != nil {
-		return "", 0, errors.Wrap(err, "Error during UpgradeRelease")
+		return &UpgradeReleaseResponse{}, errors.Wrap(err, "Error during UpgradeRelease")
 	}
-	return res.Release.Info.Description, res.Release.Version, err
+	return &UpgradeReleaseResponse{
+		Description:    res.Release.Info.Description,
+		ReleaseVersion: res.Release.Version,
+	}, err
 }
 
 //DeleteReleases calls DeleteRelease on an array of Releases

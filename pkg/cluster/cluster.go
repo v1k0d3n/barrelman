@@ -1,5 +1,7 @@
 //go:generate mockery -name=Sessioner
 //go:generate mockery -name=Clusterer
+//go:generate mockery -name=Transactioner
+
 package cluster
 
 import (

@@ -72,6 +72,7 @@ func TestListReleases(t *testing.T) {
 	})
 }
 func TestInstallRelease(t *testing.T) {
+	manifestName := "testGroup"
 	s := NewMockSession()
 	Convey("InstallRelease", t, func() {
 		Convey("Can fail", func() {
@@ -86,7 +87,15 @@ func TestInstallRelease(t *testing.T) {
 				mock.Anything,
 			).Return(&rls.InstallReleaseResponse{},
 				errors.New("Sucessfully failed")).Once()
-			_, _, err := s.InstallRelease(&ReleaseMeta{})
+			_, err := s.InstallRelease(&ReleaseMeta{
+				ReleaseName: "something",
+				Namespace:   "that_namespace",
+				Chart: &hapi_chart3.Chart{
+					Metadata: &hapi_chart3.Metadata{
+						Name: "something",
+					},
+				},
+			}, manifestName)
 			So(err, ShouldNotBeNil)
 			Print(err)
 		})
@@ -115,12 +124,21 @@ func TestInstallRelease(t *testing.T) {
 				mock.Anything,
 				mock.Anything,
 			).Return(r, nil).Once()
-			_, _, err := s.InstallRelease(&ReleaseMeta{})
+			_, err := s.InstallRelease(&ReleaseMeta{
+				ReleaseName: "something",
+				Namespace:   "that_namespace",
+				Chart: &hapi_chart3.Chart{
+					Metadata: &hapi_chart3.Metadata{
+						Name: "something",
+					},
+				},
+			}, manifestName)
 			So(err, ShouldBeNil)
 		})
 	})
 }
 func TestUpgradeRelease(t *testing.T) {
+	manifestName := "testGroup"
 	s := NewMockSession()
 	Convey("UpgradeRelease", t, func() {
 		Convey("Can fail", func() {
@@ -132,7 +150,15 @@ func TestUpgradeRelease(t *testing.T) {
 				mock.Anything,
 			).Return(&rls.UpdateReleaseResponse{},
 				errors.New("Sucessfully failed")).Once()
-			_, err := s.UpgradeRelease(&ReleaseMeta{})
+			_, err := s.UpgradeRelease(&ReleaseMeta{
+				ReleaseName: "something",
+				Namespace:   "that_namespace",
+				Chart: &hapi_chart3.Chart{
+					Metadata: &hapi_chart3.Metadata{
+						Name: "something",
+					},
+				},
+			}, manifestName)
 			So(err, ShouldNotBeNil)
 			Print(err)
 		})
@@ -158,7 +184,15 @@ func TestUpgradeRelease(t *testing.T) {
 				mock.Anything,
 				mock.Anything,
 			).Return(r, nil).Once()
-			_, err := s.UpgradeRelease(&ReleaseMeta{})
+			_, err := s.UpgradeRelease(&ReleaseMeta{
+				ReleaseName: "something",
+				Namespace:   "that_namespace",
+				Chart: &hapi_chart3.Chart{
+					Metadata: &hapi_chart3.Metadata{
+						Name: "something",
+					},
+				},
+			}, manifestName)
 			So(err, ShouldBeNil)
 		})
 	})

@@ -9,6 +9,7 @@ import (
 	"github.com/charter-oss/barrelman/pkg/cluster/mocks"
 	"github.com/charter-oss/barrelman/pkg/manifest/chartsync"
 	"github.com/charter-oss/structured/errors"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestListCmd(t *testing.T) {
@@ -44,7 +45,7 @@ func TestListCmd(t *testing.T) {
 			session.On("Init").Return(nil)
 			session.On("GetKubeConfig").Return(listCmd.Options.KubeConfigFile)
 			session.On("GetKubeContext").Return(listCmd.Options.KubeContext)
-			session.On("Releases").Return(releases, errors.New("simulated"))
+			session.On("ReleasesByManifest", mock.Anything).Return(releases, errors.New("simulated"))
 			err := listCmd.Run(session)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "simulated")
@@ -58,7 +59,7 @@ func TestListCmd(t *testing.T) {
 			session.On("Init").Return(nil)
 			session.On("GetKubeConfig").Return(listCmd.Options.KubeConfigFile)
 			session.On("GetKubeContext").Return(listCmd.Options.KubeContext)
-			session.On("Releases").Return(releases, nil)
+			session.On("ReleasesByManifest", mock.Anything).Return(releases, nil)
 			err := listCmd.Run(session)
 			So(err, ShouldBeNil)
 			session.AssertExpectations(t)
