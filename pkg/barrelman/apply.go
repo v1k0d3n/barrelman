@@ -255,12 +255,12 @@ func (rt *ReleaseTargets) dryRun(session cluster.Sessioner) error {
 		v.ReleaseMeta.DryRun = true
 		switch v.TransitionState {
 		case Installable:
-			_, _, _, err := session.InstallRelease(v.ReleaseMeta, rt.ManifestName)
+			_, err := session.InstallRelease(v.ReleaseMeta, rt.ManifestName)
 			if err != nil {
 				return err
 			}
 		case Upgradable:
-			_, _, err := session.UpgradeRelease(v.ReleaseMeta, rt.ManifestName)
+			_, err := session.UpgradeRelease(v.ReleaseMeta, rt.ManifestName)
 			if err != nil {
 				return err
 			}
@@ -341,7 +341,7 @@ func (rt *ReleaseTargets) Apply(opt *CmdOptions) error {
 					"InstallWait": v.ReleaseMeta.InstallWait,
 				}).Info("Installing")
 				for i := 0; i < opt.InstallRetry; i++ {
-					msg, relName, relVersion, err := rt.session.InstallRelease(v.ReleaseMeta, rt.ManifestName)
+					installResponse, err := rt.session.InstallRelease(v.ReleaseMeta, rt.ManifestName)
 					if err != nil {
 						log.WithFields(log.Fields{
 							"Name":        v.ReleaseMeta.ReleaseName,
@@ -377,10 +377,10 @@ func (rt *ReleaseTargets) Apply(opt *CmdOptions) error {
 						"Name":        v.ReleaseMeta.ReleaseName,
 						"Namespace":   v.ReleaseMeta.Namespace,
 						"InstallWait": v.ReleaseMeta.InstallWait,
-						"Release":     relName,
-						"Version":     relVersion,
-					}).Info(msg)
-					v.ReleaseVersion.SetRevision(relVersion)
+						"Release":     installResponse.ReleaseName,
+						"Version":     installResponse.ReleaseVersion,
+					}).Info(installResponse.Description)
+					v.ReleaseVersion.SetRevision(installResponse.ReleaseVersion)
 					innerErr = nil
 					return nil
 				}
@@ -420,7 +420,7 @@ func (rt *ReleaseTargets) Apply(opt *CmdOptions) error {
 				"Name":      v.ReleaseMeta.ReleaseName,
 				"Namespace": v.ReleaseMeta.Namespace,
 			}).Info("Upgrading")
-			msg, relVersion, err := rt.session.UpgradeRelease(v.ReleaseMeta, rt.ManifestName)
+			upgradeResponse, err := rt.session.UpgradeRelease(v.ReleaseMeta, rt.ManifestName)
 			if err != nil {
 				return errors.WithFields(errors.Fields{
 					"Name":      v.ReleaseMeta.ReleaseName,
@@ -430,9 +430,9 @@ func (rt *ReleaseTargets) Apply(opt *CmdOptions) error {
 			log.WithFields(log.Fields{
 				"Name":      v.ReleaseMeta.ReleaseName,
 				"Namespace": v.ReleaseMeta.Namespace,
-				"Version":   relVersion,
-			}).Info(msg)
-			v.ReleaseVersion.SetRevision(relVersion)
+				"Version":   upgradeResponse.ReleaseVersion,
+			}).Info(upgradeResponse.Description)
+			v.ReleaseVersion.SetRevision(upgradeResponse.ReleaseVersion)
 		case Deletable:
 			//The release exists, it needs to be deleted
 			dm := &cluster.DeleteMeta{
@@ -456,7 +456,6 @@ func (rt *ReleaseTargets) Apply(opt *CmdOptions) error {
 				"Namespace": v.ReleaseMeta.Namespace,
 			}).Info("Skipping")
 		}
-
 	}
 	return nil
 }

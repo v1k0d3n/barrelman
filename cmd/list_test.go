@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
 	"github.com/charter-oss/barrelman/pkg/cluster"
@@ -73,7 +74,7 @@ func TestListRun(t *testing.T) {
 			session.On("Init").Return(nil).Once()
 			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Maybe()
 			session.On("GetKubeContext").Return("").Once()
-			session.On("Releases").Return(map[string]*cluster.ReleaseMeta{
+			session.On("ReleasesByManifest", mock.Anything).Return(map[string]*cluster.ReleaseMeta{
 				"storage-minio": &cluster.ReleaseMeta{
 					ReleaseName: "storage-minio",
 				},
@@ -99,7 +100,7 @@ func TestListRun(t *testing.T) {
 			session.On("Init").Return(nil).Once()
 			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Maybe()
 			session.On("GetKubeContext").Return("").Once()
-			session.On("Releases").Return(map[string]*cluster.ReleaseMeta{
+			session.On("ReleasesByManifest", mock.Anything).Return(map[string]*cluster.ReleaseMeta{
 				"storage-minio": &cluster.ReleaseMeta{
 					ReleaseName: "storage-minio",
 				},
