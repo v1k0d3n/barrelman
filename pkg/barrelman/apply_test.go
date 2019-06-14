@@ -369,9 +369,9 @@ func TestComputeReleases(t *testing.T) {
 				},
 			})
 
-			session.On("DeleteRelease", mock.MatchedBy(func(crm *cluster.DeleteMeta) bool {
-				return true
-			})).Return(nil)
+			// session.On("DeleteRelease", mock.MatchedBy(func(crm *cluster.DeleteMeta) bool {
+			// 	return true
+			// })).Return(nil)
 
 			releaseTargets, err := applyCmd.ComputeReleases(session, transaction, manifestName, archives, releases)
 			So(err, ShouldBeNil)

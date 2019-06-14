@@ -16,6 +16,7 @@ import (
 )
 
 type Versioner interface {
+	ListManifests() ([]*Version, error)
 	GetVersionsFromList(manifestNames *[]string) ([]*Versions, error)
 	GetVersions(manifestName string) (*Versions, error)
 }
@@ -45,7 +46,7 @@ type Version struct {
 }
 
 func (s *Session) NewConfigMaps() *driver.ConfigMaps {
-	return driver.NewConfigMaps(s.Clientset.Core().ConfigMaps(s.Tiller.Namespace))
+	return driver.NewConfigMaps(s.Clientset.Core().ConfigMaps(s.Tunnel.Namespace))
 }
 
 func (s *Session) WriteVersions(versions *Versions) error {
@@ -111,7 +112,7 @@ func (s *Session) GetVersions(manifestName string) (*Versions, error) {
 		"ManifestName": manifestName,
 	}).Debug("Getting rollback information")
 	versions := NewVersions(manifestName)
-	cmap := driver.NewConfigMaps(s.Clientset.Core().ConfigMaps(s.Tiller.Namespace))
+	cmap := driver.NewConfigMaps(s.Clientset.CoreV1().ConfigMaps(s.Tunnel.Namespace))
 	releases, err := cmap.List(getReleaseFilter(manifestName))
 	if err != nil {
 		return nil, errors.Wrap(err, "GetVersion failed to get release list")
@@ -126,6 +127,52 @@ func (s *Session) GetVersions(manifestName string) (*Versions, error) {
 		})
 	}
 	return versions, nil
+}
+
+// ListManifests returns list of unique Barrelman manifests recorded in cluster
+func (s *Session) ListManifests() ([]*Version, error) {
+	outVersions := []*Version{}
+	internalData := make(map[string]map[string][]*Version)
+	cmap := driver.NewConfigMaps(s.Clientset.CoreV1().ConfigMaps(s.Tunnel.Namespace))
+	allReleases, err := cmap.List(getNoopManifestFilter())
+	if err != nil {
+		return nil, errors.Wrap(err, "ListManifests failed to get release list")
+	}
+
+	// order manifest revisions by namespace, then name
+	for _, v := range allReleases {
+		if _, ok := internalData[v.Namespace]; !ok {
+			internalData[v.Namespace] = make(map[string][]*Version)
+		}
+		if _, ok := internalData[v.Namespace][v.Name]; !ok {
+			internalData[v.Namespace][v.Name] = []*Version{}
+		}
+
+		internalData[v.Namespace][v.Name] = append(internalData[v.Namespace][v.Name], &Version{
+			Name:      v.Name,
+			Namespace: v.Namespace,
+			Revision:  v.Version,
+		})
+	}
+
+	// for each manifest, under a namespace, get the latest version
+	for namespace, namespaceData := range internalData {
+		for name, versions := range namespaceData {
+			highest := int32(0)
+			for _, v := range versions {
+				if v.Revision > highest {
+					highest = v.Revision
+				}
+			}
+			outVersions = append(outVersions, &Version{
+				Name:      name,
+				Namespace: namespace,
+				Revision:  highest,
+			})
+		}
+	}
+
+	return outVersions, nil
 }
 
 // AddReleaseVersion add a release to the transaction for further processing
@@ -217,6 +264,12 @@ func (versions *Versions) RawReleaseTable() (string, error) {
 func getReleaseFilter(manifestName string) func(rls *release.Release) bool {
 	return func(rls *release.Release) bool {
 		return rls.Name == manifestName
+	}
+}
+
+func getNoopManifestFilter() func(rls *release.Release) bool {
+	return func(rls *release.Release) bool {
+		return true
 	}
 }
 

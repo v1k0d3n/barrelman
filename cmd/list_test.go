@@ -42,6 +42,7 @@ func TestListRun(t *testing.T) {
 	Convey("List", t, func() {
 		Convey("Can fail to Init", func() {
 			c := &barrelman.ListCmd{
+				ManifestName: "testManifest",
 				Options: &barrelman.CmdOptions{
 					ConfigFile:     getTestDataDir() + "/config",
 					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
@@ -61,6 +62,7 @@ func TestListRun(t *testing.T) {
 		})
 		Convey("Can fail to list releases", func() {
 			c := &barrelman.ListCmd{
+				ManifestName: "testManifest",
 				Options: &barrelman.CmdOptions{
 					ConfigFile:     getTestDataDir() + "/config",
 					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
@@ -87,6 +89,7 @@ func TestListRun(t *testing.T) {
 		})
 		Convey("Can succeed", func() {
 			c := &barrelman.ListCmd{
+				ManifestName: "testManifest",
 				Options: &barrelman.CmdOptions{
 					ConfigFile:     getTestDataDir() + "/config",
 					ManifestFile:   getTestDataDir() + "/unit-test-manifest.yaml",
@@ -105,7 +108,6 @@ func TestListRun(t *testing.T) {
 					ReleaseName: "storage-minio",
 				},
 			}, nil).Once()
-
 			err := c.Run(session)
 			So(err, ShouldBeNil)
 			session.AssertExpectations(t)

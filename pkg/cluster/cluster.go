@@ -42,8 +42,8 @@ type Clusterer interface {
 
 type Session struct {
 	Helm        helm.Interface
-	Tiller      *kube.Tunnel
-	Clientset   *kubernetes.Clientset
+	Tunnel      *kube.Tunnel
+	Clientset   kubernetes.Interface
 	kubeConfig  string
 	kubeContext string
 	settings    helm_env.EnvSettings
@@ -85,6 +85,19 @@ func (s *Session) Init() error {
 		return errors.Wrap(err, "kubernetes connection failed health check")
 	}
 
+	compatible := version.IsCompatible(version.Version, tillerVersion.Version.SemVer)
+	log.WithFields(log.Fields{
+		"tillerVersion":          tillerVersion.Version.SemVer,
+		"clientServerCompatible": compatible,
+		"Host":                   fmt.Sprintf(":%v", s.Tunnel.Local),
+	}).Debug("Connected to Tiller")
+	if !compatible {
+		return errors.WithFields(errors.Fields{
+			"tillerVersion": tillerVersion.Version.SemVer,
+			"helmVersion":   version.Version,
+			"Host":          fmt.Sprintf(":%v", s.Tunnel.Local),
+		}).New("incompatible version numbers")
+	}
 	return nil
 }
 
@@ -116,8 +129,8 @@ func (s *Session) connect(namespace string) error {
 		return errors.Wrap(err, "could not get Tiller pod name")
 	}
 	const tillerPort = 44134
-	s.Tiller = kube.NewTunnel(s.Clientset.Core().RESTClient(), config, namespace, podName, tillerPort)
-	err = s.Tiller.ForwardPort()
+	s.Tunnel = kube.NewTunnel(s.Clientset.Core().RESTClient(), config, namespace, podName, tillerPort)
+	err = s.Tunnel.ForwardPort()
 	if err != nil {
 		return errors.Wrap(err, "could not get Tiller tunnel")
 	}

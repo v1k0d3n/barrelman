@@ -41,6 +41,7 @@ func TestListCmd(t *testing.T) {
 			session.AssertExpectations(t)
 		})
 		Convey("Should error on session.Releases()", func() {
+			listCmd.ManifestName = "testManifest"
 			releases := make(map[string]*cluster.ReleaseMeta)
 			session.On("Init").Return(nil)
 			session.On("GetKubeConfig").Return(listCmd.Options.KubeConfigFile)
@@ -52,6 +53,7 @@ func TestListCmd(t *testing.T) {
 			session.AssertExpectations(t)
 		})
 		Convey("Should succeed", func() {
+			listCmd.ManifestName = "testManifest"
 			releases := make(map[string]*cluster.ReleaseMeta)
 			releases["someRelease"] = &cluster.ReleaseMeta{
 				ReleaseName: "simulated-release",
