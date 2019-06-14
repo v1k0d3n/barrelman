@@ -158,8 +158,7 @@ func (s *Session) connect(namespace string) error {
 		}
 		tlscfg, err := tlsutil.ClientConfig(tlsopts)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(2)
+			return errors.Wrap(err, "could not get TLS Client Configuration")
 		}
 		options = append(options, helm.WithTLS(tlscfg))
 	}
