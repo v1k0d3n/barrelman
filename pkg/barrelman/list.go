@@ -49,26 +49,32 @@ func (cmd *ListCmd) Run(session cluster.Sessioner) error {
 		}).Info("Using kube context")
 	}
 
+	// No name supplied, list all top level Barrelman manifests
+	if cmd.ManifestName == "" {
+		list, err := session.ListManifests()
+		if err != nil {
+			return errors.Wrap(err, "Failed to get releases")
+		}
+		for _, v := range list {
+			log.WithFields(log.Fields{
+				"Name":     v.Name,
+				"Revision": v.Revision,
+			}).Info("Barrelman Manifest")
+		}
+		return nil
+	}
+
+	// Name was supplied, list the releases
 	list, err := session.ReleasesByManifest(cmd.ManifestName)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get releases")
 	}
-	for k, v := range list {
-		// var tags string
-		// if v.Chart == nil {
-		// 	log.
-		// 	continue
-		// }
-		// if v.Chart.Metadata != nil {
-		// 	tags = v.Chart.Metadata.Tags
-		// }
+	for _, v := range list {
 		log.WithFields(log.Fields{
-			"key": k,
-			//	"tags":      tags,
 			"Name":      v.ReleaseName,
 			"Revision":  v.Revision,
 			"Namespace": v.Namespace,
-		}).Info("List")
+		}).Info("Release in Manifest")
 	}
 
 	return nil

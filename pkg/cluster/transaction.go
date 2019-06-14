@@ -69,6 +69,7 @@ func (s *Session) NewTransaction(manifestName string) (Transactioner, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get current versions while creating rollback transaction")
 	}
+
 	transaction := &Transaction{
 		ManifestName: manifestName,
 		session:      s,
@@ -83,6 +84,7 @@ func (s *Session) NewTransaction(manifestName string) (Transactioner, error) {
 	if err := transaction.startTransaction(); err != nil {
 		return nil, errors.Wrap(err, "failed to create new rollback transaction")
 	}
+
 	return transaction, nil
 }
 
