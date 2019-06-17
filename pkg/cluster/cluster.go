@@ -129,7 +129,7 @@ func (s *Session) connect(namespace string) error {
 		return errors.Wrap(err, "could not get Tiller pod name")
 	}
 	const tillerPort = 44134
-	s.Tunnel = kube.NewTunnel(s.Clientset.Core().RESTClient(), config, namespace, podName, tillerPort)
+	s.Tunnel = kube.NewTunnel(s.Clientset.CoreV1().RESTClient(), config, namespace, podName, tillerPort)
 	err = s.Tunnel.ForwardPort()
 	if err != nil {
 		return errors.Wrap(err, "could not get Tiller tunnel")

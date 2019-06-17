@@ -38,6 +38,20 @@ func (_m *Transactioner) Canceled() bool {
 	return r0
 }
 
+// Changed provides a mock function with given fields:
+func (_m *Transactioner) Changed() bool {
+	ret := _m.Called()
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func() bool); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	return r0
+}
+
 // Complete provides a mock function with given fields:
 func (_m *Transactioner) Complete() error {
 	ret := _m.Called()
@@ -64,6 +78,11 @@ func (_m *Transactioner) Completed() bool {
 	}
 
 	return r0
+}
+
+// SetChanged provides a mock function with given fields:
+func (_m *Transactioner) SetChanged() {
+	_m.Called()
 }
 
 // Started provides a mock function with given fields:

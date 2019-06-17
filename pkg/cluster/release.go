@@ -58,6 +58,7 @@ type ReleaseMeta struct {
 type DeleteMeta struct {
 	ReleaseName   string
 	Namespace     string
+	Purge         bool
 	DeleteTimeout time.Duration
 }
 
@@ -264,7 +265,7 @@ func (s *Session) DeleteReleases(dm []*DeleteMeta) error {
 func (s *Session) DeleteRelease(m *DeleteMeta) error {
 	_, err := s.Helm.DeleteRelease(
 		m.ReleaseName,
-		helm.DeletePurge(false),
+		helm.DeletePurge(m.Purge),
 		helm.DeleteTimeout(int64(m.DeleteTimeout.Seconds())),
 	)
 	if err != nil {
