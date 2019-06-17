@@ -66,7 +66,7 @@ func (s *Session) SetKubeContext(c string) {
 	s.kubeContext = c
 }
 
-//Init establishes connextions to the cluster
+//Init establishes connections to the cluster
 func (s *Session) Init() error {
 
 	tillerNamespace := os.Getenv("TILLER_NAMESPACE")
@@ -74,34 +74,14 @@ func (s *Session) Init() error {
 		tillerNamespace = "kube-system"
 	}
 
-	err := s.connect(tillerNamespace)
-	if err != nil {
+	if err := s.connect(tillerNamespace); err != nil {
 		return errors.Wrap(err, "connection to kubernetes failed")
 	}
 
-	err = s.Helm.PingTiller()
-	if err != nil {
-		return errors.Wrap(err, "helm.PingTiller() failed")
+	if err := s.connectionHealthCheck(); err != nil {
+		return errors.Wrap(err, "kubernetes connection failed health check")
 	}
 
-	tillerVersion, err := s.Helm.GetVersion()
-	if err != nil {
-		return errors.Wrap(err, "failed to get Tiller version")
-	}
-
-	compatible := version.IsCompatible(version.Version, tillerVersion.Version.SemVer)
-	log.WithFields(log.Fields{
-		"tillerVersion":          tillerVersion.Version.SemVer,
-		"clientServerCompatible": compatible,
-		"Host":                   fmt.Sprintf(":%v", s.Tiller.Local),
-	}).Debug("Connected to Tiller")
-	if !compatible {
-		return errors.WithFields(errors.Fields{
-			"tillerVersion": tillerVersion.Version.SemVer,
-			"helmVersion":   version.Version,
-			"Host":          fmt.Sprintf(":%v", s.Tiller.Local),
-		}).New("incompatible version numbers")
-	}
 	return nil
 }
 
@@ -120,6 +100,59 @@ func (s *Session) connect(namespace string) error {
 		}).Wrap(err, "could not get kubernetes config for context")
 	}
 
+	// pupulate session TLS configuration from environment
+	s.setTLSConfig()
+
+	s.Clientset, err = internalclientset.NewForConfig(config)
+	if err != nil {
+		return errors.Wrap(err, "could not get kubernetes client")
+	}
+	podName, err := getTillerPodName(s.Clientset.Core(), namespace)
+	if err != nil {
+		return errors.Wrap(err, "could not get Tiller pod name")
+	}
+	const tillerPort = 44134
+	s.Tiller = kube.NewTunnel(s.Clientset.Core().RESTClient(), config, namespace, podName, tillerPort)
+	err = s.Tiller.ForwardPort()
+	if err != nil {
+		return errors.Wrap(err, "could not get Tiller tunnel")
+	}
+
+	options := []helm.Option{
+		helm.Host(fmt.Sprintf("127.0.0.1:%v", s.Tiller.Local)),
+		helm.ConnectTimeout(5),
+	}
+
+	if s.settings.TLSVerify || s.settings.TLSEnable {
+		log.WithFields(log.Fields{
+			"Key":  s.settings.TLSKeyFile,
+			"Cert": s.settings.TLSCertFile,
+			"CA":   s.settings.TLSCaCertFile,
+		}).Debug("Using TLS for Tiller")
+		tlsopts := tlsutil.Options{
+			ServerName:         s.settings.TLSServerName,
+			KeyFile:            s.settings.TLSKeyFile,
+			CertFile:           s.settings.TLSCertFile,
+			InsecureSkipVerify: true,
+		}
+		if s.settings.TLSVerify {
+			tlsopts.CaCertFile = s.settings.TLSCaCertFile
+			tlsopts.InsecureSkipVerify = false
+		}
+		tlscfg, err := tlsutil.ClientConfig(tlsopts)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(2)
+		}
+		options = append(options, helm.WithTLS(tlscfg))
+	}
+
+	s.Helm = helm.NewClient(options...)
+
+	return nil
+}
+
+func (s *Session) setTLSConfig() {
 	// Setup TLS as done in helm/cmd/helm
 
 	if os.Getenv("HELM_TLS_ENABLE") == "true" || os.Getenv("HELM_TLS_ENABLE") == "1" {
@@ -155,60 +188,36 @@ func (s *Session) connect(namespace string) error {
 	if os.Getenv("HELM_TLS_VERIFY") == "true" || os.Getenv("HELM_TLS_VERIFY") == "1" {
 		s.settings.TLSVerify = true
 	}
+}
 
-	s.Clientset, err = internalclientset.NewForConfig(config)
+// connectionHealthCheck verifies connectivity and version compatability
+func (s *Session) connectionHealthCheck() error {
+
+	// NOTE: Its possible Helm client may not be connected until this point
+	err := s.Helm.PingTiller()
 	if err != nil {
-		return errors.Wrap(err, "could not get kubernetes client")
+		return errors.Wrap(err, "helm.PingTiller() failed")
 	}
-	podName, err := getTillerPodName(s.Clientset.Core(), namespace)
+
+	tillerVersion, err := s.Helm.GetVersion()
 	if err != nil {
-		return errors.Wrap(err, "could not get Tiller pod name")
-	}
-	const tillerPort = 44134
-	s.Tiller = kube.NewTunnel(s.Clientset.Core().RESTClient(), config, namespace, podName, tillerPort)
-	err = s.Tiller.ForwardPort()
-	if err != nil {
-		return errors.Wrap(err, "could not get Tiller tunnel")
+		return errors.Wrap(err, "failed to get Tiller version")
 	}
 
-	options := []helm.Option{
-		helm.Host(fmt.Sprintf(":%v", s.Tiller.Local)),
-		helm.ConnectTimeout(5),
-	}
-
-	if s.settings.TLSVerify || s.settings.TLSEnable {
-		log.WithFields(log.Fields{
-			"Key":  s.settings.TLSKeyFile,
-			"Cert": s.settings.TLSCertFile,
-			"CA":   s.settings.TLSCaCertFile,
-		}).Debug("Using TLS for Tiller")
-		tlsopts := tlsutil.Options{
-			ServerName:         s.settings.TLSServerName,
-			KeyFile:            s.settings.TLSKeyFile,
-			CertFile:           s.settings.TLSCertFile,
-			InsecureSkipVerify: true,
-		}
-		if s.settings.TLSVerify {
-			tlsopts.CaCertFile = s.settings.TLSCaCertFile
-			tlsopts.InsecureSkipVerify = false
-		}
-		tlscfg, err := tlsutil.ClientConfig(tlsopts)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(2)
-		}
-		options = append(options, helm.WithTLS(tlscfg))
-	}
-
-	s.Helm = helm.NewClient(options...)
-
-	clientVersion, err := s.Helm.GetVersion()
-	if err != nil {
-		return errors.Wrap(err, "failed to get helm client version")
-	}
+	compatible := version.IsCompatible(version.Version, tillerVersion.Version.SemVer)
 	log.WithFields(log.Fields{
-		"Version": clientVersion.Version,
-	}).Debug("Helm client")
+		"tillerVersion":          tillerVersion.Version.SemVer,
+		"clientServerCompatible": compatible,
+		"Host":                   fmt.Sprintf(":%v", s.Tiller.Local),
+	}).Debug("Connected to Tiller")
+
+	if !compatible {
+		return errors.WithFields(errors.Fields{
+			"tillerVersion": tillerVersion.Version.SemVer,
+			"helmVersion":   version.Version,
+			"Host":          fmt.Sprintf(":%v", s.Tiller.Local),
+		}).New("incompatible version numbers")
+	}
 
 	return nil
 }
