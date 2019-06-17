@@ -46,7 +46,7 @@ type Version struct {
 }
 
 func (s *Session) NewConfigMaps() *driver.ConfigMaps {
-	return driver.NewConfigMaps(s.Clientset.Core().ConfigMaps(s.Tunnel.Namespace))
+	return driver.NewConfigMaps(s.Clientset.CoreV1().ConfigMaps(s.Tunnel.Namespace))
 }
 
 func (s *Session) WriteVersions(versions *Versions) error {

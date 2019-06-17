@@ -39,6 +39,8 @@ type Transactioner interface {
 	Cancel() error
 	Canceled() bool
 	Started() bool
+	SetChanged()
+	Changed() bool
 	Completed() bool
 }
 
@@ -113,14 +115,13 @@ func (t *Transaction) completeTransaction() error {
 	if !t.Started() {
 		return errors.WithFields(errors.Fields{
 			"ManifestName": t.ManifestName,
-		}).New("cannot complete this transaction, it hasent been started")
+		}).New("cannot complete this transaction, it has not been started")
 	}
 	if t.Completed() {
 		return errors.WithFields(errors.Fields{
 			"ManifestName": t.ManifestName,
 		}).New("cannot complete this transaction, its already been completed")
 	}
-	//TODO: Calculate differences
 
 	t.endState.completed = true // we do not attempt this twice
 	changedList, changed := t.calculateChanged()
@@ -186,6 +187,31 @@ func (t *Transaction) Cancel() error {
 		}).New("cannot cancel this transaction, it hasent been started")
 	}
 	t.canceled = true
+	for _, v := range t.endState.Versions.Data {
+		if !v.Modified {
+			continue
+		}
+		if v.PreviousRevision == 0 {
+			// Release it didnt exist before this transaction
+			err := t.session.DeleteRelease(&DeleteMeta{
+				ReleaseName: v.Name,
+				Namespace:   v.Namespace,
+				Purge:       true,
+			})
+			if err != nil {
+				return errors.Wrap(err, "failed to delete release durring cancelation")
+			}
+			continue
+		}
+		_, err := t.session.RollbackRelease(&RollbackMeta{
+			ReleaseName: v.Name,
+			Namespace:   v.Namespace,
+			Revision:    v.PreviousRevision,
+		})
+		if err != nil {
+			return errors.Wrap(err, "failed to revert release durring cancelation")
+		}
+	}
 	return nil
 }
 
