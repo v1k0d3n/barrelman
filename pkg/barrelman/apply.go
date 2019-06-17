@@ -31,6 +31,7 @@ type ReleaseTarget struct {
 	State       int
 	Diff        []byte
 	Changed     bool
+
 }
 
 type ReleaseTargets []*ReleaseTarget

@@ -2,6 +2,8 @@ package barrelman
 
 import (
 	"fmt"
+	"github.com/charter-oss/barrelman/pkg/cluster"
+	"github.com/charter-oss/barrelman/pkg/manifest"
 	"github.com/charter-oss/barrelman/pkg/version"
 	"github.com/charter-oss/structured/log"
 	"io"
@@ -30,12 +32,6 @@ var (
 	settings helm_env.EnvSettings
 )
 
-type ConfigCmd struct {
-	Options    *CmdOptions
-	Config     *Config
-	LogOptions *[]string
-}
-
 type Config struct {
 	Account chartsync.AccountTable
 }
@@ -44,6 +40,12 @@ type BarrelmanConfig struct {
 	FilePath string
 	Viper    *viper.Viper
 	Env      map[string]string
+}
+
+type ConfigCmd struct {
+	Options    *CmdOptions
+	Config     *Config
+	LogOptions *[]string
 }
 
 func GetEmptyConfig() *Config {
@@ -61,7 +63,7 @@ func GetConfigFromFile(s string) (*Config, error) {
 	}
 	f, err := os.Open(s)
 	if err != nil {
-		return nil, fmt.Errorf("Error Opening file %v", err)
+		return nil, err
 	}
 	defer func() {
 		f.Close()
@@ -83,7 +85,6 @@ func (config *Config) LoadAcc(b *BarrelmanConfig) (*Config, error) {
 	}
 
 	account := b.Viper.Get("account")
-	fmt.Println(account)
 	// This block supports the YAML format :
 	// 	account:
 	//   - github.com:
@@ -127,6 +128,80 @@ func (config *Config) LoadAcc(b *BarrelmanConfig) (*Config, error) {
 	return config, nil
 }
 
+/*
+func (cmd *ConfigCmd) Run(KubeConfig string) error {
+
+	ver := version.Get()
+	log.WithFields(log.Fields{
+		"Version": ver.Version,
+		"Commit":  ver.Commit,
+		"Branch":  ver.Branch,
+	}).Info("Barrelman")
+
+	config, err := GetConfigFromFile(KubeConfig)
+	if err != nil {
+		return fmt.Errorf("ERROR %v", err)
+	}
+	fmt.Print("Config is: ", config)
+	return nil
+}
+*/
+
+func (cmd *ConfigCmd) Run(session cluster.Sessioner) error {
+	var err error
+
+	ver := version.Get()
+	log.WithFields(log.Fields{
+		"Version": ver.Version,
+		"Commit":  ver.Commit,
+		"Branch":  ver.Branch,
+	}).Info("Barrelman")
+
+	cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
+	if err != nil {
+		return errors.Wrap(err, "got error while loading config")
+	}
+
+	if err := ensureWorkDir(cmd.Options.DataDir); err != nil {
+		return errors.Wrap(err, "failed to create working directory")
+	}
+
+	if err = session.Init(); err != nil {
+		return errors.Wrap(err, "failed to create new cluster session")
+	}
+
+	if session.GetKubeConfig() != "" {
+		log.WithFields(log.Fields{
+			"file": session.GetKubeConfig(),
+		}).Info("Using kube config")
+	}
+	if session.GetKubeContext() != "" {
+		log.WithFields(log.Fields{
+			"file": session.GetKubeContext(),
+		}).Info("Using kube context")
+	}
+
+	// Open and initialize the manifest
+	mfest, err := manifest.New(&manifest.Config{
+		DataDir:      cmd.Options.DataDir,
+		ManifestFile: cmd.Options.ManifestFile,
+		AccountTable: cmd.Config.Account,
+	})
+	if err != nil {
+		return errors.Wrap(err, "error while initializing manifest")
+	}
+
+	if !cmd.Options.NoSync {
+		if err := mfest.Sync(); err != nil {
+			return errors.Wrap(err, "error while downloading charts")
+		}
+	}
+
+	if _, err := getConfig("test"); err != nil {
+		return errors.Wrap(err, "failed to get config")
+	}
+	return nil
+}
 func toBarrelmanConfig(s string, r io.Reader) (*BarrelmanConfig, error) {
 	barrelConfig := &BarrelmanConfig{FilePath: s}
 
@@ -202,22 +277,5 @@ func (v *valueFiles) Set(value string) error {
 	for _, filePath := range strings.Split(value, ",") {
 		*v = append(*v, filePath)
 	}
-	return nil
-}
-
-func (cmd *ConfigCmd) Run(KubeConfig string) error {
-
-	ver := version.Get()
-	log.WithFields(log.Fields{
-		"Version": ver.Version,
-		"Commit":  ver.Commit,
-		"Branch":  ver.Branch,
-	}).Info("Barrelman")
-
-	config, err := GetConfigFromFile(KubeConfig)
-	if err != nil {
-		return fmt.Errorf("ERROR %v", err)
-	}
-	fmt.Print("Config is: ", config)
 	return nil
 }

@@ -48,7 +48,7 @@ require (
 	github.com/prometheus/procfs v0.0.0-20190208162519-de1b801bf34b // indirect
 	github.com/smartystreets/assertions v0.0.0-20180301161246-7678a5452ebe // indirect
 	github.com/smartystreets/goconvey v0.0.0-20170602164621-9e8dc3f972df
-	github.com/spf13/cobra v0.0.4
+	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.3.2
 	github.com/stretchr/testify v1.2.2
 	github.com/technosophos/moniker v0.0.0-20180509230615-a5dbd03a2245 // indirect

@@ -38,13 +38,13 @@ func newRootCmd(args []string) *cobra.Command {
 		LogOptions: logOptions,
 	}))
 
-	cobraCmd.AddCommand(newApplyCmd(&barrelman.ApplyCmd{
+	cobraCmd.AddCommand(newConfigCmd(&barrelman.ConfigCmd{
 		Options:    options,
 		Config:     config,
 		LogOptions: logOptions,
 	}))
 
-	cobraCmd.AddCommand(newConfigCmd(&barrelman.ConfigCmd{
+	cobraCmd.AddCommand(newApplyCmd(&barrelman.ApplyCmd{
 		Options:    options,
 		Config:     config,
 		LogOptions: logOptions,
