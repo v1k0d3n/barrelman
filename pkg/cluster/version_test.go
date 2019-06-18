@@ -100,7 +100,6 @@ func TestVersioning(t *testing.T) {
 					So(releaseTable["someRelease"].Value, ShouldEqual, "5")
 				})
 			})
-
 		})
 	})
 
