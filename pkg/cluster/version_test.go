@@ -104,13 +104,6 @@ func TestVersioning(t *testing.T) {
 	})
 
 	Convey("GetVersionsFromList", t, func() {
-		TestClientSet.On("CoreV1").Return(TestCoreV1)
-		TestCoreV1.On("ConfigMaps", mock.Anything).Return(TestConfigMap)
-
-		// Items will need to be populated with pkg/cluster/driver/util.go:decodeRelease()
-		TestConfigMap.On("List", mock.Anything).Return(&v1.ConfigMapList{
-			Items: []v1.ConfigMap{},
-		}, nil)
 
 		manifestNames := []string{manifestName}
 		versions, err := s.GetVersionsFromList(&manifestNames)
@@ -120,5 +113,4 @@ func TestVersioning(t *testing.T) {
 		TestClientSet.AssertExpectations(t)
 		TestCoreV1.AssertExpectations(t)
 	})
-
 }
