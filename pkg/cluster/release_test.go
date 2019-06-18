@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"fmt"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -285,6 +286,45 @@ func TestReleases(t *testing.T) {
 		})
 	})
 }
+
+func TestGetRelease(t *testing.T) {
+	releaseName := "thisRelease"
+	revision := int32(77)
+	s := NewMockSession()
+	Convey("Releases", t, func() {
+		Convey("Can succeed", func() {
+			r := &hapi_release5.Release{
+				Name: releaseName,
+				Info: &release.Info{
+					Status: &release.Status{
+						Code: release.Status_DEPLOYED,
+					},
+				},
+				Chart: &hapi_chart3.Chart{
+					Metadata: &hapi_chart3.Metadata{
+						Name:    releaseName,
+						Version: fmt.Sprintf("%d", revision),
+					},
+				},
+			}
+			TestHelm.On("ReleaseContent", releaseName, mock.Anything).Return(&rls.GetReleaseContentResponse{
+				Release: r,
+			}, nil).Once()
+			release, err := s.GetRelease(releaseName, revision)
+			So(err, ShouldBeNil)
+			So(release.ReleaseName, ShouldEqual, releaseName)
+		})
+
+		Convey("Can fail", func() {
+			TestHelm.On("ReleaseContent", releaseName, mock.Anything).Return(nil, errors.New("Sim error")).Once()
+			_, err := s.GetRelease(releaseName, revision)
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldContainSubstring, "Sim error")
+		})
+
+	})
+}
+
 func TestDiffRelease(t *testing.T) {
 	s := NewMockSession()
 	//origRelease serves as the release already deployed on k8s

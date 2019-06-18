@@ -217,4 +217,29 @@ func TestTransactions(t *testing.T) {
 		So(err.Error(), ShouldContainSubstring, "grpc: the server has been stopped")
 		TestHelm.AssertExpectations(t)
 	})
+
+	Convey("Transaction can fail on not started", t, func() {
+		transaction := &Transaction{
+			startState: &State{
+				completed: false,
+			},
+			endState: &State{
+				completed: false,
+			},
+		}
+		err := transaction.Cancel()
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldContainSubstring, "it hasent been started")
+		Convey("can silently tollerate multiple cancels", func() {
+			transaction.canceled = true
+			err := transaction.Cancel()
+			So(err, ShouldBeNil)
+		})
+		Convey("can silently tollerate cancel after complete", func() {
+			transaction.canceled = false
+			transaction.endState.completed = true
+			err := transaction.Cancel()
+			So(err, ShouldBeNil)
+		})
+	})
 }
