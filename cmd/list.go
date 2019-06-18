@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/lithammer/dedent"
 	"github.com/spf13/cobra"
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
@@ -9,10 +10,22 @@ import (
 )
 
 func newListCmd(cmd *barrelman.ListCmd) *cobra.Command {
+	longDesc := dedent.Dedent(`
+		barrelman list
+			show all Barrelman manifests stored in kubernetes cluster
+			
+		barrelman list [manifest name]
+			show releases and versions asssociated with a Barrelman manifest currently running in a Kubernetes cluster
+	`)
+
+	shortDesc := dedent.Dedent(`
+		list manifests and releases
+	`)
+
 	cobraCmd := &cobra.Command{
 		Use:   "list",
-		Short: "apply something",
-		Long:  `Something something else...`,
+		Short: shortDesc,
+		Long:  longDesc,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				cmd.Options.ManifestFile = args[0]

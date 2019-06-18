@@ -19,6 +19,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/lithammer/dedent"
 	"github.com/spf13/cobra"
 	"k8s.io/helm/pkg/chartutil"
 
@@ -45,11 +46,24 @@ var (
 )
 
 func newTemplateCmd(cmd *barrelman.TemplateCmd) *cobra.Command {
+	longDesc := dedent.Dedent(`
+		barrelman template [manifest.yaml]
+			Render chart templates locally and display the output.
+
+			This does not require Tiller. However, any values that would normally be
+			looked up or retrieved in-cluster will be faked locally. Additionally, none
+			of the server-side testing of chart validity (e.g. whether an API is supported)
+			is done.
+	`)
+
+	shortDesc := dedent.Dedent(`
+		render chart templates locally
+	`)
 
 	cobraCmd := &cobra.Command{
 		Use:   "template [flags] CHART",
-		Short: fmt.Sprintf("locally render templates"),
-		Long:  templateDesc,
+		Short: shortDesc,
+		Long:  longDesc,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				cmd.Options.ManifestFile = args[0]

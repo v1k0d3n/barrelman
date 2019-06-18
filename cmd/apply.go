@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/lithammer/dedent"
 	"github.com/spf13/cobra"
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
@@ -9,10 +10,19 @@ import (
 )
 
 func newApplyCmd(cmd *barrelman.ApplyCmd) *cobra.Command {
+	longDesc := dedent.Dedent(`
+		barrelman apply [manifest.yaml]
+			calculates and potentially commits the differences between a supplied Barrelman manifest and a Kubernetes cluster
+	`)
+
+	shortDesc := dedent.Dedent(`
+		commit changes to cluster
+	`)
+
 	cobraCmd := &cobra.Command{
 		Use:   "apply [manifest.yaml]",
-		Short: "apply something",
-		Long:  `Something something else...`,
+		Short: shortDesc,
+		Long:  longDesc,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				cmd.Options.ManifestFile = args[0]

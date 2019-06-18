@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/lithammer/dedent"
 	"github.com/spf13/cobra"
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
@@ -9,11 +10,19 @@ import (
 )
 
 func newDeleteCmd(cmd *barrelman.DeleteCmd) *cobra.Command {
+	longDesc := dedent.Dedent(`
+		barrelman delete [manifest.yaml]
+			sets all running releases associated with a manifest to 'deleted'.
+	`)
+
+	shortDesc := dedent.Dedent(`
+		delete releases within a manifest
+	`)
 
 	cobraCmd := &cobra.Command{
 		Use:   "delete [manifest.yaml]",
-		Short: "delete something",
-		Long:  `Something something else...`,
+		Short: shortDesc,
+		Long:  longDesc,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				cmd.Options.ManifestFile = args[0]
