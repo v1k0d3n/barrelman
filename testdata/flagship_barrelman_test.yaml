@@ -14,7 +14,7 @@ metadata:
   name: flagship-kubernetes
 data:
   description: "Flagship Core Kubernetes Deployment"
-  sequenced: True
+  sequenced: False
   chart_group:
     - utils-kube-pod-checkpointer
     - kube-proxy
