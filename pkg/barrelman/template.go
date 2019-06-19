@@ -127,7 +127,7 @@ func (cmd *TemplateCmd) Run() error {
 		cmd.Config = GetEmptyConfig()
 	}
 
-	archives, err := processManifest(&bfest.Config{
+	archiveGroups, err := processManifest(&bfest.Config{
 		DataDir:      cmd.Options.DataDir,
 		ManifestFile: cmd.Options.ManifestFile,
 		AccountTable: cmd.Config.Account,
@@ -136,18 +136,20 @@ func (cmd *TemplateCmd) Run() error {
 		return errors.Wrap(err, "template failed")
 	}
 
-	for _, v := range archives.List {
-		log.WithFields(log.Fields{
-			"File":      v.Path,
-			"MetaName":  v.MetaName,
-			"Namespace": v.Namespace,
-			"ChartName": v.ChartName,
-		}).Debug("Template")
-		if err := cmd.Export(v); err != nil {
-			return errors.WithFields(errors.Fields{
-				"file": v.Path,
-				"name": v.MetaName,
-			}).Wrap(err, "Export failed")
+	for _, releaseGroup := range archiveGroups {
+		for _, v := range releaseGroup.ArchiveFiles.List {
+			log.WithFields(log.Fields{
+				"File":      v.Path,
+				"MetaName":  v.MetaName,
+				"Namespace": v.Namespace,
+				"ChartName": v.ChartName,
+			}).Debug("Template")
+			if err := cmd.Export(v); err != nil {
+				return errors.WithFields(errors.Fields{
+					"file": v.Path,
+					"name": v.MetaName,
+				}).Wrap(err, "Export failed")
+			}
 		}
 	}
 	return nil

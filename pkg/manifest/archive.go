@@ -15,6 +15,8 @@ import (
 	"github.com/charter-oss/structured/log"
 )
 
+// ArchiveSpec contains metadata, errata, and an io.Reader tied to an archive file
+// Its probable the archive file only exists in memory
 type ArchiveSpec struct {
 	MetaName    string
 	ChartName   string
@@ -30,6 +32,17 @@ type ArchiveSpec struct {
 type ArchiveFiles struct {
 	List []*ArchiveSpec
 }
+
+// ArchiveGroup is the post-processed representation of a manifest ChartGroup
+// The fields largely map to the "data" section in the original manifest
+type ArchiveGroup struct {
+	Name         string
+	Desc         string
+	Sequenced    bool
+	ArchiveFiles *ArchiveFiles
+}
+
+type ArchiveGroups []*ArchiveGroup
 
 func Archive(
 	chart *Chart,

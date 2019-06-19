@@ -206,6 +206,10 @@ func (m *Manifest) GetChartGroups() ([]*ChartGroup, error) {
 	ret := []*ChartGroup{}
 	for _, name := range m.Data.ChartGroups {
 		if v, exists := m.Lookup.ChartGroup[name]; exists {
+			log.WithFields(log.Fields{
+				"Name": v.Metadata.Name,
+				"Desc": v.Data.Description,
+			}).Info("Processing Chart Group")
 			ret = append(ret, v)
 		} else {
 			return nil, errors.WithFields(errors.Fields{"Name": name}).New("ChartGroup does not exist")
@@ -423,6 +427,44 @@ func (m *Manifest) GetChartSpec(c *Chart) (string, []*chartsync.ChartSpec, error
 		return "", nil, errors.Wrap(err, "failed to compute dependencies")
 	}
 	return path, dependCharts, nil
+}
+
+// CreateArchiveGroups generates chart archives and maintains ChartGroup errata
+func (m *Manifest) CreateArchiveGroups() (ArchiveGroups, error) {
+	ags := ArchiveGroups{}
+	groups, err := m.GetChartGroups()
+	if err != nil {
+		return nil, errors.Wrap(err, "error resolving chart groups")
+	}
+
+	for _, cg := range groups {
+		ag := &ArchiveGroup{
+			Name:         cg.Metadata.Name,
+			Desc:         cg.Data.Description,
+			Sequenced:    cg.Data.Sequenced,
+			ArchiveFiles: &ArchiveFiles{List: []*ArchiveSpec{}},
+		}
+		//Chart groups as defined by Armada YAML spec
+		//All charts within the group
+		charts, err := m.GetChartsByChartName(cg.Data.ChartGroup)
+		if err != nil {
+			return nil, errors.Wrap(err, "error resolving charts")
+		}
+		//For each chart within the group
+		for _, chart := range charts {
+			path, dependCharts, err := m.GetChartSpec(chart)
+			if err != nil {
+				return nil, errors.Wrap(err, "error getting chart path")
+			}
+			as, err := Archive(chart, path, dependCharts, chart.Data.Archiver)
+			if err != nil {
+				return nil, errors.Wrap(err, "Got err while running Archive")
+			}
+			ag.ArchiveFiles.List = append(ag.ArchiveFiles.List, as)
+		}
+		ags = append(ags, ag)
+	}
+	return ags, nil
 }
 
 //CreateArchives creates archives for charts configured in the manifest

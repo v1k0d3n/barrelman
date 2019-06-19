@@ -7,7 +7,7 @@ import (
 	"github.com/charter-oss/structured/errors"
 )
 
-func processManifest(config *manifest.Config, noSync bool) (*manifest.ArchiveFiles, error) {
+func processManifest(config *manifest.Config, noSync bool) (manifest.ArchiveGroups, error) {
 	// Open and initialize the manifest
 	mfest, err := manifest.New(config)
 	if err != nil {
@@ -21,11 +21,11 @@ func processManifest(config *manifest.Config, noSync bool) (*manifest.ArchiveFil
 	}
 
 	//Build/update chart archives from manifest
-	archives, err := mfest.CreateArchives()
+	archiveGroups, err := mfest.CreateArchiveGroups()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create archives")
 	}
-	return archives, err
+	return archiveGroups, err
 }
 
 func processManifestSections(config *manifest.Config, ys []*yamlpack.YamlSection, noSync bool) (*manifest.ArchiveFiles, error) {

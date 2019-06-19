@@ -177,6 +177,7 @@ data:
       kube_controller_manager: true
       pdb_kube_controller_manager: true
       secrets_kube_controller_manager: false
+      service_kube_controller_manager: false
   source:
     type: git
     location: https://github.com/v1k0d3n/flagship
@@ -210,6 +211,7 @@ data:
       deployment_kube_scheduler: true
       bootkube_kube_scheduler: false
       pdb_kube_scheduler: true
+      service_kube_scheduler: false
   source:
     type: git
     location: https://github.com/v1k0d3n/flagship
