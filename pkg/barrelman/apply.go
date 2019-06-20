@@ -46,11 +46,14 @@ type ReleaseGroup struct {
 
 type ReleaseGroups []*ReleaseGroup
 
-type processRespChan struct {
-	C chan *processResp
+type Control struct {
+	ctx    context.Context
+	cancel context.CancelFunc
+	C      chan *ProcessResp
+	wg     sync.WaitGroup
 }
 
-type processResp struct {
+type ProcessResp struct {
 	err error
 }
 
@@ -275,21 +278,17 @@ func (rg ReleaseGroup) process(session cluster.Sessioner, opt *CmdOptions) error
 }
 
 func (rt ReleaseTargets) process(session cluster.Sessioner, opt *CmdOptions, sequenced bool) error {
-	wg := sync.WaitGroup{}
-	ctx, ctxCancel := context.WithCancel(context.Background())
-	prc := &processRespChan{
-		C: make(chan *processResp),
-	}
+	control := NewControl(context.Background())
 
 	for _, releaseTarget := range rt {
 		log.WithFields(log.Fields{
 			"Name": releaseTarget.ReleaseMeta.ReleaseName,
 		}).Warn("processing release target")
-		wg.Add(1)
+		control.Add(1)
 		releaseTarget.ReleaseMeta.DryRun = false
 		releaseTarget.ReleaseMeta.InstallTimeout = 120
-		go func(ctx context.Context, prc *processRespChan, v *ReleaseTarget) {
-			defer wg.Done()
+		go func(control *Control, v *ReleaseTarget) {
+			defer control.Done()
 			switch v.State {
 			case Installable, Replaceable:
 				if err := func() error {
@@ -364,7 +363,7 @@ func (rt ReleaseTargets) process(session cluster.Sessioner, opt *CmdOptions, seq
 						"InstallWait": v.ReleaseMeta.InstallWait,
 					}).Wrap(innerErr, "Error while installing release")
 				}(); err != nil {
-					prc.C <- &processResp{err: err}
+					control.Send(&ProcessResp{err: err})
 					return
 				}
 			case Upgradable:
@@ -381,12 +380,12 @@ func (rt ReleaseTargets) process(session cluster.Sessioner, opt *CmdOptions, seq
 				}).Info("Upgrading")
 				msg, err := session.UpgradeRelease(v.ReleaseMeta)
 				if err != nil {
-					prc.C <- &processResp{
+					control.Send(&ProcessResp{
 						err: errors.WithFields(errors.Fields{
 							"Name":      v.ReleaseMeta.ReleaseName,
 							"Namespace": v.ReleaseMeta.Namespace,
 						}).Wrap(err, "error while upgrading release"),
-					}
+					})
 					return
 				}
 				log.WithFields(log.Fields{
@@ -399,50 +398,68 @@ func (rt ReleaseTargets) process(session cluster.Sessioner, opt *CmdOptions, seq
 					"Namespace": v.ReleaseMeta.Namespace,
 				}).Info("Skipping")
 			}
-		}(ctx, prc, releaseTarget)
+		}(control, releaseTarget)
 		if sequenced {
 			log.Debug("sequenced")
-			select {
-			case resp := <-prc.C:
-				if resp.err != nil {
-					log.Error(errors.Wrap(resp.err, "Got error from resp channel"))
-					ctxCancel()
-					wg.Wait()
-					return resp.err
-				}
-			case <-func() chan struct{} {
-				c := make(chan struct{})
-				go func() {
-					wg.Wait()
-					log.Info("processing completed")
-					ctxCancel()
-					c <- struct{}{}
-				}()
-				return c
-			}():
+			if err := control.Wait(); err != nil {
+				return err
 			}
 		} else {
 			log.Debug("parallel apply")
 		}
 	}
+	return control.Wait()
+}
+
+func NewControl(inctx context.Context) *Control {
+	ctx, ctxCancel := context.WithCancel(inctx)
+	c := &Control{
+		ctx:    ctx,
+		cancel: ctxCancel,
+		C:      make(chan *ProcessResp),
+		wg:     sync.WaitGroup{},
+	}
+	return c
+}
+
+func (c *Control) Send(msg *ProcessResp) {
+	c.C <- msg
+}
+
+func (c *Control) Recv() *ProcessResp {
+	return <-c.C
+}
+
+func (c *Control) Add(n int) {
+	c.wg.Add(n)
+}
+
+func (c *Control) Done() {
+	c.wg.Done()
+}
+func (c *Control) Wait() error {
 	select {
-	case resp := <-prc.C:
+	case resp := <-c.C:
 		if resp.err != nil {
 			log.Error(errors.Wrap(resp.err, "Got error from resp channel"))
-			ctxCancel()
-			wg.Wait()
+			c.Cancel()
+			c.wg.Wait()
 			return resp.err
 		}
 	case <-func() chan struct{} {
-		c := make(chan struct{})
+		flowChan := make(chan struct{})
 		go func() {
-			wg.Wait()
+			c.wg.Wait()
 			log.Info("processing completed")
-			ctxCancel()
-			c <- struct{}{}
+			c.Cancel()
+			flowChan <- struct{}{}
 		}()
-		return c
+		return flowChan
 	}():
 	}
 	return nil
+}
+
+func (c *Control) Cancel() {
+	c.cancel()
 }
