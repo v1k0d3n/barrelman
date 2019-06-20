@@ -260,6 +260,7 @@ func (rgs ReleaseGroups) LogDiff() {
 	}
 }
 
+// Apply performs actions on ReleaseTargets using pre-calculated transition states
 func (rgs ReleaseGroups) Apply(session cluster.Sessioner, opt *CmdOptions) error {
 	for _, releaseGroup := range rgs {
 		log.WithFields(log.Fields{
@@ -281,13 +282,16 @@ func (rt ReleaseTargets) process(session cluster.Sessioner, opt *CmdOptions, seq
 	control := NewControl(context.Background())
 
 	for _, releaseTarget := range rt {
+		if control.Canceled() {
+			return nil
+		}
 		log.WithFields(log.Fields{
 			"Name": releaseTarget.ReleaseMeta.ReleaseName,
 		}).Warn("processing release target")
-		control.Add(1)
 		releaseTarget.ReleaseMeta.DryRun = false
 		releaseTarget.ReleaseMeta.InstallTimeout = 120
 		go func(control *Control, v *ReleaseTarget) {
+			control.Add(1)
 			defer control.Done()
 			switch v.State {
 			case Installable, Replaceable:
@@ -316,6 +320,9 @@ func (rt ReleaseTargets) process(session cluster.Sessioner, opt *CmdOptions, seq
 						"InstallWait": v.ReleaseMeta.InstallWait,
 					}).Info("Installing")
 					for i := 0; i < opt.InstallRetry; i++ {
+						if control.Canceled() {
+							return nil
+						}
 						msg, relName, err := session.InstallRelease(v.ReleaseMeta)
 						if err != nil {
 							log.WithFields(log.Fields{
@@ -325,6 +332,11 @@ func (rt ReleaseTargets) process(session cluster.Sessioner, opt *CmdOptions, seq
 								"Error":       err.Error(),
 							}).Debug("Install reported error")
 							innerErr = err
+
+							if control.Canceled() {
+								return nil
+							}
+
 							//The state has changed underneath us, but the release needs installed anyhow
 							//So delete and try again
 							dm := &cluster.DeleteMeta{
@@ -340,6 +352,9 @@ func (rt ReleaseTargets) process(session cluster.Sessioner, opt *CmdOptions, seq
 							if err := session.DeleteRelease(dm); err != nil {
 								//deleting kube-proxy or other connection issues can trigger this, don't abort the retry
 								log.Debug(err, "error deleting release before install (forced)")
+							}
+							if control.Canceled() {
+								return nil
 							}
 							/////
 							select {
@@ -399,7 +414,11 @@ func (rt ReleaseTargets) process(session cluster.Sessioner, opt *CmdOptions, seq
 				}).Info("Skipping")
 			}
 		}(control, releaseTarget)
+
+		// sequenced is a user setting within a ChartGroup
+		// true means we should only perform one action at a time within the ChartGroup
 		if sequenced {
+			// Wait for action to complete before moving to the next
 			log.Debug("sequenced")
 			if err := control.Wait(); err != nil {
 				return err
@@ -408,9 +427,11 @@ func (rt ReleaseTargets) process(session cluster.Sessioner, opt *CmdOptions, seq
 			log.Debug("parallel apply")
 		}
 	}
+	// make sure all actions are complete within this ReleaseGroup
 	return control.Wait()
 }
 
+// NewControl returns a structure useful for flow control and messaging
 func NewControl(inctx context.Context) *Control {
 	ctx, ctxCancel := context.WithCancel(inctx)
 	c := &Control{
@@ -422,25 +443,37 @@ func NewControl(inctx context.Context) *Control {
 	return c
 }
 
+// Send a message to the controller instance
 func (c *Control) Send(msg *ProcessResp) {
 	c.C <- msg
 }
 
-func (c *Control) Recv() *ProcessResp {
-	return <-c.C
-}
-
+// Add to the controllers sync.WaitGroup
 func (c *Control) Add(n int) {
 	c.wg.Add(n)
 }
 
+// Run Done() on the controllers sync.WaitGroup
+// this should be done when the action returns
 func (c *Control) Done() {
 	c.wg.Done()
 }
+
+func (c *Control) Canceled() bool {
+	select {
+	case <-c.ctx.Done():
+		return true
+	default:
+	}
+	return false
+}
+
+// Wait blocks until all actions have concluded and potentially returns an error
 func (c *Control) Wait() error {
 	select {
 	case resp := <-c.C:
 		if resp.err != nil {
+			// this can mask subsiquent errors since no one is checking the response channel
 			log.Error(errors.Wrap(resp.err, "Got error from resp channel"))
 			c.Cancel()
 			c.wg.Wait()
@@ -460,6 +493,7 @@ func (c *Control) Wait() error {
 	return nil
 }
 
+// Cancel signals all actions to conclude now
 func (c *Control) Cancel() {
 	c.cancel()
 }
