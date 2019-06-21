@@ -53,7 +53,7 @@ func newDescribeCmd(cmd *barrelman.DescribeCmd) *cobra.Command {
 		&cmd.Options.KubeConfigFile,
 		"kubeconfig",
 		Default().KubeConfigFile,
-		"use alternate kube config file")
+		"Set the Kubernetes config file to use for connecting to the cluster.")
 	cobraCmd.Flags().StringVar(
 		&cmd.Options.KubeContext,
 		"kubecontext",
