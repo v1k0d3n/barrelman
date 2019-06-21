@@ -47,7 +47,7 @@ func newDescribeCmd(cmd *barrelman.DescribeCmd) *cobra.Command {
 		"log",
 		"l",
 		nil,
-		"log options (e.g. --log=debug,JSON")
+		"Set the log level. [ debug | info | warn | error ]")
 
 	cobraCmd.Flags().StringVar(
 		&cmd.Options.KubeConfigFile,
