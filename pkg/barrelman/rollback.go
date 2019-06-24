@@ -136,7 +136,7 @@ func (rts *RollbackTargets) Apply() error {
 		case NoChange:
 			log.WithFields(log.Fields{
 				"ReleaseName": rt.ReleaseMeta.ReleaseName,
-			}).Debug("No change in rollback")
+			}).Info("No change in rollback")
 		case Installable:
 			return errors.WithFields(errors.Fields{
 				"ReleaseName":     rt.ReleaseMeta.ReleaseName,
@@ -302,6 +302,7 @@ func (cmd *RollbackCmd) ComputeRollback(
 
 func (rts *RollbackTargets) Diff(session cluster.Sessioner) (*RollbackTargets, error) {
 	for _, v := range rts.Data {
+		v.ReleaseMeta.DryRun = true
 		if err := v.CalculateDiff(session); err != nil {
 			return rts, err
 		}
@@ -312,7 +313,6 @@ func (rts *RollbackTargets) Diff(session cluster.Sessioner) (*RollbackTargets, e
 func (rt *RollbackTarget) CalculateDiff(session cluster.Sessioner) error {
 	var err error
 
-	rt.ReleaseMeta.DryRun = true
 	switch rt.TransitionState {
 	case Upgradable, Replaceable:
 		rt.Changed, rt.Diff, err = session.DiffRelease(&cluster.ReleaseMeta{
