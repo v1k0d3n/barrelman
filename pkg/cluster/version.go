@@ -92,7 +92,7 @@ func (s *Session) WriteVersions(versions *Versions) error {
 	}
 
 	log.Debug("creating rollback ConfigMap")
-	if err := cmap.Create(fmt.Sprintf("%s.v%s", versions.Name, NewSHA1Hash()), rls); err != nil {
+	if err := cmap.Create(fmt.Sprintf("%s.v%d.%s", versions.Name, version, NewSHA1Hash()), rls); err != nil {
 		return err
 	}
 
