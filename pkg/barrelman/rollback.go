@@ -227,7 +227,9 @@ func (cmd *RollbackCmd) ComputeRollback(
 				}
 				rt.ReleaseVersion.Chart = toMeta.Chart
 				rt.ReleaseMeta.Config = toMeta.Config
-
+				if err := rt.CalculateDiff(session); err != nil {
+					return nil, err
+				}
 				if rel.Status == cluster.Status_DELETED {
 					// Current release has been deleted, we track it seperately
 					rt.TransitionState = Undeletable
@@ -236,11 +238,13 @@ func (cmd *RollbackCmd) ComputeRollback(
 					// setup for delete and install
 					rt.TransitionState = Replaceable
 				} else {
-					if rt.Revision == rt.ReleaseVersion.Revision {
+					// Set to upgradeable, then check for difference
+					rt.TransitionState = Upgradable
+					if err := rt.CalculateDiff(session); err != nil {
+						return nil, err
+					}
+					if !rt.Changed {
 						rt.TransitionState = NoChange
-					} else {
-						// All other cases use Upgrade
-						rt.TransitionState = Upgradable
 					}
 				}
 			}
@@ -292,24 +296,36 @@ func (cmd *RollbackCmd) ComputeRollback(
 	return rts, nil
 }
 
-func (rt *RollbackTargets) Diff(session cluster.Sessioner) (*RollbackTargets, error) {
-	var err error
-	for _, v := range rt.Data {
-		v.ReleaseMeta.DryRun = true
-		switch v.TransitionState {
-		case Upgradable, Replaceable:
-			v.Changed, v.Diff, err = session.DiffRelease(&cluster.ReleaseMeta{
-				Chart:          v.ReleaseVersion.Chart,
-				ReleaseName:    v.ReleaseVersion.Name,
-				Namespace:      v.ReleaseVersion.Namespace,
-				ValueOverrides: []byte(v.ReleaseMeta.Config.Raw),
-			})
-			if err != nil {
-				return nil, err
-			}
+func (rts *RollbackTargets) Diff(session cluster.Sessioner) (*RollbackTargets, error) {
+	for _, v := range rts.Data {
+		if err := v.CalculateDiff(session); err != nil {
+			return rts, err
 		}
 	}
-	return rt, nil
+	return rts, nil
+}
+
+func (rt *RollbackTarget) CalculateDiff(session cluster.Sessioner) error {
+	var err error
+
+	rt.ReleaseMeta.DryRun = true
+	switch rt.TransitionState {
+	case Upgradable, Replaceable:
+		rt.Changed, rt.Diff, err = session.DiffRelease(&cluster.ReleaseMeta{
+			Chart:          rt.ReleaseVersion.Chart,
+			ReleaseName:    rt.ReleaseVersion.Name,
+			Namespace:      rt.ReleaseVersion.Namespace,
+			ValueOverrides: []byte(rt.ReleaseMeta.Config.Raw),
+		})
+		if err != nil {
+			return err
+		}
+		log.WithFields(log.Fields{
+			"Changed": rt.Changed,
+			"Name":    rt.ReleaseVersion.Name,
+		}).Warn("diff verdict")
+	}
+	return nil
 }
 
 func (rt *RollbackTargets) LogDiff() {
