@@ -56,7 +56,7 @@ func newTemplateCmd(cmd *barrelman.TemplateCmd) *cobra.Command {
 			}
 			cobraCmd.SilenceUsage = true
 			cobraCmd.SilenceErrors = true
-			log.Configure(logSettings(cmd.LogOptions)...)
+			log.Configure(LogSettings(cmd.LogOptions)...)
 			if err := cmd.Run(); err != nil {
 				return err
 			}

@@ -19,7 +19,7 @@ func newApplyCmd(cmd *barrelman.ApplyCmd) *cobra.Command {
 			}
 			cobraCmd.SilenceUsage = true
 			cobraCmd.SilenceErrors = true
-			log.Configure(logSettings(cmd.LogOptions)...)
+			log.Configure(LogSettings(cmd.LogOptions)...)
 			session := cluster.NewSession(
 				cmd.Options.KubeContext,
 				cmd.Options.KubeConfigFile)

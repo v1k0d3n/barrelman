@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	config2 "github.com/charter-oss/barrelman/cmd/config"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -38,11 +39,7 @@ func newRootCmd(args []string) *cobra.Command {
 		LogOptions: logOptions,
 	}))
 
-	cobraCmd.AddCommand(newConfigCmd(&barrelman.ConfigCmd{
-		Options:    options,
-		Config:     config,
-		LogOptions: logOptions,
-	}))
+	cobraCmd.AddCommand(config2.NewCmdConfig(out))
 
 	cobraCmd.AddCommand(newApplyCmd(&barrelman.ApplyCmd{
 		Options:    options,
@@ -78,7 +75,7 @@ func Execute() {
 	}
 }
 
-func logSettings(args *[]string) []func(*log.Logger) error {
+func LogSettings(args *[]string) []func(*log.Logger) error {
 	ret := []func(*log.Logger) error{}
 	for _, v := range *args {
 		switch v {

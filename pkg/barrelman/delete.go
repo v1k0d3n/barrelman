@@ -20,7 +20,7 @@ func (cmd *DeleteCmd) Run(session cluster.Sessioner) error {
 	ver := version.Get()
 	log.WithFields(log.Fields{
 		"Version": ver.Version,
-		"Commit":  ver.Commit,
+		"Commit":  ver.Commit,	
 		"Branch":  ver.Branch,
 	}).Info("Barrelman")
 

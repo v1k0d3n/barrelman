@@ -157,6 +157,7 @@ func (cmd *ConfigCmd) Run(session cluster.Sessioner) error {
 		"Branch":  ver.Branch,
 	}).Info("Barrelman")
 
+	println(cmd.Options.ConfigFile)
 	cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
 	if err != nil {
 		return errors.Wrap(err, "got error while loading config")
