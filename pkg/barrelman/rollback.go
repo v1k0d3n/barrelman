@@ -238,8 +238,11 @@ func (cmd *RollbackCmd) ComputeRollback(
 					// setup for delete and install
 					rt.TransitionState = Replaceable
 				} else {
-					// Set to upgradeable, then check for difference
+					// Set to upgradeable
 					rt.TransitionState = Upgradable
+				}
+
+				if rt.TransitionState == Replaceable || rt.TransitionState == Upgradable {
 					if err := rt.CalculateDiff(session); err != nil {
 						return nil, err
 					}
@@ -247,6 +250,7 @@ func (cmd *RollbackCmd) ComputeRollback(
 						rt.TransitionState = NoChange
 					}
 				}
+
 			}
 		}
 		if !releaseExists {
@@ -320,10 +324,6 @@ func (rt *RollbackTarget) CalculateDiff(session cluster.Sessioner) error {
 		if err != nil {
 			return err
 		}
-		log.WithFields(log.Fields{
-			"Changed": rt.Changed,
-			"Name":    rt.ReleaseVersion.Name,
-		}).Warn("diff verdict")
 	}
 	return nil
 }
