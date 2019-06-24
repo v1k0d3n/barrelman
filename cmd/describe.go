@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"os"
 	"strconv"
 
+	"github.com/lithammer/dedent"
 	"github.com/spf13/cobra"
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
@@ -13,23 +13,33 @@ import (
 )
 
 func newDescribeCmd(cmd *barrelman.DescribeCmd) *cobra.Command {
-	cobraCmd := &cobra.Command{
-		Use:   "describe [manifestName] [version]",
-		Short: "describe [manifestName] [version]",
-		Long:  `describe [manifestName] [version]`,
-		RunE: func(cobraCmd *cobra.Command, args []string) error {
-			if len(args) > 0 {
-				cmd.ManifestName = args[0]
-			}
-			if len(args) > 1 {
 
-				verTmp, err := strconv.Atoi(args[1])
-				if err != nil {
-					log.Error(errors.Wrap(err, "Failed to parse version from second arguement"))
-					os.Exit(1)
-				}
-				cmd.ManifestVersion = int32(verTmp)
+	longDesc := dedent.Dedent(`
+		describe [manifest name] [version]
+			Display release information stored in a Barrelman manifest version.
+	`)
+
+	shortDesc := dedent.Dedent(`
+		display release information in a Barrelman manifest version
+	`)
+
+	cobraCmd := &cobra.Command{
+		Use:   "describe [manifest name] [version]",
+		Short: shortDesc,
+		Long:  longDesc,
+		RunE: func(cobraCmd *cobra.Command, args []string) error {
+			if len(args) != 2 {
+				return errors.New("command requires 'manifest name' and 'version'")
 			}
+
+			cmd.ManifestName = args[0]
+
+			verTmp, err := strconv.Atoi(args[1])
+			if err != nil {
+				return errors.Wrap(err, "Failed to parse version from second arguement")
+			}
+			cmd.ManifestVersion = int32(verTmp)
+
 			cobraCmd.SilenceUsage = true
 			cobraCmd.SilenceErrors = true
 			log.Configure(logSettings(cmd.LogOptions)...)
@@ -59,15 +69,5 @@ func newDescribeCmd(cmd *barrelman.DescribeCmd) *cobra.Command {
 		"kubecontext",
 		Default().KubeContext,
 		"use alternate kube context")
-	cobraCmd.Flags().BoolVar(
-		&cmd.Options.DryRun,
-		"dry-run",
-		false,
-		"test all charts with server")
-	cobraCmd.Flags().BoolVar(
-		&cmd.Options.Diff,
-		"diff",
-		false,
-		"Display differences")
 	return cobraCmd
 }

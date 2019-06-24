@@ -4,6 +4,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/lithammer/dedent"
 	"github.com/spf13/cobra"
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
@@ -13,23 +14,36 @@ import (
 )
 
 func newRollbackCmd(cmd *barrelman.RollbackCmd) *cobra.Command {
-	cobraCmd := &cobra.Command{
-		Use:   "rollback [manifest.yaml]",
-		Short: "rollback something",
-		Long:  `rollback something else...`,
-		RunE: func(cobraCmd *cobra.Command, args []string) error {
-			if len(args) > 0 {
-				cmd.ManifestName = args[0]
-			}
-			if len(args) > 1 {
 
-				verTmp, err := strconv.Atoi(args[1])
-				if err != nil {
-					log.Error(errors.Wrap(err, "Failed to parse version from second arguement"))
-					os.Exit(1)
-				}
-				cmd.ManifestVersion = int32(verTmp)
+	longDesc := dedent.Dedent(`
+		barrelman rollback [manifest name] [manifest version]
+			Sets release versions to those recorded in a Barrelman rollback manifest.
+
+			Rollback manifests are saved in the cluster when barrelman sucessfully commits a change
+			to the manifest release group.
+	`)
+
+	shortDesc := dedent.Dedent(`
+		set release versions to a previous Barrelman save state 
+	`)
+
+	cobraCmd := &cobra.Command{
+		Use:   "rollback [manifest name] [manifest version]",
+		Short: shortDesc,
+		Long:  longDesc,
+		RunE: func(cobraCmd *cobra.Command, args []string) error {
+			if len(args) != 2 {
+				return errors.New("rollback requires 'manifest name' and 'version")
 			}
+			cmd.ManifestName = args[0]
+
+			verTmp, err := strconv.Atoi(args[1])
+			if err != nil {
+				log.Error(errors.Wrap(err, "Failed to parse version from second arguement"))
+				os.Exit(1)
+			}
+			cmd.ManifestVersion = int32(verTmp)
+
 			cobraCmd.SilenceUsage = true
 			cobraCmd.SilenceErrors = true
 			log.Configure(logSettings(cmd.LogOptions)...)
