@@ -1,7 +1,9 @@
 package cluster
 
 import (
+	"crypto/sha1"
 	"fmt"
+	"math/rand"
 	"sort"
 	"time"
 
@@ -45,6 +47,10 @@ type Version struct {
 	Modified         bool
 }
 
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
 func (s *Session) NewConfigMaps() *driver.ConfigMaps {
 	return driver.NewConfigMaps(s.Clientset.CoreV1().ConfigMaps(s.Tunnel.Namespace))
 }
@@ -86,7 +92,7 @@ func (s *Session) WriteVersions(versions *Versions) error {
 	}
 
 	log.Debug("creating rollback ConfigMap")
-	if err := cmap.Create(fmt.Sprintf("%s.v%d", versions.Name, version), rls); err != nil {
+	if err := cmap.Create(fmt.Sprintf("%s.v%s", versions.Name, NewSHA1Hash()), rls); err != nil {
 		return err
 	}
 
@@ -324,4 +330,27 @@ func (v *versionSorter) Swap(i, j int) {
 // Less is part of sort.Interface. It is implemented by calling the "by" closure in the sorter.
 func (v *versionSorter) Less(i, j int) bool {
 	return v.by(v.versions[i], v.versions[j])
+}
+
+func NewSHA1Hash(n ...int) string {
+	noRandomCharacters := 32
+	if len(n) > 0 {
+		noRandomCharacters = n[0]
+	}
+	randString := RandomString(noRandomCharacters)
+	hash := sha1.New()
+	hash.Write([]byte(randString))
+	bs := hash.Sum(nil)
+	return fmt.Sprintf("%x", bs)
+}
+
+var characterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+// RandomString generates a random string of n length
+func RandomString(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = characterRunes[rand.Intn(len(characterRunes))]
+	}
+	return string(b)
 }
