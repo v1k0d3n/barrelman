@@ -111,12 +111,7 @@ func NewTemplateCmd() *TemplateCmd {
 
 func (cmd *TemplateCmd) Run() error {
 	var err error
-	ver := version.Get()
-	log.WithFields(log.Fields{
-		"Version": ver.Version,
-		"Commit":  ver.Commit,
-		"Branch":  ver.Branch,
-	}).Info("Barrelman")
+	log.Rep(version.Get()).Info("Barrelman")
 
 	if cmd.Options.ConfigFile != "" {
 		cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
@@ -137,11 +132,7 @@ func (cmd *TemplateCmd) Run() error {
 	}
 
 	for _, v := range archives.List {
-		log.WithFields(log.Fields{
-			"File":         v.Path,
-			"MetaName":     v.MetaName,
-			"Namespace":    v.Namespace,
-			"ChartName":    v.ChartName,
+		log.WithDetailedReport(v).WithFields(log.Fields{
 			"ManifestName": manifestName,
 		}).Debug("Template")
 		if err := cmd.Export(v); err != nil {

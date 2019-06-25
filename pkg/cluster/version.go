@@ -218,6 +218,23 @@ func (versions *Versions) Lookup(name string) *Version {
 	return nil
 }
 
+func (version *Version) ShortReport() map[string]interface{} {
+	return map[string]interface{}{
+		"Name":      version.Name,
+		"Namespace": version.Namespace,
+		"Revision":  version.Revision,
+	}
+}
+
+func (version *Version) DetailedReport() map[string]interface{} {
+	return map[string]interface{}{
+		"Name":             version.Name,
+		"Namespace":        version.Namespace,
+		"Revision":         version.Revision,
+		"PreviousRevision": version.PreviousRevision,
+	}
+}
+
 func (version *Version) ReleaseTable() (map[string]*chart.Value, error) {
 	if version.Chart == nil {
 		return nil, errors.New("Chart (ConfigMap) does not exist in version")

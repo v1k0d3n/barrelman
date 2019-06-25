@@ -28,19 +28,9 @@ func (cmd *DeleteCmd) Run(session cluster.Sessioner) error {
 		return errors.Wrap(err, "failed to create working directory")
 	}
 
+	log.Rep(session).Debug("connecting to cluster")
 	if err = session.Init(); err != nil {
 		return errors.Wrap(err, "failed to create new cluster session")
-	}
-
-	if session.GetKubeConfig() != "" {
-		log.WithFields(log.Fields{
-			"file": session.GetKubeConfig(),
-		}).Info("Using kube config")
-	}
-	if session.GetKubeContext() != "" {
-		log.WithFields(log.Fields{
-			"file": session.GetKubeContext(),
-		}).Info("Using kube context")
 	}
 
 	// Open and initialize the manifest

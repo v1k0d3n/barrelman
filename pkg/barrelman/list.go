@@ -25,23 +25,9 @@ func (cmd *ListCmd) Run(session cluster.Sessioner) error {
 		return errors.Wrap(err, "got error while loading config")
 	}
 
-	if err := ensureWorkDir(cmd.Options.DataDir); err != nil {
-		return errors.Wrap(err, "failed to create working directory")
-	}
-
-	if err = session.Init(); err != nil {
+	log.Rep(session).Debug("connecting to cluster")
+	if err := session.Init(); err != nil {
 		return errors.Wrap(err, "failed to create new cluster session")
-	}
-
-	if session.GetKubeConfig() != "" {
-		log.WithFields(log.Fields{
-			"file": session.GetKubeConfig(),
-		}).Info("Using kube config")
-	}
-	if session.GetKubeContext() != "" {
-		log.WithFields(log.Fields{
-			"file": session.GetKubeContext(),
-		}).Info("Using kube context")
 	}
 
 	// No name supplied, list all top level Barrelman manifests
@@ -51,10 +37,7 @@ func (cmd *ListCmd) Run(session cluster.Sessioner) error {
 			return errors.Wrap(err, "Failed to get releases")
 		}
 		for _, v := range list {
-			log.WithFields(log.Fields{
-				"Name":     v.Name,
-				"Revision": v.Revision,
-			}).Info("Barrelman Manifest")
+			log.Rep(v).Info("Barrelman Manifest")
 		}
 		return nil
 	}
