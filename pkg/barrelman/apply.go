@@ -7,8 +7,8 @@ import (
 	"github.com/charter-oss/barrelman/pkg/cluster"
 	"github.com/charter-oss/barrelman/pkg/manifest"
 	"github.com/charter-oss/barrelman/pkg/version"
-	"github.com/charter-oss/structured/errors"
-	"github.com/charter-oss/structured/log"
+	"github.com/cirrocloud/structured/errors"
+	"github.com/cirrocloud/structured/log"
 )
 
 type ApplyCmd struct {
@@ -36,12 +36,7 @@ type ReleaseTargets struct {
 func (cmd *ApplyCmd) Run(session cluster.Sessioner) error {
 	var err error
 
-	ver := version.Get()
-	log.WithFields(log.Fields{
-		"Version": ver.Version,
-		"Commit":  ver.Commit,
-		"Branch":  ver.Branch,
-	}).Info("Barrelman")
+	log.Rep(version.Get()).Info("Barrelman")
 
 	cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
 	if err != nil {

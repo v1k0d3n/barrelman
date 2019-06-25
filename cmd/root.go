@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
-	"github.com/charter-oss/structured/log"
+	"github.com/cirrocloud/structured/log"
 )
 
 func newRootCmd(args []string) *cobra.Command {

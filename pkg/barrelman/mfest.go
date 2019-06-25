@@ -4,7 +4,7 @@ import (
 	"github.com/cirrocloud/yamlpack"
 
 	"github.com/charter-oss/barrelman/pkg/manifest"
-	"github.com/charter-oss/structured/errors"
+	"github.com/cirrocloud/structured/errors"
 )
 
 func processManifest(config *manifest.Config, noSync bool) (*manifest.ArchiveFiles, string, error) {

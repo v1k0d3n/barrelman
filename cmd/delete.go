@@ -5,7 +5,7 @@ import (
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
 	"github.com/charter-oss/barrelman/pkg/cluster"
-	"github.com/charter-oss/structured/log"
+	"github.com/cirrocloud/structured/log"
 )
 
 func newDeleteCmd(cmd *barrelman.DeleteCmd) *cobra.Command {
