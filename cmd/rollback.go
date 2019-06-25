@@ -17,23 +17,24 @@ import (
 func newRollbackCmd(cmd *barrelman.RollbackCmd) *cobra.Command {
 
 	longDesc := strings.TrimSpace(dedent.Dedent(`
-		Sets release versions to those recorded in a Barrelman rollback manifest.
+		Rollback sets release versions to those recorded in a Barrelman rollback manifest.
+		
 		Rollback manifests are saved in the cluster when barrelman sucessfully commits a change
 		to the manifest release group.`))
 
-	shortDesc := `set release versions to a previous Barrelman save state`
+	shortDesc := `Set release versions to a previous Barrelman save state.`
 
 	examples := `barrelman rollback lamp-stack 5`
 
 	cobraCmd := &cobra.Command{
-		Use:     "rollback [manifest name] [manifest version]",
-		Short:   shortDesc,
-		Long:    longDesc,
-		Example: examples,
+		Use:           "rollback [manifest name] [manifest version]",
+		Short:         shortDesc,
+		Long:          longDesc,
+		Example:       examples,
+		Args:          cobra.ExactArgs(2),
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
-			if len(args) != 2 {
-				return errors.New("rollback requires 'manifest name' and 'version")
-			}
 			cmd.ManifestName = args[0]
 
 			verTmp, err := strconv.Atoi(args[1])
@@ -43,8 +44,6 @@ func newRollbackCmd(cmd *barrelman.RollbackCmd) *cobra.Command {
 			}
 			cmd.ManifestVersion = int32(verTmp)
 
-			cobraCmd.SilenceUsage = true
-			cobraCmd.SilenceErrors = true
 			log.Configure(logSettings(cmd.LogOptions)...)
 			session := cluster.NewSession(
 				cmd.Options.KubeContext,
@@ -62,16 +61,6 @@ func newRollbackCmd(cmd *barrelman.RollbackCmd) *cobra.Command {
 		nil,
 		"log options (e.g. --log=debug,JSON")
 
-	cobraCmd.Flags().StringVar(
-		&cmd.Options.KubeConfigFile,
-		"kubeconfig",
-		Default().KubeConfigFile,
-		"use alternate kube config file")
-	cobraCmd.Flags().StringVar(
-		&cmd.Options.KubeContext,
-		"kubecontext",
-		Default().KubeContext,
-		"use alternate kube context")
 	cobraCmd.Flags().BoolVar(
 		&cmd.Options.DryRun,
 		"dry-run",

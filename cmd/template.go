@@ -50,10 +50,11 @@ func newTemplateCmd(cmd *barrelman.TemplateCmd) *cobra.Command {
 		Use:   "template [flags] CHART",
 		Short: fmt.Sprintf("locally render templates"),
 		Long:  templateDesc,
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
-			if len(args) > 0 {
-				cmd.Options.ManifestFile = args[0]
-			}
+
+			cmd.Options.ManifestFile = args[0]
+
 			cobraCmd.SilenceUsage = true
 			cobraCmd.SilenceErrors = true
 			log.Configure(logSettings(cmd.LogOptions)...)

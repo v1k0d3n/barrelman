@@ -315,6 +315,22 @@ func (s *Session) ReleasesByManifest(manifestName string) (map[string]*ReleaseMe
 	return ret, nil
 }
 
+func (rm *ReleaseMeta) ShortReport() map[string]interface{} {
+	return map[string]interface{}{
+		"ReleaseName": rm.ReleaseName,
+		"Namespace":   rm.Namespace,
+		"InstallWait": rm.InstallWait,
+	}
+}
+
+func (rm *ReleaseMeta) DetailedReport() map[string]interface{} {
+	return map[string]interface{}{
+		"ReleaseName": rm.ReleaseName,
+		"Namespace":   rm.Namespace,
+		"InstallWait": rm.InstallWait,
+	}
+}
+
 func setChartManifestTags(chart *Chart, tags string) *Chart {
 	chart.Metadata.Tags = tags
 	return chart

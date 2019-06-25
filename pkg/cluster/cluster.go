@@ -23,9 +23,11 @@ import (
 
 	"github.com/cirrocloud/structured/errors"
 	"github.com/cirrocloud/structured/log"
+	"github.com/cirrocloud/structured/report"
 )
 
 type Sessioner interface {
+	report.Reportables
 	Clusterer
 	Releaser
 	Versioner
@@ -106,6 +108,20 @@ func (s *Session) Init() error {
 		}).New("incompatible version numbers")
 	}
 	return nil
+}
+
+func (s *Session) ShortReport() map[string]interface{} {
+	return map[string]interface{}{
+		"KubeContext": s.kubeContext,
+		"KubeConfig":  s.kubeConfig,
+	}
+}
+
+func (s *Session) DetailedReport() map[string]interface{} {
+	return map[string]interface{}{
+		"KubeContext": s.kubeContext,
+		"KubeConfig":  s.kubeConfig,
+	}
 }
 
 //connect builds connections for all supported APIs

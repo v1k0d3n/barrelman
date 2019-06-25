@@ -18,23 +18,23 @@ func newListCmd(cmd *barrelman.ListCmd) *cobra.Command {
 		barrelman list lamp-stack`))
 
 	longDesc := strings.TrimSpace(dedent.Dedent(`
-		Display Barrelman manifests stored in the kuerbenetes cluster.
+		Display Barrelman manifests deployed in the kuerbenetes cluster.
 		Manifest names can be used with the rollback command.`))
 
 	shortDesc := `list Barrelman manifests and releases`
 
 	cobraCmd := &cobra.Command{
-		Use:     "list [manifest name]",
-		Short:   shortDesc,
-		Long:    longDesc,
-		Example: example,
+		Use:           "list [manifest name]",
+		Short:         shortDesc,
+		Long:          longDesc,
+		Example:       example,
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				cmd.ManifestName = args[0]
 			}
 
-			cobraCmd.SilenceUsage = true
-			cobraCmd.SilenceErrors = true
 			log.Configure(logSettings(cmd.LogOptions)...)
 			session := cluster.NewSession(
 				cmd.Options.KubeContext,
@@ -52,15 +52,5 @@ func newListCmd(cmd *barrelman.ListCmd) *cobra.Command {
 		"l",
 		nil,
 		"log options (e.g. --log=debug,JSON")
-	f.StringVar(
-		&cmd.Options.KubeConfigFile,
-		"kubeconfig",
-		Default().KubeConfigFile,
-		"use alternate kube config file")
-	f.StringVar(
-		&cmd.Options.KubeContext,
-		"kubecontext",
-		Default().KubeContext,
-		"use alternate kube context")
 	return cobraCmd
 }

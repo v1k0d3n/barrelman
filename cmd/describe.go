@@ -15,19 +15,19 @@ func newDescribeCmd(cmd *barrelman.DescribeCmd) *cobra.Command {
 
 	longDesc := `Display release information stored in a Barrelman manifest version.`
 
-	shortDesc := `display release information in a Barrelman manifest version`
+	shortDesc := `Display release information in a Barrelman manifest version.`
 
 	examples := `barrelman describe lamp-stack 5`
 
 	cobraCmd := &cobra.Command{
-		Use:     "describe [manifest name] [version]",
-		Short:   shortDesc,
-		Long:    longDesc,
-		Example: examples,
+		Use:           "describe [manifest name] [version]",
+		Short:         shortDesc,
+		Long:          longDesc,
+		Example:       examples,
+		Args:          cobra.ExactArgs(2),
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
-			if len(args) != 2 {
-				return errors.New("command requires 'manifest name' and 'version'")
-			}
 
 			cmd.ManifestName = args[0]
 
@@ -37,8 +37,6 @@ func newDescribeCmd(cmd *barrelman.DescribeCmd) *cobra.Command {
 			}
 			cmd.ManifestVersion = int32(verTmp)
 
-			cobraCmd.SilenceUsage = true
-			cobraCmd.SilenceErrors = true
 			log.Configure(logSettings(cmd.LogOptions)...)
 			session := cluster.NewSession(
 				cmd.Options.KubeContext,

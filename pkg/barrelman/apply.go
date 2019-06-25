@@ -47,20 +47,9 @@ func (cmd *ApplyCmd) Run(session cluster.Sessioner) error {
 		return errors.Wrap(err, "failed to create working directory")
 	}
 
-	log.Debug("connecting to cluster")
+	log.Rep(session).Debug("connecting to cluster")
 	if err = session.Init(); err != nil {
 		return errors.Wrap(err, "failed to create new cluster session")
-	}
-
-	if session.GetKubeConfig() != "" {
-		log.WithFields(log.Fields{
-			"file": session.GetKubeConfig(),
-		}).Info("Using kube config")
-	}
-	if session.GetKubeContext() != "" {
-		log.WithFields(log.Fields{
-			"file": session.GetKubeContext(),
-		}).Info("Using kube context")
 	}
 
 	archives, manifestName, err := processManifest(&manifest.Config{
@@ -195,7 +184,7 @@ func (cmd *ApplyCmd) ComputeReleases(
 		}
 		rts.Data = append(rts.Data, rt)
 
-		// Add this release tartget to the transaction
+		// Add this release target to the transaction
 		rts.transaction.Versions().AddReleaseVersion(rt.ReleaseVersion)
 	}
 

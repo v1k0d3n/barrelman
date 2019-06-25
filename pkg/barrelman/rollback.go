@@ -48,20 +48,9 @@ func (cmd *RollbackCmd) Run(session cluster.Sessioner) error {
 		return errors.Wrap(err, "failed to create working directory")
 	}
 
-	log.Debug("connecting to cluster")
+	log.Rep(session).Debug("connecting to cluster")
 	if err = session.Init(); err != nil {
 		return errors.Wrap(err, "failed to create new cluster session")
-	}
-
-	if session.GetKubeConfig() != "" {
-		log.WithFields(log.Fields{
-			"file": session.GetKubeConfig(),
-		}).Info("Using kube config")
-	}
-	if session.GetKubeContext() != "" {
-		log.WithFields(log.Fields{
-			"file": session.GetKubeContext(),
-		}).Info("Using kube context")
 	}
 
 	versions, err := session.GetVersions(cmd.ManifestName)
@@ -69,11 +58,7 @@ func (cmd *RollbackCmd) Run(session cluster.Sessioner) error {
 		return errors.Wrap(err, "Failed to get versions")
 	}
 	for _, v := range versions.Data {
-		log.WithFields(log.Fields{
-			"manifestName": v.Name,
-			"namespace":    v.Namespace,
-			"Revision":     v.Revision,
-		}).Debug("Rollback manifest")
+		log.Rep(v).Debug("Rollback manifest")
 	}
 
 	// Rollback supports transactions
