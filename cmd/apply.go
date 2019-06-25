@@ -5,7 +5,6 @@ import (
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
 	"github.com/charter-oss/barrelman/pkg/cluster"
-	"github.com/charter-oss/structured/log"
 )
 
 func newApplyCmd(cmd *barrelman.ApplyCmd) *cobra.Command {
@@ -19,7 +18,6 @@ func newApplyCmd(cmd *barrelman.ApplyCmd) *cobra.Command {
 			}
 			cobraCmd.SilenceUsage = true
 			cobraCmd.SilenceErrors = true
-			log.Configure(logSettings(cmd.LogOptions)...)
 			session := cluster.NewSession(
 				cmd.Options.KubeContext,
 				cmd.Options.KubeConfigFile)
