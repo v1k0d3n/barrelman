@@ -3,30 +3,27 @@ package cmd
 import (
 	"strconv"
 
-	"github.com/lithammer/dedent"
 	"github.com/spf13/cobra"
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
 	"github.com/charter-oss/barrelman/pkg/cluster"
-	"github.com/charter-oss/structured/errors"
-	"github.com/charter-oss/structured/log"
+	"github.com/cirrocloud/structured/errors"
+	"github.com/cirrocloud/structured/log"
 )
 
 func newDescribeCmd(cmd *barrelman.DescribeCmd) *cobra.Command {
 
-	longDesc := dedent.Dedent(`
-		describe [manifest name] [version]
-			Display release information stored in a Barrelman manifest version.
-	`)
+	longDesc := `Display release information stored in a Barrelman manifest version.`
 
-	shortDesc := dedent.Dedent(`
-		display release information in a Barrelman manifest version
-	`)
+	shortDesc := `display release information in a Barrelman manifest version`
+
+	examples := `barrelman describe lamp-stack 5`
 
 	cobraCmd := &cobra.Command{
-		Use:   "describe [manifest name] [version]",
-		Short: shortDesc,
-		Long:  longDesc,
+		Use:     "describe [manifest name] [version]",
+		Short:   shortDesc,
+		Long:    longDesc,
+		Example: examples,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
 			if len(args) != 2 {
 				return errors.New("command requires 'manifest name' and 'version'")

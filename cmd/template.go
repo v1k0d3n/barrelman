@@ -23,7 +23,7 @@ import (
 	"k8s.io/helm/pkg/chartutil"
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
-	"github.com/charter-oss/structured/log"
+	"github.com/cirrocloud/structured/log"
 )
 
 const templateDesc = `

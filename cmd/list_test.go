@@ -9,7 +9,7 @@ import (
 	"github.com/charter-oss/barrelman/pkg/barrelman"
 	"github.com/charter-oss/barrelman/pkg/cluster"
 	"github.com/charter-oss/barrelman/pkg/cluster/mocks"
-	"github.com/charter-oss/structured/errors"
+	"github.com/cirrocloud/structured/errors"
 )
 
 func TestNewListCmd(t *testing.T) {

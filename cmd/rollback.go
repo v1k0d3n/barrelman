@@ -3,34 +3,33 @@ package cmd
 import (
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/lithammer/dedent"
 	"github.com/spf13/cobra"
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
 	"github.com/charter-oss/barrelman/pkg/cluster"
-	"github.com/charter-oss/structured/errors"
-	"github.com/charter-oss/structured/log"
+	"github.com/cirrocloud/structured/errors"
+	"github.com/cirrocloud/structured/log"
 )
 
 func newRollbackCmd(cmd *barrelman.RollbackCmd) *cobra.Command {
 
-	longDesc := dedent.Dedent(`
-		barrelman rollback [manifest name] [manifest version]
-			Sets release versions to those recorded in a Barrelman rollback manifest.
+	longDesc := strings.TrimSpace(dedent.Dedent(`
+		Sets release versions to those recorded in a Barrelman rollback manifest.
+		Rollback manifests are saved in the cluster when barrelman sucessfully commits a change
+		to the manifest release group.`))
 
-			Rollback manifests are saved in the cluster when barrelman sucessfully commits a change
-			to the manifest release group.
-	`)
+	shortDesc := `set release versions to a previous Barrelman save state`
 
-	shortDesc := dedent.Dedent(`
-		set release versions to a previous Barrelman save state 
-	`)
+	examples := `barrelman rollback lamp-stack 5`
 
 	cobraCmd := &cobra.Command{
-		Use:   "rollback [manifest name] [manifest version]",
-		Short: shortDesc,
-		Long:  longDesc,
+		Use:     "rollback [manifest name] [manifest version]",
+		Short:   shortDesc,
+		Long:    longDesc,
+		Example: examples,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
 			if len(args) != 2 {
 				return errors.New("rollback requires 'manifest name' and 'version")

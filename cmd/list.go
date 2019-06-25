@@ -1,33 +1,33 @@
 package cmd
 
 import (
+	"strings"
+
 	"github.com/lithammer/dedent"
 	"github.com/spf13/cobra"
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
 	"github.com/charter-oss/barrelman/pkg/cluster"
-	"github.com/charter-oss/structured/log"
+	"github.com/cirrocloud/structured/log"
 )
 
 func newListCmd(cmd *barrelman.ListCmd) *cobra.Command {
 
-	longDesc := dedent.Dedent(`
+	example := strings.TrimSpace(dedent.Dedent(`
 		barrelman list 
-			Display Barrelman manifests stored in the kuerbenetes cluster.
-			Manifest names can be used with the rollback command. 
-		
-		barrelman list [manifest name]
-			Display releases and versions associated with the specified manifest.
-	`)
+		barrelman list lamp-stack`))
 
-	shortDesc := dedent.Dedent(`
-		list Barrelman manifests and releases
-	`)
+	longDesc := strings.TrimSpace(dedent.Dedent(`
+		Display Barrelman manifests stored in the kuerbenetes cluster.
+		Manifest names can be used with the rollback command.`))
+
+	shortDesc := `list Barrelman manifests and releases`
 
 	cobraCmd := &cobra.Command{
-		Use:   "list [manifest name]",
-		Short: shortDesc,
-		Long:  longDesc,
+		Use:     "list [manifest name]",
+		Short:   shortDesc,
+		Long:    longDesc,
+		Example: example,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				cmd.ManifestName = args[0]

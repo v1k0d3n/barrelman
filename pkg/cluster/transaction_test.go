@@ -3,7 +3,7 @@ package cluster
 import (
 	"testing"
 
-	"github.com/charter-oss/structured/errors"
+	"github.com/cirrocloud/structured/errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc"

@@ -1,8 +1,8 @@
 package cluster
 
 import (
-	"github.com/charter-oss/structured/errors"
-	"github.com/charter-oss/structured/log"
+	"github.com/cirrocloud/structured/errors"
+	"github.com/cirrocloud/structured/log"
 )
 
 // Tiller Rollback

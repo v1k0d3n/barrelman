@@ -9,7 +9,7 @@ import (
 
 	"github.com/charter-oss/barrelman/pkg/cluster/mocks"
 	"github.com/charter-oss/barrelman/pkg/manifest/chartsync"
-	"github.com/charter-oss/structured/errors"
+	"github.com/cirrocloud/structured/errors"
 )
 
 func TestRollbackCmd(t *testing.T) {

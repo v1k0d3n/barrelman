@@ -15,7 +15,7 @@ import (
 	helm_env "k8s.io/helm/pkg/helm/environment"
 
 	"github.com/charter-oss/barrelman/pkg/manifest/chartsync"
-	"github.com/charter-oss/structured/errors"
+	"github.com/cirrocloud/structured/errors"
 )
 
 const (

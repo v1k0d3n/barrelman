@@ -21,8 +21,8 @@ import (
 	"k8s.io/helm/pkg/proto/hapi/chart"
 	"k8s.io/helm/pkg/proto/hapi/release"
 
-	"github.com/charter-oss/structured/errors"
-	"github.com/charter-oss/structured/log"
+	"github.com/cirrocloud/structured/errors"
+	"github.com/cirrocloud/structured/log"
 )
 
 const (

@@ -49,9 +49,9 @@ import (
 
 	bfest "github.com/charter-oss/barrelman/pkg/manifest"
 	"github.com/charter-oss/barrelman/pkg/version"
-	"github.com/charter-oss/structured"
-	"github.com/charter-oss/structured/errors"
-	"github.com/charter-oss/structured/log"
+	"github.com/cirrocloud/structured"
+	"github.com/cirrocloud/structured/errors"
+	"github.com/cirrocloud/structured/log"
 )
 
 const defaultDirectoryPermission = 0755

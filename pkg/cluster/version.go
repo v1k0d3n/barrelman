@@ -10,8 +10,8 @@ import (
 	"k8s.io/helm/pkg/timeconv"
 
 	"github.com/charter-oss/barrelman/pkg/cluster/driver"
-	"github.com/charter-oss/structured/errors"
-	"github.com/charter-oss/structured/log"
+	"github.com/cirrocloud/structured/errors"
+	"github.com/cirrocloud/structured/log"
 	"github.com/ghodss/yaml"
 	"k8s.io/helm/pkg/proto/hapi/chart"
 	"k8s.io/helm/pkg/proto/hapi/release"
