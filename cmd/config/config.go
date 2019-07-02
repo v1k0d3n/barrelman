@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
 func NewConfigCmd(cmd *barrelman.ConfigCmd) *cobra.Command {
 	cobraCmd := &cobra.Command{
 		Use:   "config [manifest.yaml]",
@@ -30,6 +29,8 @@ func NewConfigCmd(cmd *barrelman.ConfigCmd) *cobra.Command {
 			return nil
 		},
 	}
+
+	cobraCmd.AddCommand(newConfigViewCmd())
 
 	cobraCmd.Flags().StringVar(
 		&cmd.Options.KubeConfigFile,
