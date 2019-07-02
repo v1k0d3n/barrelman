@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/charter-oss/barrelman/cmd/util"
 
 	"github.com/spf13/cobra"
 	"k8s.io/helm/pkg/chartutil"
@@ -56,7 +57,7 @@ func newTemplateCmd(cmd *barrelman.TemplateCmd) *cobra.Command {
 			}
 			cobraCmd.SilenceUsage = true
 			cobraCmd.SilenceErrors = true
-			log.Configure(LogSettings(cmd.LogOptions)...)
+			log.Configure(util.LogSettings(cmd.LogOptions)...)
 			if err := cmd.Run(); err != nil {
 				return err
 			}

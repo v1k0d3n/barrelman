@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	 "github.com/charter-oss/barrelman/cmd/util"
 	"github.com/spf13/cobra"
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
@@ -19,7 +20,7 @@ func newApplyCmd(cmd *barrelman.ApplyCmd) *cobra.Command {
 			}
 			cobraCmd.SilenceUsage = true
 			cobraCmd.SilenceErrors = true
-			log.Configure(LogSettings(cmd.LogOptions)...)
+			log.Configure(util.LogSettings(cmd.LogOptions)...)
 			session := cluster.NewSession(
 				cmd.Options.KubeContext,
 				cmd.Options.KubeConfigFile)
@@ -33,12 +34,12 @@ func newApplyCmd(cmd *barrelman.ApplyCmd) *cobra.Command {
 	cobraCmd.Flags().StringVar(
 		&cmd.Options.KubeConfigFile,
 		"kubeconfig",
-		Default().KubeConfigFile,
+		util.Default().KubeConfigFile,
 		"use alternate kube config file")
 	cobraCmd.Flags().StringVar(
 		&cmd.Options.KubeContext,
 		"kubecontext",
-		Default().KubeContext,
+		util.Default().KubeContext,
 		"use alternate kube context")
 	cobraCmd.Flags().BoolVar(
 		&cmd.Options.DryRun,
@@ -57,12 +58,12 @@ func newApplyCmd(cmd *barrelman.ApplyCmd) *cobra.Command {
 		"disable remote sync")
 	cmd.Options.Force = cobraCmd.Flags().StringSlice(
 		"force",
-		*(Default().Force),
+		*(util.Default().Force),
 		"force apply chart name(s)")
 	cobraCmd.Flags().IntVar(
 		&cmd.Options.InstallRetry,
 		"install-retry",
-		Default().InstallRetry,
+		util.Default().InstallRetry,
 		"retry install (n) times")
 
 	return cobraCmd

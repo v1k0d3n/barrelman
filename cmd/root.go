@@ -1,7 +1,8 @@
 package cmd
 
 import (
-	config2 "github.com/charter-oss/barrelman/cmd/config"
+	configCmd "github.com/charter-oss/barrelman/cmd/config"
+	"github.com/charter-oss/barrelman/cmd/util"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -13,8 +14,8 @@ import (
 func newRootCmd(args []string) *cobra.Command {
 	cobraCmd := &cobra.Command{}
 	options := &barrelman.CmdOptions{
-		DataDir:      Default().DataDir,
-		ManifestFile: Default().ManifestFile,
+		DataDir:      util.Default().DataDir,
+		ManifestFile: util.Default().ManifestFile,
 	}
 	config := &barrelman.Config{}
 
@@ -23,7 +24,7 @@ func newRootCmd(args []string) *cobra.Command {
 		&options.ConfigFile,
 		"config",
 		"c",
-		Default().ConfigFile,
+		util.Default().ConfigFile,
 		"specify manifest (YAML) file or a URL")
 
 	logOptions := &[]string{}
@@ -39,7 +40,11 @@ func newRootCmd(args []string) *cobra.Command {
 		LogOptions: logOptions,
 	}))
 
-	cobraCmd.AddCommand(config2.NewCmdConfig(out))
+	cobraCmd.AddCommand(configCmd.NewConfigCmd(&barrelman.ConfigCmd{
+		Options:    options,
+		Config:     config,
+		LogOptions: logOptions,
+	}))
 
 	cobraCmd.AddCommand(newApplyCmd(&barrelman.ApplyCmd{
 		Options:    options,
@@ -75,15 +80,3 @@ func Execute() {
 	}
 }
 
-func LogSettings(args *[]string) []func(*log.Logger) error {
-	ret := []func(*log.Logger) error{}
-	for _, v := range *args {
-		switch v {
-		case "debug", "info", "warn", "error":
-			ret = append(ret, log.OptSetLevel(v))
-		case "JSON":
-			ret = append(ret, log.OptSetJSON())
-		}
-	}
-	return ret
-}

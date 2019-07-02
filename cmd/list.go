@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/charter-oss/barrelman/cmd/util"
 	"github.com/spf13/cobra"
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
@@ -19,7 +20,7 @@ func newListCmd(cmd *barrelman.ListCmd) *cobra.Command {
 			}
 			cobraCmd.SilenceUsage = true
 			cobraCmd.SilenceErrors = true
-			log.Configure(LogSettings(cmd.LogOptions)...)
+			log.Configure(util.LogSettings(cmd.LogOptions)...)
 			session := cluster.NewSession(
 				cmd.Options.KubeContext,
 				cmd.Options.KubeConfigFile)
@@ -32,12 +33,12 @@ func newListCmd(cmd *barrelman.ListCmd) *cobra.Command {
 	cobraCmd.Flags().StringVar(
 		&cmd.Options.KubeConfigFile,
 		"kubeconfig",
-		Default().KubeConfigFile,
+		util.Default().KubeConfigFile,
 		"use alternate kube config file")
 	cobraCmd.Flags().StringVar(
 		&cmd.Options.KubeContext,
 		"kubecontext",
-		Default().KubeContext,
+		util.Default().KubeContext,
 		"use alternate kube context")
 	return cobraCmd
 }
