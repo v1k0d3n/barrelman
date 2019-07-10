@@ -77,6 +77,23 @@ func GetConfigFromFile(s string) (*Config, error) {
 	return config.LoadAcc(b)
 }
 
+func UpdateConfig(configFilePath string) (bool, error) {
+	f, err := os.Open(configFilePath)
+	if err != nil {
+		return false, errors.New("Error Opening config file!")
+	}
+	barrelmanConfig, err := toBarrelmanConfig(configFilePath, f)
+	if err != nil {
+		return false, errors.New("Error While updating barrelman config")
+	}
+	barrelmanConfig.Viper.Set("account.github.user", "shaik-shaik")
+	err = barrelmanConfig.Viper.WriteConfigAs(configFilePath)
+	if err != nil {
+		return false, errors.New("Error while updating file")
+	}
+	return true, nil
+}
+
 //LoadAcc populates *config.Account from *BarrelmanConfig
 func (config *Config) LoadAcc(b *BarrelmanConfig) (*Config, error) {
 
