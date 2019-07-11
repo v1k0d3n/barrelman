@@ -56,7 +56,7 @@ func newTemplateCmd(cmd *barrelman.TemplateCmd) *cobra.Command {
 	`))
 
 	cobraCmd := &cobra.Command{
-		Use:     "template [flags] CHART",
+		Use:     "barrelman template [flags] CHART",
 		Short:   shortDesc,
 		Long:    longDesc,
 		Example: examples,

@@ -14,7 +14,7 @@ import (
 func newRootCmd(args []string) *cobra.Command {
 
 	longDesc := strings.TrimSpace(dedent.Dedent(`
-		Barrelman uses a single manifest to organize complex application deployments that can consist 
+		Barrelman uses a single manifest to organize complex Helm chart application deployments that can consist 
 		of many microservices and independent shared services such as databases and caches.
 
 		Barrelman does diff analysis on each release and only executes those changes necessary to achieve 
@@ -24,7 +24,7 @@ func newRootCmd(args []string) *cobra.Command {
 		GitHub repos, Helm repos, etc. This makes Barrelman manifests very flexible. 
 	`))
 
-	shortDesc := `Deploys groups of kubernetes releases from a manifest.`
+	shortDesc := `Deploys groups of Helm chart releases from a manifest.`
 
 	examples := `barrelman help`
 

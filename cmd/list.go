@@ -21,10 +21,10 @@ func newListCmd(cmd *barrelman.ListCmd) *cobra.Command {
 		Display Barrelman manifests deployed in the kuerbenetes cluster.
 		Manifest names can be used with the rollback command.`))
 
-	shortDesc := `list Barrelman manifests and releases`
+	shortDesc := `List Barrelman manifests and releases.`
 
 	cobraCmd := &cobra.Command{
-		Use:           "list [manifest name]",
+		Use:           "barrelman list [manifest-name]",
 		Short:         shortDesc,
 		Long:          longDesc,
 		Example:       example,

@@ -17,6 +17,8 @@ func newApplyCmd(cmd *barrelman.ApplyCmd) *cobra.Command {
 		the current Kubernetes cluster state.
 
 		For the given manifest each chart is installed on the Kubernetes cluster.
+		
+		When no manifest is specified Barrelman will attempt to apply ~/.barrelman/manifest.yaml.
 	`))
 
 	shortDesc := `Apply the given manifest to the cluster.`
@@ -24,7 +26,7 @@ func newApplyCmd(cmd *barrelman.ApplyCmd) *cobra.Command {
 	examples := `barrelman apply lamp-stack.yaml`
 
 	cobraCmd := &cobra.Command{
-		Use:           "apply [manifest.yaml]",
+		Use:           "barrelman apply [manifest-file]",
 		Short:         shortDesc,
 		Long:          longDesc,
 		Example:       examples,

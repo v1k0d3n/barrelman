@@ -24,7 +24,7 @@ func newHistoryCmd(cmd *barrelman.HistoryCmd) *cobra.Command {
 	examples := `barrelman history lamp-stack`
 
 	cobraCmd := &cobra.Command{
-		Use:           "history [manifest name]",
+		Use:           "barrelman history [manifest-name]",
 		Short:         shortDesc,
 		Long:          longDesc,
 		Example:       examples,

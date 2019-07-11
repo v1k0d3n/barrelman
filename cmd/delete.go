@@ -18,6 +18,8 @@ func newDeleteCmd(cmd *barrelman.DeleteCmd) *cobra.Command {
 
 		All releases currently deployed in the matching manifest will be deleted, 
 		as will all releases currently configured in the supplied manifest file.
+		
+		When no manifest is specified Barrelman will attempt to delete ~/.barrelman/manifest.yaml.
 	`))
 
 	shortDesc := `Delete all releases configured in the manifest.`
@@ -25,7 +27,7 @@ func newDeleteCmd(cmd *barrelman.DeleteCmd) *cobra.Command {
 	examples := `barrelman delete lamp-stack.yaml`
 
 	cobraCmd := &cobra.Command{
-		Use:           "delete [manifest.yaml]",
+		Use:           "barrelman delete [manifest-file]",
 		Short:         shortDesc,
 		Long:          longDesc,
 		Args:          cobra.ExactArgs(1),

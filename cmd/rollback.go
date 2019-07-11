@@ -27,7 +27,7 @@ func newRollbackCmd(cmd *barrelman.RollbackCmd) *cobra.Command {
 	examples := `barrelman rollback lamp-stack 5`
 
 	cobraCmd := &cobra.Command{
-		Use:           "rollback [manifest name] [manifest version]",
+		Use:           "barrelman rollback [manifest-name] [revision]",
 		Short:         shortDesc,
 		Long:          longDesc,
 		Example:       examples,

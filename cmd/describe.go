@@ -20,7 +20,7 @@ func newDescribeCmd(cmd *barrelman.DescribeCmd) *cobra.Command {
 	examples := `barrelman describe lamp-stack 5`
 
 	cobraCmd := &cobra.Command{
-		Use:           "describe [manifest name] [version]",
+		Use:           "barrelman describe [manifest-name] [revision]",
 		Short:         shortDesc,
 		Long:          longDesc,
 		Example:       examples,
@@ -63,6 +63,6 @@ func newDescribeCmd(cmd *barrelman.DescribeCmd) *cobra.Command {
 		&cmd.Options.KubeContext,
 		"kubecontext",
 		Default().KubeContext,
-		"use alternate kube context")
+		"Set the Kubernetes context to use for connecting to the cluster.")
 	return cobraCmd
 }

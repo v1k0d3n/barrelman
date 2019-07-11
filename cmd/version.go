@@ -8,7 +8,7 @@ import (
 
 func newVersionCmd(cmd *barrelman.VersionCmd) *cobra.Command {
 	cobraCmd := &cobra.Command{
-		Use:           "version",
+		Use:           "barrelman version",
 		Short:         "Display version and build information",
 		Long:          `Display version and build information supplied at build time.`,
 		Example:       "barrelman version",
