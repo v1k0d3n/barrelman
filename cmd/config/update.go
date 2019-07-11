@@ -9,26 +9,39 @@ import (
 )
 
 func newConfigUpdateCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "update <file path>",
+	var barrelmanConfigFile string
+	var configKey string
+	var configValue string
+	const secret = "secret"
+	const user = "user"
+	cobraCmd := &cobra.Command{
+		Use:   "update [file path]",
 		Short: "updates barrelman config",
-		Run: func(cmd *cobra.Command, args []string) {
-			var barrelmanConfigFile string
+		Run: func(cobraCmd *cobra.Command, args []string) {
 
 			/*If user doesn't provide the config file path then,
 			the default location will be used ($USER/.barrelman/config)*/
 			if len(args) == 0 {
 				barrelmanConfigFile = util.Default().ConfigFile
-				fmt.Println("Using barrelman config: ",barrelmanConfigFile)
+				fmt.Println("Using barrelman config: ", barrelmanConfigFile)
 			} else {
 				barrelmanConfigFile = args[0]
 			}
 
-			if isUpdateConfig, err := barrelman.UpdateConfig(barrelmanConfigFile); err != nil {
-				fmt.Println(isUpdateConfig," Update Failed!")
+			//Add command line args for secret (--secret)
+			secretValue, _ := cobraCmd.Flags().GetString(secret)
+			configKey = secret
+			configValue = secretValue
+
+			//Update config as per provided arguments (secret/user)
+			if isUpdateConfig, err := barrelman.UpdateConfig(barrelmanConfigFile, configKey, configValue); err != nil {
+				fmt.Println(isUpdateConfig, " Update Failed!")
 				os.Exit(1)
 			}
 			fmt.Printf("Update Success!")
 		},
 	}
+	cobraCmd.Flags().StringP("secret", "s", "", "--secret")
+	cobraCmd.Flags().StringP("user", "u", "", "--user")
+	return cobraCmd
 }

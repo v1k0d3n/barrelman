@@ -9,7 +9,7 @@ import (
 
 func newConfigViewCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "view [barrelman config file path]",
+		Use:   "view <filepath>",
 		Short: "view barrelman config",
 		Run: func(cmd *cobra.Command, args []string) {
 			var barrelmanConfigFile string
