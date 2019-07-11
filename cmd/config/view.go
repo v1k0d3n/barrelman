@@ -9,8 +9,8 @@ import (
 
 func newConfigViewCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "view <filepath>",
-		Short: "view barrelman config",
+		Use:   "view [config]",
+		Short: "View barrelman config, When no config is provided barrelman will consider from ~/.barrelman/config",
 		Run: func(cmd *cobra.Command, args []string) {
 			var barrelmanConfigFile string
 			const accountType string = "github.com"

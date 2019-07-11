@@ -15,8 +15,8 @@ func newConfigUpdateCmd() *cobra.Command {
 	const secret = "secret"
 	const user = "user"
 	cobraCmd := &cobra.Command{
-		Use:   "update [file path]",
-		Short: "updates barrelman config",
+		Use:   "update [config]",
+		Short: "Update barrelman config, When no config is provided barrelman will consider from ~/.barrelman/config",
 		Run: func(cobraCmd *cobra.Command, args []string) {
 
 			/*If user doesn't provide the config file path then,

@@ -10,9 +10,9 @@ import (
 
 func NewConfigCmd(cmd *barrelman.ConfigCmd) *cobra.Command {
 	cobraCmd := &cobra.Command{
-		Use:   "config view [manifest.yaml]",
+		Use:   "config view [config]",
 		Short: "config view/ config update",
-		Long:  `View or Update barrelman config...`,
+		Long:  `View or Update barrelman config, When no config is provided barrelman will consider from ~/.barrelman/config`,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				cmd.Options.ManifestFile = args[0]

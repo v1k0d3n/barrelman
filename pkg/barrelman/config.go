@@ -89,9 +89,6 @@ func UpdateConfig(configFilePath string, updateKey string, updateValue string) (
 	newKey := "account.github." + updateKey
 	barrelmanConfig.Viper.Set(newKey, updateValue)
 	err = barrelmanConfig.Viper.WriteConfigAs(configFilePath)
-	if err != nil {
-		return false, errors.Wrap(err, "Error while updating file")
-	}
 	return true, nil
 }
 
