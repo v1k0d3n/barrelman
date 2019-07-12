@@ -1,5 +1,7 @@
 //go:generate mockery -name=Sessioner
 //go:generate mockery -name=Clusterer
+//go:generate mockery -name=Transactioner
+
 package cluster
 
 import (
@@ -9,26 +11,29 @@ import (
 	"path/filepath"
 	"strings"
 
+	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/helm/pkg/helm"
 	helm_env "k8s.io/helm/pkg/helm/environment"
 	"k8s.io/helm/pkg/kube"
 	"k8s.io/helm/pkg/tlsutil"
 	"k8s.io/helm/pkg/version"
-	podutil "k8s.io/kubernetes/pkg/api/pod"
-	"k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	"github.com/charter-oss/structured/errors"
-	"github.com/charter-oss/structured/log"
+	"github.com/cirrocloud/structured/errors"
+	"github.com/cirrocloud/structured/log"
+	"github.com/cirrocloud/structured/report"
 )
 
 type Sessioner interface {
+	report.Reportables
 	Clusterer
 	Releaser
+	Versioner
+	NewTransactioner
 }
+
 type Clusterer interface {
 	Init() error
 	GetKubeConfig() string
@@ -39,8 +44,8 @@ type Clusterer interface {
 
 type Session struct {
 	Helm        helm.Interface
-	Tiller      *kube.Tunnel
-	Clientset   *internalclientset.Clientset
+	Tunnel      *kube.Tunnel
+	Clientset   kubernetes.Interface
 	kubeConfig  string
 	kubeContext string
 	settings    helm_env.EnvSettings
@@ -82,7 +87,39 @@ func (s *Session) Init() error {
 		return errors.Wrap(err, "kubernetes connection failed health check")
 	}
 
+	tillerVersion, err := s.Helm.GetVersion()
+	if err != nil {
+		return errors.Wrap(err, "failed to get Tiller version")
+	}
+
+	compatible := version.IsCompatible(version.Version, tillerVersion.Version.SemVer)
+	log.WithFields(log.Fields{
+		"tillerVersion":          tillerVersion.Version.SemVer,
+		"clientServerCompatible": compatible,
+		"Host":                   fmt.Sprintf(":%v", s.Tunnel.Local),
+	}).Debug("Connected to Tiller")
+	if !compatible {
+		return errors.WithFields(errors.Fields{
+			"tillerVersion": tillerVersion.Version.SemVer,
+			"helmVersion":   version.Version,
+			"Host":          fmt.Sprintf(":%v", s.Tunnel.Local),
+		}).New("incompatible version numbers")
+	}
 	return nil
+}
+
+func (s *Session) ShortReport() map[string]interface{} {
+	return map[string]interface{}{
+		"KubeContext": s.kubeContext,
+		"KubeConfig":  s.kubeConfig,
+	}
+}
+
+func (s *Session) DetailedReport() map[string]interface{} {
+	return map[string]interface{}{
+		"KubeContext": s.kubeContext,
+		"KubeConfig":  s.kubeConfig,
+	}
 }
 
 //connect builds connections for all supported APIs
@@ -103,23 +140,24 @@ func (s *Session) connect(namespace string) error {
 	// pupulate session TLS configuration from environment
 	s.setTLSConfig()
 
-	s.Clientset, err = internalclientset.NewForConfig(config)
+	s.Clientset, err = kubernetes.NewForConfig(config)
 	if err != nil {
 		return errors.Wrap(err, "could not get kubernetes client")
 	}
-	podName, err := getTillerPodName(s.Clientset.Core(), namespace)
+
+	podName, err := getTillerPodName(s.Clientset, namespace)
 	if err != nil {
 		return errors.Wrap(err, "could not get Tiller pod name")
 	}
 	const tillerPort = 44134
-	s.Tiller = kube.NewTunnel(s.Clientset.Core().RESTClient(), config, namespace, podName, tillerPort)
-	err = s.Tiller.ForwardPort()
+	s.Tunnel = kube.NewTunnel(s.Clientset.CoreV1().RESTClient(), config, namespace, podName, tillerPort)
+	err = s.Tunnel.ForwardPort()
 	if err != nil {
 		return errors.Wrap(err, "could not get Tiller tunnel")
 	}
 
 	options := []helm.Option{
-		helm.Host(fmt.Sprintf("127.0.0.1:%v", s.Tiller.Local)),
+		helm.Host(fmt.Sprintf("127.0.0.1:%v", s.Tunnel.Local)),
 		helm.ConnectTimeout(5),
 	}
 
@@ -141,8 +179,7 @@ func (s *Session) connect(namespace string) error {
 		}
 		tlscfg, err := tlsutil.ClientConfig(tlsopts)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(2)
+			return errors.Wrap(err, "could not get TLS Client Configuration")
 		}
 		options = append(options, helm.WithTLS(tlscfg))
 	}
@@ -208,21 +245,21 @@ func (s *Session) connectionHealthCheck() error {
 	log.WithFields(log.Fields{
 		"tillerVersion":          tillerVersion.Version.SemVer,
 		"clientServerCompatible": compatible,
-		"Host":                   fmt.Sprintf(":%v", s.Tiller.Local),
+		"Host":                   fmt.Sprintf(":%v", s.Tunnel.Local),
 	}).Debug("Connected to Tiller")
 
 	if !compatible {
 		return errors.WithFields(errors.Fields{
 			"tillerVersion": tillerVersion.Version.SemVer,
 			"helmVersion":   version.Version,
-			"Host":          fmt.Sprintf(":%v", s.Tiller.Local),
+			"Host":          fmt.Sprintf(":%v", s.Tunnel.Local),
 		}).New("incompatible version numbers")
 	}
 
 	return nil
 }
 
-func getTillerPodName(client internalversion.PodsGetter, namespace string) (string, error) {
+func getTillerPodName(client kubernetes.Interface, namespace string) (string, error) {
 	// TODO use a const for labels
 	selector := labels.Set{"app": "helm", "name": "tiller"}.AsSelector()
 	pod, err := getFirstRunningPod(client, namespace, selector)
@@ -232,9 +269,9 @@ func getTillerPodName(client internalversion.PodsGetter, namespace string) (stri
 	return pod.ObjectMeta.GetName(), nil
 }
 
-func getFirstRunningPod(client internalversion.PodsGetter, namespace string, selector labels.Selector) (*core.Pod, error) {
+func getFirstRunningPod(client kubernetes.Interface, namespace string, selector labels.Selector) (*core.Pod, error) {
 	options := metav1.ListOptions{LabelSelector: selector.String()}
-	pods, err := client.Pods(namespace).List(options)
+	pods, err := client.CoreV1().Pods(namespace).List(options)
 	if err != nil {
 		return nil, err
 	}
@@ -242,8 +279,10 @@ func getFirstRunningPod(client internalversion.PodsGetter, namespace string, sel
 		return nil, errors.New("could not find tiller")
 	}
 	for _, p := range pods.Items {
-		if podutil.IsPodReady(&p) {
-			return &p, nil
+		for _, v := range p.Status.Conditions {
+			if v.Type == core.PodReady {
+				return &p, nil
+			}
 		}
 	}
 	return nil, errors.New("could not find a ready tiller pod")

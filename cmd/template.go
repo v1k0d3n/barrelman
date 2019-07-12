@@ -18,25 +18,16 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/lithammer/dedent"
 	"github.com/spf13/cobra"
 	"k8s.io/helm/pkg/chartutil"
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
+
+	"github.com/cirrocloud/structured/log"
 )
-
-const templateDesc = `
-Render chart templates locally and display the output.
-
-This does not require Tiller. However, any values that would normally be
-looked up or retrieved in-cluster will be faked locally. Additionally, none
-of the server-side testing of chart validity (e.g. whether an API is supported)
-is done.
-
-To render just one template in a chart, use '-x':
-
-	$ helm template mychart -x templates/deployment.yaml
-`
 
 var (
 	// defaultKubeVersion is the default value of --kube-version flag
@@ -45,14 +36,36 @@ var (
 
 func newTemplateCmd(cmd *barrelman.TemplateCmd) *cobra.Command {
 
+	longDesc := strings.TrimSpace(dedent.Dedent(`
+	Render chart templates locally and display the output.
+
+	This does not require Tiller. However, any values that would normally be
+	looked up or retrieved in-cluster will be faked locally. Additionally, none
+	of the server-side testing of chart validity (e.g. whether an API is supported)
+	is done.`))
+
+	shortDesc := `Locally render templates.`
+
+	examples := strings.TrimSpace(dedent.Dedent(`
+	To render just one template in a chart, use '-x':
+
+		barrelman template mychart -x templates/deployment.yaml
+		
+	To render all charts to individual files in a directory, use '--output-dir':
+
+		barrelman template templates/deployment.yaml --output-dir output/
+	`))
+
 	cobraCmd := &cobra.Command{
-		Use:   "template [flags] CHART",
-		Short: fmt.Sprintf("locally render templates"),
-		Long:  templateDesc,
+		Use:     "template [flags] CHART",
+		Short:   shortDesc,
+		Long:    longDesc,
+		Example: examples,
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
-			if len(args) > 0 {
-				cmd.Options.ManifestFile = args[0]
-			}
+
+			cmd.Options.ManifestFile = args[0]
+
 			cobraCmd.SilenceUsage = true
 			cobraCmd.SilenceErrors = true
 			if err := cmd.Run(); err != nil {
@@ -63,6 +76,7 @@ func newTemplateCmd(cmd *barrelman.TemplateCmd) *cobra.Command {
 	}
 
 	f := cobraCmd.Flags()
+	cmd.LogOptions = f.StringSliceP("log", "l", nil, "log options (e.g. --log=debug,JSON")
 	f.BoolVar(&cmd.ShowNotes, "notes", false, "show the computed NOTES.txt file as well")
 	f.StringVarP(&cmd.ReleaseName, "name", "n", "release-name", "release name")
 	f.BoolVar(&cmd.ReleaseIsUpgrade, "is-upgrade", false, "set .Release.IsUpgrade instead of .Release.IsInstall")

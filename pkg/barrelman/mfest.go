@@ -4,28 +4,27 @@ import (
 	"github.com/cirrocloud/yamlpack"
 
 	"github.com/charter-oss/barrelman/pkg/manifest"
-	"github.com/charter-oss/structured/errors"
+	"github.com/cirrocloud/structured/errors"
 )
 
-func processManifest(config *manifest.Config, noSync bool) (*manifest.ArchiveFiles, error) {
+func processManifest(config *manifest.Config, noSync bool) (*manifest.ArchiveFiles, string, error) {
 	// Open and initialize the manifest
 	mfest, err := manifest.New(config)
 	if err != nil {
-		return nil, errors.Wrap(err, "error while initializing manifest")
+		return nil, "", errors.Wrap(err, "error while initializing manifest")
 	}
 
 	if !noSync {
 		if err := mfest.Sync(); err != nil {
-			return nil, errors.Wrap(err, "error while downloading charts")
+			return nil, "", errors.Wrap(err, "error while downloading charts")
 		}
 	}
-
 	//Build/update chart archives from manifest
 	archives, err := mfest.CreateArchives()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create archives")
+		return nil, "", errors.Wrap(err, "failed to create archives")
 	}
-	return archives, err
+	return archives, mfest.Name, err
 }
 
 func processManifestSections(config *manifest.Config, ys []*yamlpack.YamlSection, noSync bool) (*manifest.ArchiveFiles, error) {

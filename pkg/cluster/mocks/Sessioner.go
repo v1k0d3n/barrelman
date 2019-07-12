@@ -135,6 +135,75 @@ func (_m *Sessioner) GetKubeContext() string {
 	return r0
 }
 
+// GetRelease provides a mock function with given fields: releaseName, revision
+func (_m *Sessioner) GetRelease(releaseName string, revision int32) (*cluster.ReleaseMeta, error) {
+	ret := _m.Called(releaseName, revision)
+
+	var r0 *cluster.ReleaseMeta
+	if rf, ok := ret.Get(0).(func(string, int32) *cluster.ReleaseMeta); ok {
+		r0 = rf(releaseName, revision)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cluster.ReleaseMeta)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, int32) error); ok {
+		r1 = rf(releaseName, revision)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetVersions provides a mock function with given fields: manifestName
+func (_m *Sessioner) GetVersions(manifestName string) (*cluster.Versions, error) {
+	ret := _m.Called(manifestName)
+
+	var r0 *cluster.Versions
+	if rf, ok := ret.Get(0).(func(string) *cluster.Versions); ok {
+		r0 = rf(manifestName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cluster.Versions)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(manifestName)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetVersionsFromList provides a mock function with given fields: manifestNames
+func (_m *Sessioner) GetVersionsFromList(manifestNames *[]string) ([]*cluster.Versions, error) {
+	ret := _m.Called(manifestNames)
+
+	var r0 []*cluster.Versions
+	if rf, ok := ret.Get(0).(func(*[]string) []*cluster.Versions); ok {
+		r0 = rf(manifestNames)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*cluster.Versions)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*[]string) error); ok {
+		r1 = rf(manifestNames)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Init provides a mock function with given fields:
 func (_m *Sessioner) Init() error {
 	ret := _m.Called()
@@ -149,32 +218,50 @@ func (_m *Sessioner) Init() error {
 	return r0
 }
 
-// InstallRelease provides a mock function with given fields: _a0
-func (_m *Sessioner) InstallRelease(_a0 *cluster.ReleaseMeta) (string, string, error) {
-	ret := _m.Called(_a0)
+// InstallRelease provides a mock function with given fields: m, manifestName
+func (_m *Sessioner) InstallRelease(m *cluster.ReleaseMeta, manifestName string) (*cluster.InstallReleaseResponse, error) {
+	ret := _m.Called(m, manifestName)
 
-	var r0 string
-	if rf, ok := ret.Get(0).(func(*cluster.ReleaseMeta) string); ok {
-		r0 = rf(_a0)
+	var r0 *cluster.InstallReleaseResponse
+	if rf, ok := ret.Get(0).(func(*cluster.ReleaseMeta, string) *cluster.InstallReleaseResponse); ok {
+		r0 = rf(m, manifestName)
 	} else {
-		r0 = ret.Get(0).(string)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cluster.InstallReleaseResponse)
+		}
 	}
 
-	var r1 string
-	if rf, ok := ret.Get(1).(func(*cluster.ReleaseMeta) string); ok {
-		r1 = rf(_a0)
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*cluster.ReleaseMeta, string) error); ok {
+		r1 = rf(m, manifestName)
 	} else {
-		r1 = ret.Get(1).(string)
+		r1 = ret.Error(1)
 	}
 
-	var r2 error
-	if rf, ok := ret.Get(2).(func(*cluster.ReleaseMeta) error); ok {
-		r2 = rf(_a0)
+	return r0, r1
+}
+
+// ListManifests provides a mock function with given fields:
+func (_m *Sessioner) ListManifests() ([]*cluster.Version, error) {
+	ret := _m.Called()
+
+	var r0 []*cluster.Version
+	if rf, ok := ret.Get(0).(func() []*cluster.Version); ok {
+		r0 = rf()
 	} else {
-		r2 = ret.Error(2)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*cluster.Version)
+		}
 	}
 
-	return r0, r1, r2
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // ListReleases provides a mock function with given fields:
@@ -193,6 +280,29 @@ func (_m *Sessioner) ListReleases() ([]*cluster.Release, error) {
 	var r1 error
 	if rf, ok := ret.Get(1).(func() error); ok {
 		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// NewTransaction provides a mock function with given fields: _a0
+func (_m *Sessioner) NewTransaction(_a0 string) (cluster.Transactioner, error) {
+	ret := _m.Called(_a0)
+
+	var r0 cluster.Transactioner
+	if rf, ok := ret.Get(0).(func(string) cluster.Transactioner); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(cluster.Transactioner)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(_a0)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -223,6 +333,50 @@ func (_m *Sessioner) Releases() (map[string]*cluster.ReleaseMeta, error) {
 	return r0, r1
 }
 
+// ReleasesByManifest provides a mock function with given fields: manifest
+func (_m *Sessioner) ReleasesByManifest(manifest string) (map[string]*cluster.ReleaseMeta, error) {
+	ret := _m.Called(manifest)
+
+	var r0 map[string]*cluster.ReleaseMeta
+	if rf, ok := ret.Get(0).(func(string) map[string]*cluster.ReleaseMeta); ok {
+		r0 = rf(manifest)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]*cluster.ReleaseMeta)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(manifest)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// RollbackRelease provides a mock function with given fields: m
+func (_m *Sessioner) RollbackRelease(m *cluster.RollbackMeta) (int32, error) {
+	ret := _m.Called(m)
+
+	var r0 int32
+	if rf, ok := ret.Get(0).(func(*cluster.RollbackMeta) int32); ok {
+		r0 = rf(m)
+	} else {
+		r0 = ret.Get(0).(int32)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*cluster.RollbackMeta) error); ok {
+		r1 = rf(m)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // SetKubeConfig provides a mock function with given fields: c
 func (_m *Sessioner) SetKubeConfig(c string) {
 	_m.Called(c)
@@ -233,20 +387,22 @@ func (_m *Sessioner) SetKubeContext(c string) {
 	_m.Called(c)
 }
 
-// UpgradeRelease provides a mock function with given fields: m
-func (_m *Sessioner) UpgradeRelease(m *cluster.ReleaseMeta) (string, error) {
-	ret := _m.Called(m)
+// UpgradeRelease provides a mock function with given fields: m, manifestName
+func (_m *Sessioner) UpgradeRelease(m *cluster.ReleaseMeta, manifestName string) (*cluster.UpgradeReleaseResponse, error) {
+	ret := _m.Called(m, manifestName)
 
-	var r0 string
-	if rf, ok := ret.Get(0).(func(*cluster.ReleaseMeta) string); ok {
-		r0 = rf(m)
+	var r0 *cluster.UpgradeReleaseResponse
+	if rf, ok := ret.Get(0).(func(*cluster.ReleaseMeta, string) *cluster.UpgradeReleaseResponse); ok {
+		r0 = rf(m, manifestName)
 	} else {
-		r0 = ret.Get(0).(string)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cluster.UpgradeReleaseResponse)
+		}
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*cluster.ReleaseMeta) error); ok {
-		r1 = rf(m)
+	if rf, ok := ret.Get(1).(func(*cluster.ReleaseMeta, string) error); ok {
+		r1 = rf(m, manifestName)
 	} else {
 		r1 = ret.Error(1)
 	}
