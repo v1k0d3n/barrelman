@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"text/template"
 
-	errors "github.com/charter-oss/structured/errors"
+	errors "github.com/cirrocloud/structured/errors"
 	"github.com/spf13/viper"
 )
 
@@ -29,7 +29,7 @@ func (yp *Yp) Import(s string, r io.Reader) error {
 	return yp.YamlParse(s)
 }
 
-//Import reads data from a single YAML file and adds its data to this *Yp instance
+//ImportFile reads data from a single YAML file and adds its data to this *Yp instance
 func (yp *Yp) ImportFile(s string) error {
 	r, err := os.Open(s)
 	if err != nil {
@@ -58,6 +58,7 @@ func (yp *Yp) YamlParse(name string) error {
 				}).Wrap(err, "failed to parse yaml section")
 			}
 			section.Viper = vp
+			section.File = k
 		}
 	}
 	return nil
