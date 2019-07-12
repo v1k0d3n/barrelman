@@ -11,9 +11,9 @@ import (
 	"github.com/ghodss/yaml"
 
 	"github.com/charter-oss/barrelman/pkg/manifest/chartsync"
-	"github.com/charter-oss/structured"
-	"github.com/charter-oss/structured/errors"
-	"github.com/charter-oss/structured/log"
+	"github.com/cirrocloud/structured"
+	"github.com/cirrocloud/structured/errors"
+	"github.com/cirrocloud/structured/log"
 )
 
 const (
@@ -309,6 +309,7 @@ func (m *Manifest) load() error {
 			if err != nil {
 				return errors.Wrap(err, "Error loading manifest")
 			}
+			m.Name = k.GetString("metadata.name")
 		case StringChartGroup:
 			chartGroup := NewChartGroup()
 			chartGroup.Version = schem.Version

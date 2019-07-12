@@ -11,31 +11,30 @@ import (
 	"github.com/cirrocloud/structured/log"
 )
 
-func newListCmd(cmd *barrelman.ListCmd) *cobra.Command {
-
-	example := strings.TrimSpace(dedent.Dedent(`
-		barrelman list 
-		barrelman list lamp-stack`))
+func newHistoryCmd(cmd *barrelman.HistoryCmd) *cobra.Command {
 
 	longDesc := strings.TrimSpace(dedent.Dedent(`
-		Display Barrelman manifests deployed in the kuerbenetes cluster.
-		Manifest names can be used with the rollback command.`))
+		Display Barrelman manifest revision history.
+		
+		A new manifest revision is created upon sucessful change is performed on the cluster.
+	`))
 
-	shortDesc := `list Barrelman manifests and releases`
+	shortDesc := `List manifest revision history.`
+
+	examples := `barrelman history lamp-stack`
 
 	cobraCmd := &cobra.Command{
-		Use:           "list [manifest name]",
+		Use:           "history [manifest name]",
 		Short:         shortDesc,
 		Long:          longDesc,
-		Example:       example,
+		Example:       examples,
+		Args:          cobra.ExactArgs(1),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
-			if len(args) > 0 {
-				cmd.ManifestName = args[0]
-			}
-			cobraCmd.SilenceUsage = true
-			cobraCmd.SilenceErrors = true
+
+			cmd.ManifestName = args[0]
+
 			log.Configure(logSettings(cmd.LogOptions)...)
 			session := cluster.NewSession(
 				cmd.Options.KubeContext,
@@ -47,8 +46,7 @@ func newListCmd(cmd *barrelman.ListCmd) *cobra.Command {
 		},
 	}
 
-	f := cobraCmd.Flags()
-	cmd.LogOptions = f.StringSliceP(
+	cmd.LogOptions = cobraCmd.Flags().StringSliceP(
 		"log",
 		"l",
 		nil,

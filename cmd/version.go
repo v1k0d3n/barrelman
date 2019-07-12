@@ -8,12 +8,13 @@ import (
 
 func newVersionCmd(cmd *barrelman.VersionCmd) *cobra.Command {
 	cobraCmd := &cobra.Command{
-		Use:   "version",
-		Short: "version something",
-		Long:  `Something something else...`,
+		Use:           "version",
+		Short:         "Display version and build information",
+		Long:          `Display version and build information supplied at build time.`,
+		Example:       "barrelman version",
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
-			cobraCmd.SilenceUsage = true
-			cobraCmd.SilenceErrors = true
 
 			return cmd.Run()
 		},
