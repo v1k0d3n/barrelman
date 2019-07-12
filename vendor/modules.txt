@@ -24,10 +24,10 @@ github.com/chai2010/gettext-go/gettext
 github.com/chai2010/gettext-go/gettext/mo
 github.com/chai2010/gettext-go/gettext/plural
 github.com/chai2010/gettext-go/gettext/po
-# github.com/charter-oss/structured v0.0.2
-github.com/charter-oss/structured/log
-github.com/charter-oss/structured
-github.com/charter-oss/structured/errors
+# github.com/cirrocloud/structured v0.0.2
+github.com/cirrocloud/structured/log
+github.com/cirrocloud/structured
+github.com/cirrocloud/structured/errors
 # github.com/cirrocloud/yamlpack v0.0.1
 github.com/cirrocloud/yamlpack
 # github.com/davecgh/go-spew v1.1.1

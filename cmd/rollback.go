@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os"
+	"strconv"
 	"strings"
 
 	"github.com/lithammer/dedent"
@@ -8,35 +10,40 @@ import (
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
 	"github.com/charter-oss/barrelman/pkg/cluster"
+	"github.com/cirrocloud/structured/errors"
 	"github.com/cirrocloud/structured/log"
 )
 
-func newApplyCmd(cmd *barrelman.ApplyCmd) *cobra.Command {
+func newRollbackCmd(cmd *barrelman.RollbackCmd) *cobra.Command {
+
 	longDesc := strings.TrimSpace(dedent.Dedent(`
-		The apply command attempts to commit the differences between a supplied manifest and
-		the current Kubernetes cluster state.
+		Rollback sets release versions to those recorded in a Barrelman rollback manifest.
+		
+		Rollback manifests are saved in the cluster when barrelman sucessfully commits a change
+		to the manifest release group.`))
 
-		For the given manifest each chart is installed on the Kubernetes cluster.
-	`))
+	shortDesc := `Set release versions to a previous Barrelman save state.`
 
-	shortDesc := `Apply the given manifest to the cluster.`
-
-	examples := `barrelman apply lamp-stack.yaml`
+	examples := `barrelman rollback lamp-stack 5`
 
 	cobraCmd := &cobra.Command{
-		Use:           "apply [manifest.yaml]",
+		Use:           "rollback [manifest name] [manifest version]",
 		Short:         shortDesc,
 		Long:          longDesc,
 		Example:       examples,
-		Args:          cobra.ExactArgs(1),
+		Args:          cobra.ExactArgs(2),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
+			cmd.ManifestName = args[0]
 
-			cmd.Options.ManifestFile = args[0]
+			verTmp, err := strconv.Atoi(args[1])
+			if err != nil {
+				log.Error(errors.Wrap(err, "Failed to parse version from second arguement"))
+				os.Exit(1)
+			}
+			cmd.ManifestVersion = int32(verTmp)
 
-			cobraCmd.SilenceUsage = true
-			cobraCmd.SilenceErrors = true
 			log.Configure(logSettings(cmd.LogOptions)...)
 			session := cluster.NewSession(
 				cmd.Options.KubeContext,
@@ -64,20 +71,5 @@ func newApplyCmd(cmd *barrelman.ApplyCmd) *cobra.Command {
 		"diff",
 		false,
 		"Display differences")
-	cobraCmd.Flags().BoolVar(
-		&cmd.Options.NoSync,
-		"nosync",
-		false,
-		"disable remote sync")
-	cmd.Options.Force = cobraCmd.Flags().StringSlice(
-		"force",
-		*(Default().Force),
-		"force apply chart name(s)")
-	cobraCmd.Flags().IntVar(
-		&cmd.Options.InstallRetry,
-		"install-retry",
-		Default().InstallRetry,
-		"retry install (n) times")
-
 	return cobraCmd
 }
