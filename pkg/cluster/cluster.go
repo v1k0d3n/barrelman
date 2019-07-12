@@ -87,6 +87,11 @@ func (s *Session) Init() error {
 		return errors.Wrap(err, "kubernetes connection failed health check")
 	}
 
+	tillerVersion, err := s.Helm.GetVersion()
+	if err != nil {
+		return errors.Wrap(err, "failed to get Tiller version")
+	}
+
 	compatible := version.IsCompatible(version.Version, tillerVersion.Version.SemVer)
 	log.WithFields(log.Fields{
 		"tillerVersion":          tillerVersion.Version.SemVer,
@@ -152,7 +157,7 @@ func (s *Session) connect(namespace string) error {
 	}
 
 	options := []helm.Option{
-		helm.Host(fmt.Sprintf("127.0.0.1:%v", s.Tiller.Local)),
+		helm.Host(fmt.Sprintf("127.0.0.1:%v", s.Tunnel.Local)),
 		helm.ConnectTimeout(5),
 	}
 
@@ -240,14 +245,14 @@ func (s *Session) connectionHealthCheck() error {
 	log.WithFields(log.Fields{
 		"tillerVersion":          tillerVersion.Version.SemVer,
 		"clientServerCompatible": compatible,
-		"Host":                   fmt.Sprintf(":%v", s.Tiller.Local),
+		"Host":                   fmt.Sprintf(":%v", s.Tunnel.Local),
 	}).Debug("Connected to Tiller")
 
 	if !compatible {
 		return errors.WithFields(errors.Fields{
 			"tillerVersion": tillerVersion.Version.SemVer,
 			"helmVersion":   version.Version,
-			"Host":          fmt.Sprintf(":%v", s.Tiller.Local),
+			"Host":          fmt.Sprintf(":%v", s.Tunnel.Local),
 		}).New("incompatible version numbers")
 	}
 
