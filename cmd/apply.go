@@ -8,7 +8,6 @@ import (
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
 	"github.com/charter-oss/barrelman/pkg/cluster"
-	"github.com/cirrocloud/structured/log"
 )
 
 func newApplyCmd(cmd *barrelman.ApplyCmd) *cobra.Command {

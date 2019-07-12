@@ -6,6 +6,7 @@ require (
 	github.com/Masterminds/sprig v2.18.0+incompatible
 	github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a
 	github.com/chai2010/gettext-go v0.0.0-20170215093142-bf70f2a70fb1 // indirect
+	github.com/charter-oss/structured v0.0.0-20190211172727-b8be75e216c8
 	github.com/cirrocloud/structured v0.0.0-20190625205140-0f74df84e711
 	github.com/cirrocloud/yamlpack v0.0.1
 	github.com/coreos/bbolt v1.3.2 // indirect
