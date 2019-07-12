@@ -6,8 +6,10 @@ import (
 	"github.com/charter-oss/barrelman/pkg/manifest"
 	"github.com/charter-oss/barrelman/pkg/version"
 	"github.com/charter-oss/structured/log"
+	"gopkg.in/yaml.v2"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -48,6 +50,25 @@ type ConfigCmd struct {
 	LogOptions *[]string
 }
 
+/*
+GIT ACCESS TOKEN FORMAT
+ 	account:
+     - github.com:
+ 		 type: token
+         user: username
+         secret: 123456789010
+*/
+
+type GitAccessToken struct {
+	Account []struct {
+		Github struct {
+			Type   string `yaml:"type"`
+			User   string `yaml:"user"`
+			Secret string `yaml:"secret"`
+		} `yaml:"github.com"`
+	} `yaml:"account"`
+}
+
 func GetEmptyConfig() *Config {
 	return &Config{
 		Account: make(map[string]*chartsync.Account),
@@ -78,17 +99,41 @@ func GetConfigFromFile(s string) (*Config, error) {
 }
 
 func UpdateConfig(configFilePath string, updateKey string, updateValue string) (bool, error) {
+
 	f, err := os.Open(configFilePath)
 	if err != nil {
+		fmt.Println(err)
 		return false, errors.Wrap(err, "Error Opening config file!")
 	}
 	barrelmanConfig, err := toBarrelmanConfig(configFilePath, f)
 	if err != nil {
-		return false, errors.Wrap(err, "Error While updating barrelman config")
+		fmt.Println(err)
+		return false, errors.Wrap(err, "Error in toBarrelmanConfig")
 	}
-	newKey := "account.github." + updateKey
-	barrelmanConfig.Viper.Set(newKey, updateValue)
-	err = barrelmanConfig.Viper.WriteConfigAs(configFilePath)
+	//get filepath from configFilePath
+	dir := filepath.Dir(configFilePath)
+	barrelmanConfig.Viper.AddConfigPath(dir)
+	err = barrelmanConfig.Viper.ReadInConfig()
+	if err != nil {
+		fmt.Println(err)
+		return false, errors.Wrap(err, "Error Opening config file!")
+	}
+	C := GitAccessToken{}
+
+	err = viper.Unmarshal(&C)
+	if err != nil {
+		panic(err)
+	}
+	C.Account[0].Github.Secret = updateValue
+
+	d, err := yaml.Marshal(&C)
+	if err != nil {
+		fmt.Println(err)
+		return false, errors.Wrap(err, "Error Parsing File!")
+	}
+
+	fmt.Println(string(d))
+
 	return true, nil
 }
 
