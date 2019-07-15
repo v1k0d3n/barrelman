@@ -6,8 +6,9 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"math"
+	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -20,7 +21,8 @@ import (
 	"k8s.io/helm/pkg/proto/hapi/chart"
 	"k8s.io/helm/pkg/proto/hapi/release"
 
-	"github.com/charter-oss/structured/errors"
+	"github.com/cirrocloud/structured/errors"
+	"github.com/cirrocloud/structured/log"
 )
 
 const (
@@ -33,14 +35,17 @@ const (
 	Status_DELETED          = Status(release.Status_DELETED)
 )
 
+//ReleaseMeta is used with the InstallRelease, UpgradeRelease methods
 type ReleaseMeta struct {
 	Chart            *chart.Chart
+	Config           *chart.Config
 	Path             string //Location of Chartfile
 	MetaName         string //As presented in manifest
 	ChartName        string //Defined in manifest, but alignes in processing
 	ReleaseName      string //Defined in manifest, or presented by k8s
 	Namespace        string
 	Status           Status
+	Revision         int32
 	ValueOverrides   []byte
 	InstallDryRun    bool
 	InstallReuseName bool
@@ -49,21 +54,47 @@ type ReleaseMeta struct {
 	DryRun           bool
 }
 
+//DeleteMeta is used with the DeleteRelease method
 type DeleteMeta struct {
 	ReleaseName   string
 	Namespace     string
+	Purge         bool
 	DeleteTimeout time.Duration
+}
+
+//RollbackMeta is used with the RollbackRelease method
+type RollbackMeta struct {
+	ReleaseName string
+	Namespace   string
+	Revision    int32
+}
+
+type Revision struct {
 }
 
 type Status release.Status_Code
 
 type Chart = chart.Chart
 
+//Release contains current release information
 type Release struct {
 	Chart       *Chart
 	ReleaseName string
 	Namespace   string
 	Status      Status
+	Revision    int32
+	Config      *chart.Config
+}
+
+type InstallReleaseResponse struct {
+	Description    string
+	ReleaseName    string
+	ReleaseVersion int32
+}
+
+type UpgradeReleaseResponse struct {
+	Description    string
+	ReleaseVersion int32
 }
 
 type ReleaseDiff struct {
@@ -71,23 +102,33 @@ type ReleaseDiff struct {
 
 type Releaser interface {
 	ListReleases() ([]*Release, error)
-	InstallRelease(*ReleaseMeta) (string, string, error)
+	InstallRelease(m *ReleaseMeta, manifestName string) (*InstallReleaseResponse, error)
 	DiffRelease(m *ReleaseMeta) (bool, []byte, error)
-	UpgradeRelease(m *ReleaseMeta) (string, error)
+	UpgradeRelease(m *ReleaseMeta, manifestName string) (*UpgradeReleaseResponse, error)
 	DeleteReleases(dm []*DeleteMeta) error
 	DeleteRelease(m *DeleteMeta) error
 	Releases() (map[string]*ReleaseMeta, error)
+	ReleasesByManifest(manifest string) (map[string]*ReleaseMeta, error)
 	DiffManifests(map[string]*MappingResult, map[string]*MappingResult, []string, int, io.Writer) bool
 	ChartFromArchive(aChart io.Reader) (*chart.Chart, error)
+	GetRelease(releaseName string, revision int32) (*ReleaseMeta, error)
+	RollbackRelease(m *RollbackMeta) (int32, error)
 }
 
 //ListReleases returns an array of running releases as reported by the cluster
 func (s *Session) ListReleases() ([]*Release, error) {
-	var res []*Release
+	return s.ListReleasesByManifest("")
+}
+
+//ListReleases by Manifest returns an array of running releases as reported by the cluster
+// filtered by the ManifestName label
+func (s *Session) ListReleasesByManifest(manifestName string) ([]*Release, error) {
+	var releases []*Release
+	var filteredReleases []*Release
+
 	r, err := s.Helm.ListReleases(
 		helm.ReleaseListStatuses([]release.Status_Code{
 			release.Status_DELETED,
-			release.Status_SUPERSEDED,
 			release.Status_DEPLOYED,
 			release.Status_FAILED,
 			release.Status_PENDING_INSTALL,
@@ -102,19 +143,30 @@ func (s *Session) ListReleases() ([]*Release, error) {
 	for _, v := range r.GetReleases() {
 		rel := &Release{
 			Chart:       v.GetChart(),
-			ReleaseName: v.GetName(),
+			ReleaseName: v.Name,
 			Namespace:   v.Namespace,
 			Status:      Status(v.Info.Status.Code),
+			Revision:    v.Version,
+			Config:      v.Config,
 		}
-		res = append(res, rel)
+		releases = append(releases, rel)
 	}
-	return res, err
+	if manifestName == "" {
+		return releases, err
+	}
+
+	for _, v := range releases {
+		if getChartManifestTag(v.Chart) == manifestName {
+			filteredReleases = append(filteredReleases, v)
+		}
+	}
+	return filteredReleases, err
 }
 
 //InstallRelease uploads a chart and starts a release
-func (s *Session) InstallRelease(m *ReleaseMeta) (string, string, error) {
+func (s *Session) InstallRelease(m *ReleaseMeta, manifestName string) (*InstallReleaseResponse, error) {
 	res, err := s.Helm.InstallReleaseFromChart(
-		m.Chart,
+		setChartManifestTags(m.Chart, "Manifest="+manifestName),
 		m.Namespace,
 		helm.ReleaseName(m.ReleaseName),
 		helm.ValueOverrides(m.ValueOverrides),
@@ -123,15 +175,19 @@ func (s *Session) InstallRelease(m *ReleaseMeta) (string, string, error) {
 		helm.InstallWait(m.InstallWait),
 		helm.InstallTimeout(int64(m.InstallTimeout.Seconds())),
 	)
-
 	if err != nil {
-		return "", "", errors.WithFields(errors.Fields{
+		return &InstallReleaseResponse{}, errors.WithFields(errors.Fields{
 			"File":      m.Path,
 			"Name":      m.MetaName,
 			"Namespace": m.Namespace,
 		}).Wrap(err, "failed install")
 	}
-	return res.Release.Info.Description, res.Release.Name, err
+
+	return &InstallReleaseResponse{
+		Description:    res.Release.Info.Description,
+		ReleaseName:    res.Release.Name,
+		ReleaseVersion: res.Release.Version,
+	}, err
 }
 
 //DiffRelease compares the differences between a running release and a proposed release
@@ -151,6 +207,7 @@ func (s *Session) DiffRelease(m *ReleaseMeta) (bool, []byte, error) {
 	if err != nil {
 		return false, []byte{}, errors.Wrap(err, "Failed to get results from Tiller")
 	}
+
 	newParsed := ParseRelease(res.Release)
 
 	manifestsChanged := DiffManifests(currentParsed, newParsed, []string{}, int(10), buf)
@@ -158,19 +215,40 @@ func (s *Session) DiffRelease(m *ReleaseMeta) (bool, []byte, error) {
 	return manifestsChanged || valuesChanged, buf.Bytes(), err
 }
 
+// GetRelease retrieves release data by release revision
+func (s *Session) GetRelease(releaseName string, revision int32) (*ReleaseMeta, error) {
+	currentR, err := s.Helm.ReleaseContent(releaseName, helm.ContentReleaseVersion(revision))
+	if err != nil {
+		return nil, errors.WithFields(errors.Fields{
+			"ReleaseName": releaseName,
+			"Revision":    revision,
+		}).Wrap(err, "failed to get release by version")
+	}
+	return &ReleaseMeta{
+		Chart:       currentR.Release.Chart,
+		ReleaseName: currentR.Release.Name,
+		Namespace:   currentR.Release.Namespace,
+		Revision:    currentR.Release.Version,
+		Config:      currentR.Release.Config,
+	}, nil
+}
+
 //UpgradeRelease applies changes to an already running release, potentially triggering a restart
-func (s *Session) UpgradeRelease(m *ReleaseMeta) (string, error) {
+func (s *Session) UpgradeRelease(m *ReleaseMeta, manifestName string) (*UpgradeReleaseResponse, error) {
 	res, err := s.Helm.UpdateReleaseFromChart(
 		m.ReleaseName,
-		m.Chart,
+		setChartManifestTags(m.Chart, "Manifest="+manifestName),
 		helm.UpgradeForce(true),
 		helm.UpgradeDryRun(m.DryRun),
 		helm.UpdateValueOverrides(m.ValueOverrides),
 	)
 	if err != nil {
-		return "", errors.Wrap(err, "Error during UpgradeRelease")
+		return &UpgradeReleaseResponse{}, errors.Wrap(err, "Error during UpgradeRelease")
 	}
-	return res.Release.Info.Description, err
+	return &UpgradeReleaseResponse{
+		Description:    res.Release.Info.Description,
+		ReleaseVersion: res.Release.Version,
+	}, err
 }
 
 //DeleteReleases calls DeleteRelease on an array of Releases
@@ -187,7 +265,7 @@ func (s *Session) DeleteReleases(dm []*DeleteMeta) error {
 func (s *Session) DeleteRelease(m *DeleteMeta) error {
 	_, err := s.Helm.DeleteRelease(
 		m.ReleaseName,
-		helm.DeletePurge(true),
+		helm.DeletePurge(m.Purge),
 		helm.DeleteTimeout(int64(m.DeleteTimeout.Seconds())),
 	)
 	if err != nil {
@@ -196,24 +274,78 @@ func (s *Session) DeleteRelease(m *DeleteMeta) error {
 	return nil
 }
 
+//RollbackRelease sets the deployed revision
+func (s *Session) RollbackRelease(m *RollbackMeta) (int32, error) {
+	resp, err := s.Helm.RollbackRelease(
+		m.ReleaseName,
+		helm.RollbackForce(true),
+		helm.RollbackVersion(m.Revision),
+	)
+	if err != nil {
+		return 0, errors.New(grpc.ErrorDesc(err))
+	}
+
+	return resp.Release.Version, nil
+}
+
 //Releases queries a cluster and returns a map of currently deployed releases
 func (s *Session) Releases() (map[string]*ReleaseMeta, error) {
+	return s.ReleasesByManifest("")
+}
+
+func (s *Session) ReleasesByManifest(manifestName string) (map[string]*ReleaseMeta, error) {
 	ret := make(map[string]*ReleaseMeta)
 
-	releaseList, err := s.ListReleases()
+	releaseList, err := s.ListReleasesByManifest(manifestName)
 	if err != nil {
 		return ret, errors.Wrap(err, "failed to list releases")
 	}
 
 	for _, v := range releaseList {
 		ret[v.ReleaseName] = &ReleaseMeta{
+			Chart:       v.Chart,
 			ReleaseName: v.ReleaseName,
 			ChartName:   v.Chart.GetMetadata().Name,
 			Namespace:   v.Namespace,
 			Status:      v.Status,
+			Revision:    v.Revision,
+			Config:      v.Config,
 		}
 	}
 	return ret, nil
+}
+
+func (rm *ReleaseMeta) ShortReport() map[string]interface{} {
+	return map[string]interface{}{
+		"ReleaseName": rm.ReleaseName,
+		"Namespace":   rm.Namespace,
+		"InstallWait": rm.InstallWait,
+	}
+}
+
+func (rm *ReleaseMeta) DetailedReport() map[string]interface{} {
+	return map[string]interface{}{
+		"ReleaseName": rm.ReleaseName,
+		"Namespace":   rm.Namespace,
+		"InstallWait": rm.InstallWait,
+	}
+}
+
+func setChartManifestTags(chart *Chart, tags string) *Chart {
+	chart.Metadata.Tags = tags
+	return chart
+}
+
+func getChartManifestTag(chart *Chart) string {
+	rx := regexp.MustCompile(`Manifest=([\.|\-|\d|\w]+)`)
+	tags := rx.FindStringSubmatch(chart.Metadata.Tags)
+	if len(tags) > 0 {
+		log.WithFields(log.Fields{
+			"Manifest": tags[1],
+		}).Debug("Got manifest Tag")
+		return tags[1]
+	}
+	return ""
 }
 
 // The following was taken from https://github.com/databus23/helm-diff
@@ -270,7 +402,7 @@ func splitSpec(token string) (string, string) {
 
 func DiffOverrides(current string, proposed string, to io.Writer) (changed bool) {
 	if current != proposed {
-		fmt.Fprintf(to, ansi.Color("Override Values has changed:", "yellow")+"\n")
+		fmt.Fprintf(to, ansi.Color("Override Values has changed:", "magenta")+"\n")
 		diffs := diffStrings(current, proposed)
 		if len(diffs) > 0 {
 			changed = true
@@ -307,16 +439,17 @@ func Parse(manifest string, defaultNamespace string) map[string]*MappingResult {
 		}
 		var metadata metadata
 		if err := yaml.Unmarshal([]byte(content), &metadata); err != nil {
-			log.Fatalf("YAML unmarshal error: %s\nCan't unmarshal %s", err, content)
+			log.Error(errors.WithFields(errors.Fields{
+				"Content": content,
+			}).Wrap(err, "Can't unmarshal yaml"))
+			os.Exit(1)
 		}
 
 		if metadata.Metadata.Namespace == "" {
 			metadata.Metadata.Namespace = defaultNamespace
 		}
 		name := metadata.String()
-		if _, ok := result[name]; ok {
-			//log.Printf("Error: Found duplicate key %#v in manifest", name)
-		} else {
+		if _, ok := result[name]; !ok {
 			result[name] = &MappingResult{
 				Name:    name,
 				Kind:    metadata.Kind,

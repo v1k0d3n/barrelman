@@ -11,8 +11,8 @@ import (
 	"strings"
 
 	"github.com/charter-oss/barrelman/pkg/manifest/chartsync"
-	"github.com/charter-oss/structured/errors"
-	"github.com/charter-oss/structured/log"
+	"github.com/cirrocloud/structured/errors"
+	"github.com/cirrocloud/structured/log"
 )
 
 type ArchiveSpec struct {
@@ -175,6 +175,30 @@ func Package(depends []*chartsync.ChartSpec, src string, chartMeta *chartsync.Ch
 		}
 	}
 	return buf, nil
+}
+
+func (as *ArchiveSpec) ShortReport() map[string]interface{} {
+	return map[string]interface{}{
+		"MetaName":    as.MetaName,
+		"ReleaseName": as.ReleaseName,
+		"ChartName":   as.ChartName,
+		"DataDir":     as.DataDir,
+		"NameSpace":   as.Namespace,
+		"Path":        as.Path,
+	}
+
+}
+func (as *ArchiveSpec) DetailedReport() map[string]interface{} {
+	return map[string]interface{}{
+		"MetaName":    as.MetaName,
+		"ChartName":   as.ChartName,
+		"DataDir":     as.DataDir,
+		"NameSpace":   as.Namespace,
+		"Path":        as.Path,
+		"InstallWait": as.InstallWait,
+		"ReleaseName": as.ReleaseName,
+		"Overrides":   as.Overrides,
+	}
 }
 
 func createArchive(datadir string, path string, dependCharts []*chartsync.ChartSpec, meta *chartsync.ChartMeta) (io.Reader, error) {

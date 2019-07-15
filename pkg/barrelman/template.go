@@ -49,9 +49,9 @@ import (
 
 	bfest "github.com/charter-oss/barrelman/pkg/manifest"
 	"github.com/charter-oss/barrelman/pkg/version"
-	"github.com/charter-oss/structured"
-	"github.com/charter-oss/structured/errors"
-	"github.com/charter-oss/structured/log"
+	"github.com/cirrocloud/structured"
+	"github.com/cirrocloud/structured/errors"
+	"github.com/cirrocloud/structured/log"
 )
 
 const defaultDirectoryPermission = 0755
@@ -111,12 +111,7 @@ func NewTemplateCmd() *TemplateCmd {
 
 func (cmd *TemplateCmd) Run() error {
 	var err error
-	ver := version.Get()
-	log.WithFields(log.Fields{
-		"Version": ver.Version,
-		"Commit":  ver.Commit,
-		"Branch":  ver.Branch,
-	}).Info("Barrelman")
+	log.Rep(version.Get()).Info("Barrelman")
 
 	if cmd.Options.ConfigFile != "" {
 		cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
@@ -127,7 +122,7 @@ func (cmd *TemplateCmd) Run() error {
 		cmd.Config = GetEmptyConfig()
 	}
 
-	archives, err := processManifest(&bfest.Config{
+	archives, manifestName, err := processManifest(&bfest.Config{
 		DataDir:      cmd.Options.DataDir,
 		ManifestFile: cmd.Options.ManifestFile,
 		AccountTable: cmd.Config.Account,
@@ -137,11 +132,8 @@ func (cmd *TemplateCmd) Run() error {
 	}
 
 	for _, v := range archives.List {
-		log.WithFields(log.Fields{
-			"File":      v.Path,
-			"MetaName":  v.MetaName,
-			"Namespace": v.Namespace,
-			"ChartName": v.ChartName,
+		log.WithDetailedReport(v).WithFields(log.Fields{
+			"ManifestName": manifestName,
 		}).Debug("Template")
 		if err := cmd.Export(v); err != nil {
 			return errors.WithFields(errors.Fields{
