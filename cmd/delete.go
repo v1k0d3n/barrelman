@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"github.com/charter-oss/barrelman/cmd/util"
 	"strings"
 
 	"github.com/lithammer/dedent"

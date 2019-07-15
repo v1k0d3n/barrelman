@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/charter-oss/barrelman/cmd/util"
 	"strings"
 
 	"github.com/lithammer/dedent"
@@ -68,7 +67,7 @@ func newTemplateCmd(cmd *barrelman.TemplateCmd) *cobra.Command {
 
 			cobraCmd.SilenceUsage = true
 			cobraCmd.SilenceErrors = true
-			log.Configure(util.LogSettings(cmd.LogOptions)...)
+			log.Configure(logSettings(cmd.LogOptions)...)
 			if err := cmd.Run(); err != nil {
 				return err
 			}

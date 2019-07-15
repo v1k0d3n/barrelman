@@ -1,6 +1,5 @@
 package barrelman
 
-import "C"
 import (
 	"fmt"
 	"github.com/charter-oss/barrelman/pkg/cluster"
@@ -66,7 +65,7 @@ type GitAccessToken struct {
 			Type   string `yaml:"type"`
 			User   string `yaml:"user"`
 			Secret string `yaml:"secret"`
-		} `yaml:"github.com"`
+		} `yaml:"github"`
 	} `yaml:"account"`
 }
 

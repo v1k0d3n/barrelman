@@ -13,7 +13,7 @@ func newConfigViewCmd() *cobra.Command {
 		Short: "View barrelman config, When no config is provided barrelman will consider from ~/.barrelman/config",
 		Run: func(cmd *cobra.Command, args []string) {
 			var barrelmanConfigFile string
-			const accountType string = "github.com"
+			const accountType string = "github"
 
 			/*If user doesn't provide the config file path then,
 			the default location will be used ($USER/.barrelman/config)*/
@@ -25,8 +25,7 @@ func newConfigViewCmd() *cobra.Command {
 			config, _ := barrelman.GetConfigFromFile(barrelmanConfigFile)
 			accountMap := config.Account
 			account := accountMap[accountType]
-
-			fmt.Println("User: "+account.User, "\n", "type: ", account.Typ, "\n", "Secret: "+account.Secret)
+			fmt.Println("github:\n"+"user: "+account.User, "\n", "type: ", account.Typ, "\n", "Secret: "+account.Secret)
 		},
 	}
 }

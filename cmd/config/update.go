@@ -9,7 +9,7 @@ import (
 
 func newConfigUpdateCmd() *cobra.Command {
 	var barrelmanConfigFile, configValue string
-	const secret = "Secret"
+	const secret = "secret"
 	cobraCmd := &cobra.Command{
 		Use:   "update [config]",
 		Short: "Update barrelman config, When no config is provided barrelman will consider from ~/.barrelman/config",

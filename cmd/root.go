@@ -55,12 +55,12 @@ func newRootCmd(args []string) *cobra.Command {
 	flags.StringVar(
 		&options.KubeConfigFile,
 		"kubeconfig",
-		Default().KubeConfigFile,
+		util.Default().KubeConfigFile,
 		"use alternate kube config file")
 	flags.StringVar(
 		&options.KubeContext,
 		"kubecontext",
-		Default().KubeContext,
+		util.Default().KubeContext,
 		"use alternate kube context")
 
 	cobraCmd.AddCommand(newDeleteCmd(&barrelman.DeleteCmd{
@@ -71,7 +71,6 @@ func newRootCmd(args []string) *cobra.Command {
 	cobraCmd.AddCommand(configCmd.NewConfigCmd(&barrelman.ConfigCmd{
 		Options:    options,
 		Config:     config,
-		LogOptions: logOptions,
 	}))
 
 	cobraCmd.AddCommand(newApplyCmd(&barrelman.ApplyCmd{
@@ -119,3 +118,15 @@ func Execute() {
 	}
 }
 
+func logSettings(args *[]string) []func(*log.Logger) error {
+	ret := []func(*log.Logger) error{}
+	for _, v := range *args {
+		switch v {
+		case "debug", "info", "warn", "error":
+			ret = append(ret, log.OptSetLevel(v))
+		case "JSON":
+			ret = append(ret, log.OptSetJSON())
+		}
+	}
+	return ret
+}

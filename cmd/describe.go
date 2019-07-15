@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/charter-oss/barrelman/cmd/util"
 	"strconv"
 
 	"github.com/spf13/cobra"
@@ -57,12 +58,12 @@ func newDescribeCmd(cmd *barrelman.DescribeCmd) *cobra.Command {
 	cobraCmd.Flags().StringVar(
 		&cmd.Options.KubeConfigFile,
 		"kubeconfig",
-		Default().KubeConfigFile,
+		util.Default().KubeConfigFile,
 		"Set the Kubernetes config file to use for connecting to the cluster.")
 	cobraCmd.Flags().StringVar(
 		&cmd.Options.KubeContext,
 		"kubecontext",
-		Default().KubeContext,
+		util.Default().KubeContext,
 		"use alternate kube context")
 	return cobraCmd
 }
