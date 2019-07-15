@@ -5,12 +5,11 @@ import (
 	"github.com/charter-oss/barrelman/cmd/util"
 	"github.com/charter-oss/barrelman/pkg/barrelman"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 func newConfigUpdateCmd() *cobra.Command {
-	var barrelmanConfigFile, configKey, configValue string
-	const secret = "secret"
+	var barrelmanConfigFile, configValue string
+	const secret = "Secret"
 	cobraCmd := &cobra.Command{
 		Use:   "update [config]",
 		Short: "Update barrelman config, When no config is provided barrelman will consider from ~/.barrelman/config",
@@ -27,15 +26,14 @@ func newConfigUpdateCmd() *cobra.Command {
 
 			//Add command line args for secret (--secret)
 			secretValue, _ := cobraCmd.Flags().GetString(secret)
-			configKey = secret
+
 			configValue = secretValue
 
 			//Update config secret
-			if _, err := barrelman.UpdateConfig(barrelmanConfigFile, configKey, configValue); err != nil {
-				fmt.Println(" Update Failed!")
-				os.Exit(1)
+			if _, err := barrelman.UpdateConfig(barrelmanConfigFile, configValue); err != nil {
+				fmt.Println("Update Failed! ",err)
 			}
-			fmt.Println("config updated!")
+			fmt.Println("Config updated!")
 		},
 	}
 	cobraCmd.Flags().StringP("secret", "s", "", "--secret")

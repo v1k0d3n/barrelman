@@ -25,6 +25,7 @@ func newConfigViewCmd() *cobra.Command {
 			config, _ := barrelman.GetConfigFromFile(barrelmanConfigFile)
 			accountMap := config.Account
 			account := accountMap[accountType]
+
 			fmt.Println("User: "+account.User, "\n", "type: ", account.Typ, "\n", "Secret: "+account.Secret)
 		},
 	}

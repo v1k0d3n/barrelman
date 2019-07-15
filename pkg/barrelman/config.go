@@ -1,5 +1,6 @@
 package barrelman
 
+import "C"
 import (
 	"fmt"
 	"github.com/charter-oss/barrelman/pkg/cluster"
@@ -8,8 +9,8 @@ import (
 	"github.com/charter-oss/structured/log"
 	"gopkg.in/yaml.v2"
 	"io"
+	"io/ioutil"
 	"os"
-	"path/filepath"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -98,41 +99,29 @@ func GetConfigFromFile(s string) (*Config, error) {
 	return config.LoadAcc(b)
 }
 
-func UpdateConfig(configFilePath string, updateKey string, updateValue string) (bool, error) {
+func UpdateConfig(configFilePath string, updateValue string) (bool, error) {
 
-	f, err := os.Open(configFilePath)
-	if err != nil {
-		fmt.Println(err)
-		return false, errors.Wrap(err, "Error Opening config file!")
-	}
-	barrelmanConfig, err := toBarrelmanConfig(configFilePath, f)
-	if err != nil {
-		fmt.Println(err)
-		return false, errors.Wrap(err, "Error in toBarrelmanConfig")
-	}
-	//get filepath from configFilePath
-	dir := filepath.Dir(configFilePath)
-	barrelmanConfig.Viper.AddConfigPath(dir)
-	err = barrelmanConfig.Viper.ReadInConfig()
-	if err != nil {
-		fmt.Println(err)
-		return false, errors.Wrap(err, "Error Opening config file!")
-	}
-	C := GitAccessToken{}
+	gitAccessTokeConfig := GitAccessToken{}
 
-	err = viper.Unmarshal(&C)
+	yamlFile, err := ioutil.ReadFile(configFilePath)
+	err = yaml.Unmarshal(yamlFile,&gitAccessTokeConfig)
 	if err != nil {
-		panic(err)
+		return false, errors.Wrap(err,"unable to decode into struct")
 	}
-	C.Account[0].Github.Secret = updateValue
+	// Change value in map and marshal back into yaml
+	gitAccessTokeConfig.Account[0].Github.Secret = updateValue
 
-	d, err := yaml.Marshal(&C)
+	d, err := yaml.Marshal(&gitAccessTokeConfig)
 	if err != nil {
 		fmt.Println(err)
 		return false, errors.Wrap(err, "Error Parsing File!")
 	}
 
-	fmt.Println(string(d))
+	err = ioutil.WriteFile(configFilePath, d, 0644)
+	if err != nil {
+		fmt.Println(err)
+		return false, errors.Wrap(err, "Error Parsing File!")
+	}
 
 	return true, nil
 }
