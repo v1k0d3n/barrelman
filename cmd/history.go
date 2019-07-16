@@ -8,7 +8,6 @@ import (
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
 	"github.com/charter-oss/barrelman/pkg/cluster"
-	"github.com/cirrocloud/structured/log"
 )
 
 func newHistoryCmd(cmd *barrelman.HistoryCmd) *cobra.Command {
@@ -35,7 +34,6 @@ func newHistoryCmd(cmd *barrelman.HistoryCmd) *cobra.Command {
 
 			cmd.ManifestName = args[0]
 
-			log.Configure(logSettings(cmd.LogOptions)...)
 			session := cluster.NewSession(
 				cmd.Options.KubeContext,
 				cmd.Options.KubeConfigFile)

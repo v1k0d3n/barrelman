@@ -44,7 +44,6 @@ func newRollbackCmd(cmd *barrelman.RollbackCmd) *cobra.Command {
 			}
 			cmd.ManifestVersion = int32(verTmp)
 
-			log.Configure(logSettings(cmd.LogOptions)...)
 			session := cluster.NewSession(
 				cmd.Options.KubeContext,
 				cmd.Options.KubeConfigFile)

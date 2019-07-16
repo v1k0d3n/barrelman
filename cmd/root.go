@@ -21,7 +21,7 @@ type RootOpts struct {
 	LogOpts *LogOpts
 }
 
-func newRootCmd(args []string) *cobra.Command {
+func newRootCmd(args []string) (*cobra.Command, *RootOpts) {
 
 	longDesc := strings.TrimSpace(dedent.Dedent(`
 		Barrelman uses a single manifest to organize complex application deployments that can consist 
@@ -52,6 +52,10 @@ func newRootCmd(args []string) *cobra.Command {
 	}
 	config := &barrelman.Config{}
 
+	rootOpts := &RootOpts{
+		LogOpts: &LogOpts{},
+	}
+
 	flags := cobraCmd.PersistentFlags()
 	flags.StringVarP(
 		&options.ConfigFile,
@@ -71,14 +75,14 @@ func newRootCmd(args []string) *cobra.Command {
 		"log-format",
 		Default().LogFormat,
 		"Set the log format. [ text | json ]")
-	
-  flags.StringVar(
+
+	flags.StringVar(
 		&options.KubeConfigFile,
 		"kubeconfig",
 		Default().KubeConfigFile,
 		"use alternate kube config file")
-	
-  flags.StringVar(
+
+	flags.StringVar(
 		&options.KubeContext,
 		"kubecontext",
 		Default().KubeContext,
