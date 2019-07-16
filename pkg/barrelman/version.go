@@ -2,7 +2,7 @@ package barrelman
 
 import (
 	"github.com/charter-oss/barrelman/pkg/version"
-	"github.com/charter-oss/structured/log"
+	"github.com/cirrocloud/structured/log"
 )
 
 type VersionCmd struct{}
