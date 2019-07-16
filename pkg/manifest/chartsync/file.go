@@ -4,8 +4,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/charter-oss/structured/errors"
-	"github.com/charter-oss/structured/log"
+	"github.com/cirrocloud/structured/errors"
+	"github.com/cirrocloud/structured/log"
 )
 
 type SyncFile struct {

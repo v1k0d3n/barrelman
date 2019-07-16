@@ -8,35 +8,34 @@ import (
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
 	"github.com/charter-oss/barrelman/pkg/cluster"
+	"github.com/cirrocloud/structured/log"
 )
 
-func newDeleteCmd(cmd *barrelman.DeleteCmd) *cobra.Command {
+func newHistoryCmd(cmd *barrelman.HistoryCmd) *cobra.Command {
 
 	longDesc := strings.TrimSpace(dedent.Dedent(`
-		The delete command deletes all releases in a manifest.
-
-		All releases currently deployed in the matching manifest will be deleted, 
-		as will all releases currently configured in the supplied manifest file.
+		Display Barrelman manifest revision history.
+		
+		A new manifest revision is created upon sucessful change is performed on the cluster.
 	`))
 
-	shortDesc := `Delete all releases configured in the manifest.`
+	shortDesc := `List manifest revision history.`
 
-	examples := `barrelman delete lamp-stack.yaml`
+	examples := `barrelman history lamp-stack`
 
 	cobraCmd := &cobra.Command{
-		Use:           "delete [manifest.yaml]",
+		Use:           "history [manifest name]",
 		Short:         shortDesc,
 		Long:          longDesc,
-		Args:          cobra.ExactArgs(1),
 		Example:       examples,
+		Args:          cobra.ExactArgs(1),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
-			if len(args) > 0 {
-				cmd.Options.ManifestFile = args[0]
-			}
-			cobraCmd.SilenceUsage = true
-			cobraCmd.SilenceErrors = true
+
+			cmd.ManifestName = args[0]
+
+			log.Configure(logSettings(cmd.LogOptions)...)
 			session := cluster.NewSession(
 				cmd.Options.KubeContext,
 				cmd.Options.KubeConfigFile)
@@ -52,11 +51,5 @@ func newDeleteCmd(cmd *barrelman.DeleteCmd) *cobra.Command {
 		"l",
 		nil,
 		"log options (e.g. --log=debug,JSON")
-
-	cobraCmd.Flags().BoolVar(
-		&cmd.Options.NoSync,
-		"nosync",
-		false,
-		"disable remote sync")
 	return cobraCmd
 }

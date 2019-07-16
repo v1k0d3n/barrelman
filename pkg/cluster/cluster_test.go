@@ -1,4 +1,7 @@
 //go:generate mockery -output "mockHelm" -dir ../../vendor/k8s.io/helm/pkg/helm -name=Interface
+//go:generate mockery -output "mockClientset" -dir ../../vendor/k8s.io/client-go/kubernetes -name=Interface
+//go:generate mockery -output "mockCoreV1" -dir ../../vendor/k8s.io/client-go/kubernetes/typed/core/v1 -name=CoreV1Interface
+//go:generate mockery -output "mockConfigMap" -dir ../../vendor/k8s.io/client-go/kubernetes/typed/core/v1 -name=ConfigMapInterface
 
 package cluster
 
@@ -6,13 +9,19 @@ import (
 	"os"
 	"testing"
 
+	mockClientset "github.com/charter-oss/barrelman/pkg/cluster/mockClientset"
+	mockConfigMap "github.com/charter-oss/barrelman/pkg/cluster/mockConfigMap"
+	mockCoreV1 "github.com/charter-oss/barrelman/pkg/cluster/mockCoreV1"
+	mockHelm "github.com/charter-oss/barrelman/pkg/cluster/mockHelm"
 	. "github.com/smartystreets/goconvey/convey"
+	"k8s.io/helm/pkg/kube"
 	rls "k8s.io/helm/pkg/proto/hapi/services"
-
-	mockHelm "github.com/charter-oss/barrelman/pkg/cluster/mockHelm" // requires mockery run
 )
 
 var TestHelm = &mockHelm.Interface{}
+var TestClientSet = &mockClientset.Interface{}
+var TestCoreV1 = &mockCoreV1.CoreV1Interface{}
+var TestConfigMap = &mockConfigMap.ConfigMapInterface{}
 
 func TestNewSession(t *testing.T) {
 	Convey("MockNewSession() works", t, func() {
@@ -72,5 +81,7 @@ func NewMockSession() *Session {
 	//NewSession returns a *Session with kubernetes connections established
 	s := &Session{}
 	s.Helm = TestHelm
+	s.Tunnel = &kube.Tunnel{}
+	s.Clientset = TestClientSet
 	return s
 }

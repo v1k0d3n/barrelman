@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"strings"
+
+	"github.com/lithammer/dedent"
 	"github.com/spf13/cobra"
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
@@ -8,13 +11,27 @@ import (
 )
 
 func newListCmd(cmd *barrelman.ListCmd) *cobra.Command {
+
+	example := strings.TrimSpace(dedent.Dedent(`
+		barrelman list 
+		barrelman list lamp-stack`))
+
+	longDesc := strings.TrimSpace(dedent.Dedent(`
+		Display Barrelman manifests deployed in the kuerbenetes cluster.
+		Manifest names can be used with the rollback command.`))
+
+	shortDesc := `list Barrelman manifests and releases`
+
 	cobraCmd := &cobra.Command{
-		Use:   "list",
-		Short: "apply something",
-		Long:  `Something something else...`,
+		Use:           "list [manifest name]",
+		Short:         shortDesc,
+		Long:          longDesc,
+		Example:       example,
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
-				cmd.Options.ManifestFile = args[0]
+				cmd.ManifestName = args[0]
 			}
 			cobraCmd.SilenceUsage = true
 			cobraCmd.SilenceErrors = true
@@ -27,15 +44,12 @@ func newListCmd(cmd *barrelman.ListCmd) *cobra.Command {
 			return nil
 		},
 	}
-	cobraCmd.Flags().StringVar(
-		&cmd.Options.KubeConfigFile,
-		"kubeconfig",
-		Default().KubeConfigFile,
-		"use alternate kube config file")
-	cobraCmd.Flags().StringVar(
-		&cmd.Options.KubeContext,
-		"kubecontext",
-		Default().KubeContext,
-		"use alternate kube context")
+
+	f := cobraCmd.Flags()
+	cmd.LogOptions = f.StringSliceP(
+		"log",
+		"l",
+		nil,
+		"log options (e.g. --log=debug,JSON")
 	return cobraCmd
 }
