@@ -7,9 +7,9 @@ import (
 	"runtime"
 	"testing"
 
-	. "github.com/smartystreets/goconvey/convey"
 	"github.com/charter-oss/barrelman/pkg/barrelman"
 	"github.com/charter-oss/barrelman/pkg/cluster/mocks"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestNewApplyCmd(t *testing.T) {
