@@ -25,7 +25,6 @@ import (
 	"k8s.io/helm/pkg/chartutil"
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
-	"github.com/cirrocloud/structured/log"
 )
 
 var (
@@ -67,7 +66,6 @@ func newTemplateCmd(cmd *barrelman.TemplateCmd) *cobra.Command {
 
 			cobraCmd.SilenceUsage = true
 			cobraCmd.SilenceErrors = true
-			log.Configure(logSettings(cmd.LogOptions)...)
 			if err := cmd.Run(); err != nil {
 				return err
 			}

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"os"
 	"strings"
 
@@ -11,7 +12,16 @@ import (
 	"github.com/cirrocloud/structured/log"
 )
 
-func newRootCmd(args []string) *cobra.Command {
+type LogOpts struct {
+	Level  string
+	Format string
+}
+
+type RootOpts struct {
+	LogOpts *LogOpts
+}
+
+func newRootCmd(args []string) (*cobra.Command, *RootOpts) {
 
 	longDesc := strings.TrimSpace(dedent.Dedent(`
 		Barrelman uses a single manifest to organize complex application deployments that can consist 
@@ -42,6 +52,10 @@ func newRootCmd(args []string) *cobra.Command {
 	}
 	config := &barrelman.Config{}
 
+	rootOpts := &RootOpts{
+		LogOpts: &LogOpts{},
+	}
+
 	flags := cobraCmd.PersistentFlags()
 	flags.StringVarP(
 		&options.ConfigFile,
@@ -51,10 +65,23 @@ func newRootCmd(args []string) *cobra.Command {
 		"specify manifest (YAML) file or a URL")
 
 	flags.StringVar(
+		&rootOpts.LogOpts.Level,
+		"log-level",
+		Default().LogLevel,
+		"Set the log level. [ debug | info | warn | error ]")
+
+	flags.StringVar(
+		&rootOpts.LogOpts.Format,
+		"log-format",
+		Default().LogFormat,
+		"Set the log format. [ text | json ]")
+
+	flags.StringVar(
 		&options.KubeConfigFile,
 		"kubeconfig",
 		Default().KubeConfigFile,
 		"use alternate kube config file")
+
 	flags.StringVar(
 		&options.KubeContext,
 		"kubecontext",
@@ -99,27 +126,31 @@ func newRootCmd(args []string) *cobra.Command {
 	cobraCmd.AddCommand(newVersionCmd(&barrelman.VersionCmd{}))
 
 	flags.Parse(args)
-
-	return cobraCmd
+	return cobraCmd, rootOpts
 }
 
 func Execute() {
-	rootCmd := newRootCmd(os.Args[1:])
+	rootCmd, rootOpts := newRootCmd(os.Args[1:])
+	log.Configure(rootOpts.logSettings()...)
 	if err := rootCmd.Execute(); err != nil {
 		log.Error(err)
 		os.Exit(1)
 	}
 }
 
-func logSettings(args *[]string) []func(*log.Logger) error {
-	ret := []func(*log.Logger) error{}
-	for _, v := range *args {
-		switch v {
-		case "debug", "info", "warn", "error":
-			ret = append(ret, log.OptSetLevel(v))
-		case "JSON":
-			ret = append(ret, log.OptSetJSON())
-		}
+func (rootOpts *RootOpts) logSettings() []func(*log.Logger) error {
+	settings := []func(*log.Logger) error{}
+	// Set log level
+	settings = append(settings, log.OptSetLevel(rootOpts.LogOpts.Level))
+
+	// If log-format has JSON set, configure for JSON
+	switch rootOpts.LogOpts.Format {
+	case "json":
+		settings = append(settings, log.OptSetJSON())
+	case "text":
+	default:
+		log.Error(errors.New("--log-format must be [text | json]"))
+		os.Exit(1)
 	}
-	return ret
+	return settings
 }

@@ -8,7 +8,6 @@ import (
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
 	"github.com/charter-oss/barrelman/pkg/cluster"
-	"github.com/cirrocloud/structured/log"
 )
 
 func newDeleteCmd(cmd *barrelman.DeleteCmd) *cobra.Command {
@@ -33,9 +32,11 @@ func newDeleteCmd(cmd *barrelman.DeleteCmd) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
-
-			cmd.Options.ManifestFile = args[0]
-			log.Configure(logSettings(cmd.LogOptions)...)
+			if len(args) > 0 {
+				cmd.Options.ManifestFile = args[0]
+			}
+			cobraCmd.SilenceUsage = true
+			cobraCmd.SilenceErrors = true
 			session := cluster.NewSession(
 				cmd.Options.KubeContext,
 				cmd.Options.KubeConfigFile)

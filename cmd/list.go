@@ -8,7 +8,6 @@ import (
 
 	"github.com/charter-oss/barrelman/pkg/barrelman"
 	"github.com/charter-oss/barrelman/pkg/cluster"
-	"github.com/cirrocloud/structured/log"
 )
 
 func newListCmd(cmd *barrelman.ListCmd) *cobra.Command {
@@ -34,8 +33,8 @@ func newListCmd(cmd *barrelman.ListCmd) *cobra.Command {
 			if len(args) > 0 {
 				cmd.ManifestName = args[0]
 			}
-
-			log.Configure(logSettings(cmd.LogOptions)...)
+			cobraCmd.SilenceUsage = true
+			cobraCmd.SilenceErrors = true
 			session := cluster.NewSession(
 				cmd.Options.KubeContext,
 				cmd.Options.KubeConfigFile)

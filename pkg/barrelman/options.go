@@ -6,6 +6,7 @@ type CmdOptions struct {
 	KubeConfigFile string
 	KubeContext    string
 	DataDir        string
+	LogLevel       string
 	DryRun         bool
 	Diff           bool
 	NoSync         bool
