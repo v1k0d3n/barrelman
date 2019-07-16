@@ -8,7 +8,7 @@ require (
 	github.com/chai2010/gettext-go v0.0.0-20170215093142-bf70f2a70fb1 // indirect
 	github.com/charter-oss/structured v0.0.0-20190211172727-b8be75e216c8
 	github.com/cirrocloud/structured v0.0.0-20190625205140-0f74df84e711
-	github.com/cirrocloud/yamlpack v0.0.1
+	github.com/cirrocloud/yamlpack v0.0.2-0.20190712210154-59110ca39f4d
 	github.com/coreos/bbolt v1.3.2 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e // indirect
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
@@ -43,7 +43,6 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
-	github.com/jtolds/gls v0.0.0-20181110203027-b4936e06046b // indirect
 	github.com/lithammer/dedent v1.1.0
 	github.com/mattn/go-colorable v0.0.9 // indirect
 	github.com/mattn/go-isatty v0.0.4 // indirect
@@ -62,7 +61,7 @@ require (
 	github.com/prometheus/procfs v0.0.0-20190208162519-de1b801bf34b // indirect
 	github.com/russross/blackfriday v1.5.2 // indirect
 	github.com/smartystreets/assertions v0.0.0-20190401211740-f487f9de1cd3 // indirect
-	github.com/smartystreets/goconvey v0.0.0-20170602164621-9e8dc3f972df
+	github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a
 	github.com/soheilhy/cmux v0.1.4 // indirect
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.3.2-0.20190315063904-3954e415200e
@@ -106,4 +105,4 @@ require (
 	vbom.ml/util v0.0.0-20180919145318-efcd4e0f9787 // indirect
 )
 
-replace github.com/spf13/viper => ../../demond2/viper
+replace github.com/spf13/viper => ./vendor-custom/github.com/demond2/viper
