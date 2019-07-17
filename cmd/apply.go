@@ -31,7 +31,6 @@ func newApplyCmd(cmd *barrelman.ApplyCmd) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
-
 			cmd.Options.ManifestFile = args[0]
 
 			cobraCmd.SilenceUsage = true

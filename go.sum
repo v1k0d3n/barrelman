@@ -28,6 +28,8 @@ github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 h1:xJ4a3vCFaGF/jqvzLM
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/chai2010/gettext-go v0.0.0-20170215093142-bf70f2a70fb1 h1:HD4PLRzjuCVW79mQ0/pdsalOLHJ+FaEoqJLxfltpb2U=
 github.com/chai2010/gettext-go v0.0.0-20170215093142-bf70f2a70fb1/go.mod h1:/iP1qXHoty45bqomnu2LM+VVyAEdWN+vtSHGlQgyxbw=
+github.com/charter-oss/structured v0.0.0-20190211172727-b8be75e216c8 h1:XhT3MVlDeE3TJZqmtDxvqfqDE5IQbYoUTjjBB1w+3Xw=
+github.com/charter-oss/structured v0.0.0-20190211172727-b8be75e216c8/go.mod h1:kDuVjY3e2xqA1m/Q30ZRs9YrfMJ3jvDGoK/WRl6rAz0=
 github.com/cirrocloud/structured v0.0.0-20190625205140-0f74df84e711 h1:Q7duQh6C1pgzvw/tZ8lCgy5S8hSyWqTKjC9c5y50F5I=
 github.com/cirrocloud/structured v0.0.0-20190625205140-0f74df84e711/go.mod h1:sXXG92/1vGOuYGuAoMhA0ZrwlZMN26aojTclmONtd+g=
 github.com/cirrocloud/yamlpack v0.0.2-0.20190712210154-59110ca39f4d h1:hgpungtY6zR/REOpSecQKX4DWc87nf3wXIr/AX9yU+g=
