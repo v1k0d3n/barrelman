@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"errors"
 	"os"
 	"strings"
 
+	"github.com/cirrocloud/structured/errors"
 	"github.com/lithammer/dedent"
 	"github.com/spf13/cobra"
 
@@ -133,7 +133,7 @@ func Execute() {
 	rootCmd, rootOpts := newRootCmd(os.Args[1:])
 	log.Configure(rootOpts.logSettings()...)
 	if err := rootCmd.Execute(); err != nil {
-		log.Error(err)
+		log.Error(errors.Wrap(err, "Please provide the missing argument(s)"))
 		os.Exit(1)
 	}
 }
