@@ -17,7 +17,7 @@ func newConfigInitCmd() *cobra.Command {
 
 			defaultConfig := Default().ConfigFile
 			if initConfig(defaultConfig) != nil {
-				fmt.Println("Errror initializing config!")
+				fmt.Println("Error initializing config!")
 			}
 
 		},
@@ -31,7 +31,7 @@ func initConfig(configFilePath string) error {
 	var initData = `
 account:
   default:
-    type: type
+    typ: type
     user: test
     secret: test
 `

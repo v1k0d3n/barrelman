@@ -25,7 +25,7 @@ type ArchiveConfig struct {
 }
 
 type Account struct {
-	Typ    string
+	Type    string
 	User   string
 	Secret string
 }
