@@ -19,7 +19,7 @@ func fullPath() string {
 
 func WaitForPodsToBeInRunningState(manifestNS string, expectedPodCount int) error {
 	tStart := time.Now()
-	fmt.Fprint(os.Stdout, "Waiting for atmost 120seconds for the pods to get into 'Running' state'")
+	fmt.Fprintln(os.Stdout, "Waiting for atmost 120 seconds for the pods to get into 'Running' state")
 	for {
 		tProgress := time.Now()
 		out, err := exec.Command("kubectl", "-n", manifestNS, "get", "pods", "|", "grep", "Running", "|", "wc", "-l").CombinedOutput()
