@@ -11,6 +11,7 @@ import (
 
 func newConfigInitCmd() *cobra.Command {
 	return &cobra.Command{
+
 		Use:   "init",
 		Short: "Initializes barrelman config, creates default config under $USER/.barrelman/config",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -19,7 +20,7 @@ func newConfigInitCmd() *cobra.Command {
 			if initConfig(defaultConfig) != nil {
 				fmt.Println("Error initializing config!")
 			}
-
+			fmt.Println("Config Initialized!")
 		},
 	}
 }
