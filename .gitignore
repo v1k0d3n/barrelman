@@ -1,4 +1,5 @@
 .vscode
+.idea
 
 /barrelman
 barrelman-latest-linux-amd64

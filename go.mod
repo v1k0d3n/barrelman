@@ -100,7 +100,7 @@ require (
 	k8s.io/kube-openapi v0.0.0-20181114233023-0317810137be // indirect
 	k8s.io/kubernetes v1.13.1 // indirect
 	k8s.io/utils v0.0.0-20180907001310-011bbbe3b287 // indirect
-	sigs.k8s.io/yaml v1.1.0 // indirect
+	sigs.k8s.io/yaml v1.1.0
 	vbom.ml/util v0.0.0-20180919145318-efcd4e0f9787 // indirect
 )
 

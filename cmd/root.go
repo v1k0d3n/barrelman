@@ -123,6 +123,11 @@ func newRootCmd(args []string) (*cobra.Command, *RootOpts) {
 		Config:  config,
 	}))
 
+	cobraCmd.AddCommand(newConfigCmd(&barrelman.ConfigCmd{
+		Options:    options,
+		Config:     config,
+	}))
+
 	cobraCmd.AddCommand(newVersionCmd(&barrelman.VersionCmd{}))
 
 	flags.Parse(args)
