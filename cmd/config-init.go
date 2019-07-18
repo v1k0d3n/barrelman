@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-	"github.com/charter-oss/barrelman/pkg/barrelman"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"log"
@@ -12,36 +10,47 @@ import (
 func newConfigInitCmd() *cobra.Command {
 	return &cobra.Command{
 
-		Use:   "init",
-		Short: "Initializes barrelman config, creates default config under $USER/.barrelman/config",
+		Use:   "barrelman config init",
+		Short: "Initializes a default Barrelman config file in $USER/.barrelman/config",
+		Long: "The config init command will create a new Barrelman config file in the Barrelman home directory with default values. " +
+			"After running init, the user can update this file to set global default config for Barrelman.",
 		Run: func(cmd *cobra.Command, args []string) {
-
 			defaultConfig := Default().ConfigFile
 			if initConfig(defaultConfig) != nil {
-				fmt.Println("Error initializing config!")
+				log.Fatal("Error initializing config!")
 			}
-			fmt.Println("Config Initialized!")
+			log.Print("Config Initialized!")
 		},
 	}
 }
 
 //Initializes barrelman config to a default location specified in defaults.go
 func initConfig(configFilePath string) error {
-	c := barrelman.Config{}
-	const permissions = 0644
-	var initData = `
-account:
-  default:
-    typ: type
-    user: test
-    secret: test
-`
-	err := yaml.Unmarshal([]byte(initData), &c)
-	if err != nil {
-		fmt.Printf("Unmarshal: %v", err)
+
+	type Account struct {
+		Type   string
+		User   string
+		Secret string
 	}
 
-	d, err := yaml.Marshal(c)
+	type Config struct {
+		Accounts map[string]Account
+	}
+
+	config := Config{
+		Accounts: map[string]Account{
+			"default": {
+				Type:   "type",
+				User:   "user",
+				Secret: "secret",
+			},
+		},
+	}
+
+	//c := barrelman.Config{}
+	const permissions = 0644
+
+	d, err := yaml.Marshal(config)
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}

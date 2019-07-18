@@ -2,10 +2,8 @@ package barrelman
 
 import (
 	"fmt"
-	"github.com/charter-oss/barrelman/pkg/cluster"
-	"github.com/charter-oss/barrelman/pkg/manifest"
 	"github.com/charter-oss/barrelman/pkg/version"
-	"github.com/charter-oss/structured/log"
+	"github.com/cirrocloud/structured/log"
 	"io"
 	"os"
 	"regexp"
@@ -128,80 +126,11 @@ func (config *Config) LoadAcc(b *BarrelmanConfig) (*Config, error) {
 	return config, nil
 }
 
-/*
-func (cmd *ConfigCmd) Run(KubeConfig string) error {
 
-	ver := version.Get()
-	log.WithFields(log.Fields{
-		"Version": ver.Version,
-		"Commit":  ver.Commit,
-		"Branch":  ver.Branch,
-	}).Info("Barrelman")
+func (cmd *ConfigCmd) Run(defaultConfig string) {
 
-	config, err := GetConfigFromFile(KubeConfig)
-	if err != nil {
-		return fmt.Errorf("ERROR %v", err)
-	}
-	fmt.Print("Config is: ", config)
-	return nil
-}
-*/
+	log.Info("Using barrelman config: ", defaultConfig)
 
-func (cmd *ConfigCmd) Run(session cluster.Sessioner) error {
-	var err error
-
-	ver := version.Get()
-	log.WithFields(log.Fields{
-		"Version": ver.Version,
-		"Commit":  ver.Commit,
-		"Branch":  ver.Branch,
-	}).Info("Barrelman")
-
-	println(cmd.Options.ConfigFile)
-	cmd.Config, err = GetConfigFromFile(cmd.Options.ConfigFile)
-	if err != nil {
-		return errors.Wrap(err, "got error while loading config")
-	}
-
-	if err := ensureWorkDir(cmd.Options.DataDir); err != nil {
-		return errors.Wrap(err, "failed to create working directory")
-	}
-
-	if err = session.Init(); err != nil {
-		return errors.Wrap(err, "failed to create new cluster session")
-	}
-
-	if session.GetKubeConfig() != "" {
-		log.WithFields(log.Fields{
-			"file": session.GetKubeConfig(),
-		}).Info("Using kube config")
-	}
-	if session.GetKubeContext() != "" {
-		log.WithFields(log.Fields{
-			"file": session.GetKubeContext(),
-		}).Info("Using kube context")
-	}
-
-	// Open and initialize the manifest
-	mfest, err := manifest.New(&manifest.Config{
-		DataDir:      cmd.Options.DataDir,
-		ManifestFile: cmd.Options.ManifestFile,
-		AccountTable: cmd.Config.Account,
-	})
-	if err != nil {
-		return errors.Wrap(err, "error while initializing manifest")
-	}
-
-	if !cmd.Options.NoSync {
-		if err := mfest.Sync(); err != nil {
-			return errors.Wrap(err, "error while downloading charts")
-		}
-	}
-
-	if _, err := getConfig("test"); err != nil {
-		return errors.Wrap(err, "failed to get config")
-	}
-	return nil
 }
 func toBarrelmanConfig(s string, r io.Reader) (*BarrelmanConfig, error) {
 	barrelConfig := &BarrelmanConfig{FilePath: s}
