@@ -10,7 +10,7 @@ import (
 func newConfigInitCmd() *cobra.Command {
 	return &cobra.Command{
 
-		Use:   "barrelman config init",
+		Use:   "init",
 		Short: "Initializes a default Barrelman config file in $USER/.barrelman/config",
 		Long: "The config init command will create a new Barrelman config file in the Barrelman home directory with default values. " +
 			"After running init, the user can update this file to set global default config for Barrelman.",
@@ -47,7 +47,6 @@ func initConfig(configFilePath string) error {
 		},
 	}
 
-	//c := barrelman.Config{}
 	const permissions = 0644
 
 	d, err := yaml.Marshal(config)

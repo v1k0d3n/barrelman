@@ -2,7 +2,6 @@ package barrelman
 
 import (
 	"fmt"
-	"github.com/charter-oss/barrelman/pkg/version"
 	"github.com/cirrocloud/structured/log"
 	"io"
 	"os"
