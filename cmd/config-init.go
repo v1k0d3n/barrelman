@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"log"
+	"os"
 	"sigs.k8s.io/yaml"
 )
 
@@ -49,14 +50,23 @@ func initConfig(configFilePath string) error {
 
 	const permissions = 0644
 
+
 	d, err := yaml.Marshal(config)
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
 
-	err = ioutil.WriteFile(configFilePath, d, permissions)
-	if err != nil {
-		log.Fatal(err)
+	//if File doesn't exists
+	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
+		// path/to/whatever does not exist
+		err = ioutil.WriteFile(configFilePath, d, permissions)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return nil
+	} else {
+		log.Fatalf("File already exists!")
 	}
+
 	return nil
 }
