@@ -17,7 +17,7 @@ type Config struct {
 
 func newConfigCmd(cmd *barrelman.ConfigCmd) *cobra.Command {
 	cobraCmd := &cobra.Command{
-		Use:   "config view",
+		Use:   "config",
 		Short: "View the active Barrelman config file.",
 		Long:  `View the active Barrelman config file.`,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
