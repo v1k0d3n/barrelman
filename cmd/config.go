@@ -5,6 +5,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type Account struct {
+	Type   string
+	User   string
+	Secret string
+}
+
+type Config struct {
+	Accounts map[string]Account
+}
+
 func newConfigCmd(cmd *barrelman.ConfigCmd) *cobra.Command {
 	cobraCmd := &cobra.Command{
 		Use:   "config view",

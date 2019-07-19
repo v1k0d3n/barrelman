@@ -28,16 +28,6 @@ func newConfigInitCmd() *cobra.Command {
 //Initializes barrelman config to a default location specified in defaults.go
 func initConfig(configFilePath string) error {
 
-	type Account struct {
-		Type   string
-		User   string
-		Secret string
-	}
-
-	type Config struct {
-		Accounts map[string]Account
-	}
-
 	config := Config{
 		Accounts: map[string]Account{
 			"default": {
@@ -47,18 +37,14 @@ func initConfig(configFilePath string) error {
 			},
 		},
 	}
-
 	const permissions = 0644
-
 
 	d, err := yaml.Marshal(config)
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
 
-	//if File doesn't exists
 	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
-		// path/to/whatever does not exist
 		err = ioutil.WriteFile(configFilePath, d, permissions)
 		if err != nil {
 			log.Fatal(err)
