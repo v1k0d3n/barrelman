@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -9,9 +8,9 @@ import (
 )
 
 type Account struct {
-	Secret string `yaml:"Secret"`
-	Type   string `yaml:"Type"`
-	User   string `yaml:"User"`
+	Secret string `yaml:"secret"`
+	Type   string `yaml:"type"`
+	User   string `yaml:"user"`
 }
 type Accounts map[string]Account
 
@@ -33,7 +32,7 @@ func newConfigViewCmd() *cobra.Command {
 				log.Fatalf("Unmarshal: %v", err)
 			}
 			b, _ := yaml.Marshal(c)
-			fmt.Print(string(b))
+			log.Print(string(b))
 		},
 	}
 }
