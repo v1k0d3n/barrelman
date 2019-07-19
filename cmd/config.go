@@ -24,6 +24,7 @@ func newConfigCmd(cmd *barrelman.ConfigCmd) *cobra.Command {
 	}
 
 	cobraCmd.AddCommand(newConfigInitCmd())
+	cobraCmd.AddCommand(newConfigViewCmd())
 
 	return cobraCmd
 }
