@@ -30,7 +30,7 @@ build:
 	$(GOBUILD) -ldflags "$(LDFLAGS)" -o $(BINARY_NAME) -v
 
 test:
-	ACC_TEST_FLAG=${BM_TEST_E2E:""}
+	BM_TEST_E2E=${BM_TEST_E2E:""}
 	if [ ${BM_TEST_E2E} == "true" ]; then $(GOTEST) ./e2e/ -v; else $(GOTEST) -v ./...; fi
 
 clean:
