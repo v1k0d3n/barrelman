@@ -1,5 +1,29 @@
 # Charts are the definition of how an application component is deployed.
 # They determine which Helm chart is used and contain value overrides for the underlying Helm chart.
+
+# ChartGroups are a logical grouping of required application components.
+# An example would be to define a ChartGroup for the main application services and a ChartGroup for
+# the shared platform services like databases.
+---
+schema: armada/ChartGroup/v1
+metadata:
+  schema: metadata/Document/v1
+  name: application-group
+data:
+  description: "Application services for Barrelman quick start example."
+  sequenced: True
+  chart_group:
+    - example-go-web-service
+---
+# Manifest is the top level container for the components that compose the application
+schema: armada/Manifest/v1
+metadata:
+  schema: metadata/Document/v1
+  name: application-group 
+data:
+  release_prefix: armada
+  chart_groups:
+    - application-group
 ---
 schema: armada/Chart/v1
 metadata:
@@ -13,7 +37,7 @@ data:
   wait:
     timeout: 60
     labels:
-      release_group: example-go-web-service
+      release_group: application-group
   install:
     no_hooks: false
   upgrade:
@@ -26,29 +50,6 @@ data:
     replicaCount: 1
   source:
     type: git
-    location: https://github.com/cirrocloud/example-go-web-service.git
+    location: https://github.com/cirrocloud/example-go-web-service
     subpath: charts/example-go-web-service
-    reference: v1.0.0
-# ChartGroups are a logical grouping of required application components.
-# An example would be to define a ChartGroup for the main application services and a ChartGroup for
-# the shared platform services like databases.
----
-schema: armada/ChartGroup/v1
-metadata:
-  schema: metadata/Document/v1
-  name: application-group
-data:
-  description: Application services for Barrelman quick start example.
-  sequenced: True
-  chart_group:
-    - example-go-web-service
-# Manifest is the top level container for the components that compose the application
----
-schema: armada/Manifest/v1
-metadata:
-  schema: metadata/Document/v1
-  name: example-go-web-service
-data:
-  release_prefix: armada
-  chart_groups:
-    - application-group
+    reference: master
