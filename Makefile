@@ -33,6 +33,8 @@ test:
 	BM_TEST_E2E=${BM_TEST_E2E:""}
 	if [ ${BM_TEST_E2E} == "true" ]; then $(GOTEST) ./e2e/ -v; else $(GOTEST) -v ./...; fi
 
+acc:
+	$(GOTEST) ./e2e/ -v
 clean:
 	$(GOCLEAN)
 	rm -f $(BINARY_NAME)

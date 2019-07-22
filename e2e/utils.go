@@ -5,7 +5,8 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"time"
+	"strings"
+	"strconv"
 )
 
 func fullPath() string {
@@ -18,23 +19,21 @@ func fullPath() string {
 }
 
 func WaitForPodsToBeInRunningState(manifestNS string, expectedPodCount int) error {
-	tStart := time.Now()
 	fmt.Fprintln(os.Stdout, "Waiting for atmost 120 seconds for the pods to get into 'Running' state")
+	expectedPodCount = expectedPodCount+1
 	for {
-		tProgress := time.Now()
-		out, err := exec.Command("kubectl", "-n", manifestNS, "get", "pods", "|", "grep", "Running", "|", "wc", "-l").CombinedOutput()
-		time.Sleep(100 * time.Millisecond)
-		fmt.Fprint(os.Stdout, ".")
-		if string(out) == string(expectedPodCount) {
-			fmt.Fprint(os.Stdout, "Pod is/are in 'Running' state after performing 'barrelman apply'")
+		kubecmd := "kubectl get pods -n " + manifestNS + " --field-selector status.phase=Running"
+		countcmd := kubecmd + "| wc -l"
+		out, _ := exec.Command("/bin/bash", "-c", kubecmd).CombinedOutput()
+		fmt.Fprintln(os.Stdout, string(out))
+		expectedString := strconv.Itoa(expectedPodCount)
+		fmt.Fprintln(os.Stdout, "Expected Pod Count:", expectedString)
+		outCount, _ := exec.Command("/bin/bash", "-c", countcmd).CombinedOutput()
+		outString := string(outCount)
+		fmt.Fprintln(os.Stdout, "Actual Pod Count:", outString)
+		if strings.Contains(outString, expectedString) {
+			fmt.Fprintln(os.Stdout, "Pod is/are in 'Running' state after performing 'barrelman apply'")
 			break
-		}
-		if err != nil {
-			return err
-		}
-		elapsed := tProgress.Sub(tStart)
-		if elapsed > 12000 {
-			log.Panic("Timed out to list the pod after the barrelman manifest is applied")
 		}
 	}
 	return nil

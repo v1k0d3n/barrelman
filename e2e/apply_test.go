@@ -24,7 +24,8 @@ func TestBarrelmanCommand(t *testing.T) {
 
 	Convey("Barrelman Apply:", t, func() {
 		Convey("Test on Sample Manifest", func() {
-			out, err := exec.Command(barrelmanPath+"/../barrelman", "apply", "./testdata/manifest.yaml").CombinedOutput()
+			os.Chdir("testdata")
+			out, err := exec.Command(barrelmanPath+"/../barrelman", "apply", "manifest.yaml").CombinedOutput()
 			So(err, ShouldBeNil)
 			So(string(out), ShouldContainSubstring, "Barrelman")
 			fmt.Fprintln(os.Stdout, string(out))
@@ -36,7 +37,7 @@ func TestBarrelmanCommand(t *testing.T) {
 		})
 
 		Convey("Test On Sample Updated Manifest With Increased Number Of Replicas", func() {
-			out, err := exec.Command(barrelmanPath+"/../barrelman", "apply", "./testdata/manifest_update.yaml").CombinedOutput()
+			out, err := exec.Command(barrelmanPath+"/../barrelman", "apply", "manifest_update.yaml").CombinedOutput()
 			So(err, ShouldBeNil)
 			So(string(out), ShouldContainSubstring, "Barrelman")
 			fmt.Fprintln(os.Stdout, string(out))
