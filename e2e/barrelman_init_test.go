@@ -14,7 +14,6 @@ func TestAccBarrelmanVersion(t *testing.T) {
 		out, err := exec.Command(barrelmanPath+"/../barrelman", "version").CombinedOutput()
 		So(err, ShouldBeNil)
 		So(string(out), ShouldContainSubstring, "Barrelman")
-		t.Log(string(out))
 	})
 
 }
