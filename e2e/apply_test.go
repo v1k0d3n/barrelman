@@ -10,32 +10,27 @@ import (
 
 func TestAccBarrelmanApplyCommand(t *testing.T) {
 	podNS := "example-go-web-service"
-	//podName := "example-go-web-service"
 	podCount := 1
 	updatedPodCount := 3
 	barrelmanPath, _ := os.Getwd()
-	Convey("Testing using Sample Manifest", t, func() {
+	Convey("Testing Using Sample Manifest", t, func() {
 		os.Chdir("testdata")
 		out, err := exec.Command(barrelmanPath+"/../barrelman", "apply", "manifest.yaml").CombinedOutput()
 		So(err, ShouldBeNil)
 		So(string(out), ShouldContainSubstring, "Barrelman")
-		t.Log(string(out))
 	})
 
-	Convey("Checking Pod Status", t, func() {
-		So(WaitForPodsToBeInRunningState(podNS, podCount), ShouldBeNil)
-		t.Log("Pods are in running state")
+	Convey("Testing If Applied Pod Is Running", t, func() {
+		So(WaitForPodsRunningState(podNS, podCount), ShouldBeNil)
 	})
 
-	Convey("Testing With The Increased Number Of Replicas", t, func() {
+	Convey("Testing Apply With The Updated Manifest By Increasing Number Of Replicas", t, func() {
 		out, err := exec.Command(barrelmanPath+"/../barrelman", "apply", "manifest_update.yaml").CombinedOutput()
 		So(err, ShouldBeNil)
 		So(string(out), ShouldContainSubstring, "Barrelman")
-		t.Log(string(out))
 	})
 
-	Convey("Checking Number Of Pods As Per The Updated Manifest", t, func() {
-		So(WaitForPodsToBeInRunningState(podNS, updatedPodCount), ShouldBeNil)
-		t.Log("Pods are in running state")
+	Convey("Testing If The Applied New Pods Of The Updated Manifest Are In Running State", t, func() {
+		So(WaitForPodsRunningState(podNS, updatedPodCount), ShouldBeNil)
 	})
 }

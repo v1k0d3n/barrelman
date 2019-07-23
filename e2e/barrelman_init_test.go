@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"testing"
@@ -14,6 +13,5 @@ func TestAccBarrelmanAppInit(t *testing.T) {
                 out, err := exec.Command(barrelmanPath+"/../../barrelman", "version").CombinedOutput()
                 So(err, ShouldBeNil)
                 So(string(out), ShouldContainSubstring, "Barrelman")
-                fmt.Fprintln(os.Stdout, string(out))
         })
 }

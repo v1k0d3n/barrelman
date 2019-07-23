@@ -30,12 +30,11 @@ build:
 	$(GOBUILD) -ldflags "$(LDFLAGS)" -o $(BINARY_NAME) -v
 
 test:
-	BM_TEST_E2E=${BM_TEST_E2E:""}
-	if [ ${BM_TEST_E2E} == "true" ]; then $(GOTEST) ./e2e/ -v; else $(GOTEST) -v ./...; fi
+	$(GOTEST) -v ./... -run="!TestAcc*"
 
 testacc:
-	echo "Set kubectl in PATH before running acceptance tests\\n"
-	$(GOTEST) ./e2e/ -v
+	$(GOTEST) ./e2e -v
+
 clean:
 	$(GOCLEAN)
 	rm -f $(BINARY_NAME)

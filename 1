@@ -1,9 +1,9 @@
 package e2e
 
 import (
+	"fmt"
 	"log"
 	"os/exec"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -16,7 +16,9 @@ func WaitForPodsRunningState(manifestNS string, expectedPodCount int) error {
 		if err != nil {
 			return err
 		}
-		if strings.Compare(strconv.Itoa(expectedPodCount), strings.TrimSpace(string(outCount))) == 0 {
+		fmt.Fprintln(os.Stdout, string(expectedPodCount))
+		fmt.Fprintln(os.Stdout, string(outCount))
+		if strings.Compare(string(expectedPodCount), string(outCount)) == 0 {
 			break
 		}
 		timeout(now, 20, "waiting for pods to result in Running State")
