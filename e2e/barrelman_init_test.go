@@ -8,7 +8,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestBarrelmanAppInit(t *testing.T) {
+func TestAccBarrelmanAppInit(t *testing.T) {
 	barrelmanPath, _ := os.Getwd()
 	Convey("Barrelman Binary Exists", t, func() {
                 out, err := exec.Command(barrelmanPath+"/../../barrelman", "version").CombinedOutput()
