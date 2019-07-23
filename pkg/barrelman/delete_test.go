@@ -47,8 +47,8 @@ func TestDeleteRun(t *testing.T) {
 		Convey("Should error on manifest file not found", func() {
 			delCmd.Options.ManifestFile = "testdata/nofile"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(delCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(delCmd.Options.KubeContext)
+			session.On("GetKubeConfig").Return(delCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(delCmd.Options.KubeContext).Maybe()
 			err := delCmd.Run(session)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "nofile")
@@ -58,8 +58,8 @@ func TestDeleteRun(t *testing.T) {
 		Convey("Should successfuly error during sync", func() {
 			delCmd.Options.ManifestFile = "testdata/repo-not-exist.yaml"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(delCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(delCmd.Options.KubeContext)
+			session.On("GetKubeConfig").Return(delCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(delCmd.Options.KubeContext).Maybe()
 			err := delCmd.Run(session)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "repository does not exist")
@@ -69,8 +69,8 @@ func TestDeleteRun(t *testing.T) {
 		Convey("Should successfuly handle error in ListReleases()", func() {
 			delCmd.Options.ManifestFile = "testdata/file-test-manifest.yaml"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(delCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(delCmd.Options.KubeContext)
+			session.On("GetKubeConfig").Return(delCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(delCmd.Options.KubeContext).Maybe()
 			session.On("ListReleases").Return([]*cluster.Release{}, errors.New("simulated"))
 			err := delCmd.Run(session)
 			So(err, ShouldNotBeNil)
@@ -81,8 +81,8 @@ func TestDeleteRun(t *testing.T) {
 		Convey("Should successfuly handle error in DeleteByManifest()", func() {
 			delCmd.Options.ManifestFile = "testdata/file-test-manifest.yaml"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(delCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(delCmd.Options.KubeContext)
+			session.On("GetKubeConfig").Return(delCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(delCmd.Options.KubeContext).Maybe()
 			session.On("ListReleases").Return([]*cluster.Release{&cluster.Release{
 				ReleaseName: "storage-minio",
 			}}, nil)
@@ -97,8 +97,8 @@ func TestDeleteRun(t *testing.T) {
 		Convey("Should complete without error", func() {
 			delCmd.Options.ManifestFile = "testdata/file-test-manifest.yaml"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(delCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(delCmd.Options.KubeContext)
+			session.On("GetKubeConfig").Return(delCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(delCmd.Options.KubeContext).Maybe()
 			session.On("ListReleases").Return([]*cluster.Release{&cluster.Release{
 				ReleaseName: "storage-minio",
 			}}, nil)

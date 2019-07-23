@@ -25,7 +25,7 @@ func (cmd *ListCmd) Run(session cluster.Sessioner) error {
 		return errors.Wrap(err, "got error while loading config")
 	}
 
-	log.Rep(session).Debug("connecting to cluster")
+	log.Debug("connecting to cluster")
 	if err := session.Init(); err != nil {
 		return errors.Wrap(err, "failed to create new cluster session")
 	}

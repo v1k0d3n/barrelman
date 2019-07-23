@@ -10,7 +10,7 @@ func TestNewRootCmd(t *testing.T) {
 	Convey("newRootCmd", t, func() {
 		Convey("Can succeed", func() {
 			cmd, _ := newRootCmd([]string{})
-			So(cmd.Name(), ShouldEqual, "")
+			So(cmd.Name(), ShouldEqual, "barrelman")
 		})
 	})
 }

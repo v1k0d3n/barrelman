@@ -45,8 +45,8 @@ func TestRollbackCmd(t *testing.T) {
 		})
 		Convey("this", func() {
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(rollbackCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(rollbackCmd.Options.KubeContext)
+			session.On("GetKubeConfig").Return(rollbackCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(rollbackCmd.Options.KubeContext).Maybe()
 			session.On("GetVersions", rollbackCmd.ManifestName).Return(&cluster.Versions{}, nil)
 			session.On("NewTransaction", rollbackCmd.ManifestName).Return(mockTransaction, nil)
 			mockTransaction.On("Cancel").Return(nil)

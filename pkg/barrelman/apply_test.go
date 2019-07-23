@@ -51,8 +51,8 @@ func TestApplyRun(t *testing.T) {
 		Convey("Should error on manifest file not found", func() {
 			applyCmd.Options.ManifestFile = "testdata/nofile"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext)
+			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext).Maybe()
 			err := applyCmd.Run(session)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "nofile")
@@ -61,8 +61,8 @@ func TestApplyRun(t *testing.T) {
 		Convey("Should successfuly error during sync", func() {
 			applyCmd.Options.ManifestFile = "testdata/repo-not-exist.yaml"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext)
+			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext).Maybe()
 			err := applyCmd.Run(session)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "repository does not exist")
@@ -72,8 +72,8 @@ func TestApplyRun(t *testing.T) {
 		Convey("Should successfuly handle error in ListReleases()", func() {
 			applyCmd.Options.ManifestFile = "testdata/dir-test-manifest.yaml"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext)
+			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext).Maybe()
 			session.On("ReleasesByManifest", mock.AnythingOfType("string")).Return(nil, errors.New("simulated"))
 			session.On("NewTransaction", mock.AnythingOfType("string")).Return(transaction, nil)
 			err := applyCmd.Run(session)
@@ -86,8 +86,8 @@ func TestApplyRun(t *testing.T) {
 			applyCmd.Options.ManifestFile = "testdata/dir-test-manifest.yaml"
 			applyCmd.Options.Diff = true
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext)
+			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext).Maybe()
 			session.On("ReleasesByManifest", mock.AnythingOfType("string")).Return(map[string]*cluster.ReleaseMeta{
 				"storage-minio": &cluster.ReleaseMeta{
 					Chart: &chart.Chart{
@@ -131,8 +131,8 @@ func TestApplyRun(t *testing.T) {
 		Convey("Should handle failure on Releases()", func() {
 			applyCmd.Options.ManifestFile = "testdata/dir-test-manifest.yaml"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext)
+			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext).Maybe()
 			session.On("ReleasesByManifest", mock.AnythingOfType("string")).Return(map[string]*cluster.ReleaseMeta{
 				"storage-minio": &cluster.ReleaseMeta{
 					Chart: &chart.Chart{
@@ -152,8 +152,8 @@ func TestApplyRun(t *testing.T) {
 		Convey("Should handle failure on ChartFromArchive()", func() {
 			applyCmd.Options.ManifestFile = "testdata/dir-test-manifest.yaml"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext)
+			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext).Maybe()
 			session.On("ReleasesByManifest", mock.AnythingOfType("string")).Return(map[string]*cluster.ReleaseMeta{
 				"storage-minio": &cluster.ReleaseMeta{
 					Chart: &chart.Chart{
@@ -181,8 +181,8 @@ func TestApplyRun(t *testing.T) {
 		Convey("Should handle failure to install release", func() {
 			applyCmd.Options.ManifestFile = "testdata/dir-test-manifest.yaml"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext)
+			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext).Maybe()
 			session.On("ReleasesByManifest", mock.AnythingOfType("string")).Return(map[string]*cluster.ReleaseMeta{
 				"storage-minio": &cluster.ReleaseMeta{
 					Chart: &chart.Chart{
@@ -228,8 +228,8 @@ func TestApplyRun(t *testing.T) {
 		Convey("Should succeed", func() {
 			applyCmd.Options.ManifestFile = "testdata/dir-test-manifest.yaml"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext)
+			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext).Maybe()
 			session.On("ReleasesByManifest", mock.AnythingOfType("string")).Return(map[string]*cluster.ReleaseMeta{
 				"storage-minio": &cluster.ReleaseMeta{
 					Chart: &chart.Chart{

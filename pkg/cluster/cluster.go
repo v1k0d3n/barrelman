@@ -23,11 +23,9 @@ import (
 
 	"github.com/cirrocloud/structured/errors"
 	"github.com/cirrocloud/structured/log"
-	"github.com/cirrocloud/structured/report"
 )
 
 type Sessioner interface {
-	report.Reportables
 	Clusterer
 	Releaser
 	Versioner

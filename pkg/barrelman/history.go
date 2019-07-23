@@ -44,7 +44,7 @@ func (cmd *HistoryCmd) Run(session cluster.Sessioner) error {
 		return errors.Wrap(err, "failed to create working directory")
 	}
 
-	log.Rep(session).Debug("connecting to cluster")
+	log.Debug("connecting to cluster")
 	if err = session.Init(); err != nil {
 		return errors.Wrap(err, "failed to create new cluster session")
 	}
