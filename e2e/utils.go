@@ -2,21 +2,11 @@ package e2e
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
 	"strconv"
 )
-
-func fullPath() string {
-	barrelmanPath, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(barrelmanPath)
-	return barrelmanPath
-}
 
 func WaitForPodsToBeInRunningState(manifestNS string, expectedPodCount int) error {
 	fmt.Fprintln(os.Stdout, "Waiting for atmost 120 seconds for the pods to get into 'Running' state")
