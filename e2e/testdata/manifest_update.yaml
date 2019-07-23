@@ -19,7 +19,7 @@ data:
 schema: armada/Manifest/v1
 metadata:
   schema: metadata/Document/v1
-  name: application-group 
+  name: application-group
 data:
   release_prefix: armada
   chart_groups:
