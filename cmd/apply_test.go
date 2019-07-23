@@ -39,7 +39,7 @@ func TestApplyRun(t *testing.T) {
 					NoSync:         true,
 				},
 			}
-			fmt.Println("test")
+
 			session := &mocks.Sessioner{}
 			session.On("Init").Return(errors.New("simulated Init failure")).Once()
 
