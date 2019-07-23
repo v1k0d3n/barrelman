@@ -44,8 +44,8 @@ func TestListCmd(t *testing.T) {
 			listCmd.ManifestName = "testManifest"
 			releases := make(map[string]*cluster.ReleaseMeta)
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(listCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(listCmd.Options.KubeContext)
+			session.On("GetKubeConfig").Return(listCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(listCmd.Options.KubeContext).Maybe()
 			session.On("ReleasesByManifest", mock.Anything).Return(releases, errors.New("simulated"))
 			err := listCmd.Run(session)
 			So(err, ShouldNotBeNil)
@@ -59,8 +59,8 @@ func TestListCmd(t *testing.T) {
 				ReleaseName: "simulated-release",
 			}
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(listCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(listCmd.Options.KubeContext)
+			session.On("GetKubeConfig").Return(listCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(listCmd.Options.KubeContext).Maybe()
 			session.On("ReleasesByManifest", mock.Anything).Return(releases, nil)
 			err := listCmd.Run(session)
 			So(err, ShouldBeNil)

@@ -25,7 +25,7 @@ func TestNewListCmd(t *testing.T) {
 		})
 		Convey("Can fail Run", func() {
 			cmd := newListCmd(&barrelman.ListCmd{
-				Options:    &barrelman.CmdOptions{},
+				Options:    &barrelman.CmdOptions{KubeConfigFile: "fake"},
 				Config:     &barrelman.Config{},
 				LogOptions: &logOpts,
 			})
@@ -75,7 +75,7 @@ func TestListRun(t *testing.T) {
 			session := &mocks.Sessioner{}
 			session.On("Init").Return(nil).Once()
 			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Maybe()
-			session.On("GetKubeContext").Return("").Once()
+			session.On("GetKubeContext").Return("").Maybe()
 			session.On("ReleasesByManifest", mock.Anything).Return(map[string]*cluster.ReleaseMeta{
 				"storage-minio": &cluster.ReleaseMeta{
 					ReleaseName: "storage-minio",
@@ -102,7 +102,7 @@ func TestListRun(t *testing.T) {
 			session := &mocks.Sessioner{}
 			session.On("Init").Return(nil).Once()
 			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Maybe()
-			session.On("GetKubeContext").Return("").Once()
+			session.On("GetKubeContext").Return("").Maybe()
 			session.On("ReleasesByManifest", mock.Anything).Return(map[string]*cluster.ReleaseMeta{
 				"storage-minio": &cluster.ReleaseMeta{
 					ReleaseName: "storage-minio",
