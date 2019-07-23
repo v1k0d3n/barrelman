@@ -33,7 +33,7 @@ test:
 	$(GOTEST) -v ./... -run="!TestAcc*"
 
 testacc:
-	$(GOTEST) ./e2e -v
+	$(GOTEST) -cover -v -count=1 ./e2e/
 
 clean:
 	$(GOCLEAN)
