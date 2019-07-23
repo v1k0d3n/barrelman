@@ -63,7 +63,7 @@ func TestDeleteRun(t *testing.T) {
 			session := &mocks.Sessioner{}
 			session.On("Init").Return(nil).Once()
 			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Maybe()
-			session.On("GetKubeContext").Return("").Once()
+			session.On("GetKubeContext").Return("").Maybe()
 			session.On("ListReleases").Return([]*cluster.Release{
 				&cluster.Release{
 					ReleaseName: "storage-minio",
@@ -96,7 +96,7 @@ func TestDeleteRun(t *testing.T) {
 			session := &mocks.Sessioner{}
 			session.On("Init").Return(nil).Once()
 			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Maybe()
-			session.On("GetKubeContext").Return("").Once()
+			session.On("GetKubeContext").Return("").Maybe()
 			session.On("ListReleases").Return([]*cluster.Release{
 				&cluster.Release{
 					ReleaseName: "storage-minio",
@@ -130,7 +130,7 @@ func TestDeleteRun(t *testing.T) {
 			session := &mocks.Sessioner{}
 			session.On("Init").Return(nil).Once()
 			session.On("GetKubeConfig").Return(c.Options.KubeConfigFile).Maybe()
-			session.On("GetKubeContext").Return("").Once()
+			session.On("GetKubeContext").Return("").Maybe()
 			session.On("ListReleases").Return([]*cluster.Release{
 				&cluster.Release{
 					ReleaseName: "storage-minio",
