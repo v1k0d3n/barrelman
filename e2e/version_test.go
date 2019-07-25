@@ -11,7 +11,7 @@ import (
 func TestAccBarrelmanVersion(t *testing.T) {
 	barrelmanPath, _ := os.Getwd()
 	Convey("When version is run", t, func() {
-		out, err := exec.Command(barrelmanPath+"/../../barrelman", "version").CombinedOutput()
+		out, err := exec.Command(barrelmanPath+"/../barrelman", "version").CombinedOutput()
 		Convey("The output should include Barrelman", func() {
 			So(err, ShouldBeNil)
 			So(string(out), ShouldContainSubstring, "msg=Barrelman")
