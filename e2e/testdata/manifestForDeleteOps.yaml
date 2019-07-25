@@ -10,13 +10,13 @@ data:
   description: "Application services for Barrelman quick start example."
   sequenced: True
   chart_group:
-    - example-go-web-service
+    - example-go-web-service-for-delete
 ---
 # Manifest is the top level container for the components that compose the application
 schema: armada/Manifest/v1
 metadata:
   schema: metadata/Document/v1
-  name: example-go-web-service
+  name: example-go-web-service-for-delete
 data:
   release_prefix: armada
   chart_groups:
@@ -27,11 +27,11 @@ data:
 schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
-  name: example-go-web-service
+  name: example-go-web-service-for-delete
 data:
-  chart_name: example-go-web-service
-  release: example-go-web-service
-  namespace: example-go-web-service
+  chart_name: example-go-web-service-for-delete
+  release: example-go-web-service-for-delete
+  namespace: example-go-web-service-for-delete
   timeout: 60
   wait:
     timeout: 60
@@ -46,7 +46,7 @@ data:
       repository: cirrocloud/example-go-web-service
       tag: v1.0.0
       pullPolicy: IfNotPresent
-    replicaCount: 3
+    replicaCount: 1
   source:
     type: git
     location: https://github.com/cirrocloud/example-go-web-service

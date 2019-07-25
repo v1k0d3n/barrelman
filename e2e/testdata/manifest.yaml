@@ -1,6 +1,3 @@
-# Charts are the definition of how an application component is deployed.
-# They determine which Helm chart is used and contain value overrides for the underlying Helm chart.
-
 # ChartGroups are a logical grouping of required application components.
 # An example would be to define a ChartGroup for the main application services and a ChartGroup for
 # the shared platform services like databases.
@@ -24,6 +21,8 @@ data:
   release_prefix: armada
   chart_groups:
     - application-group
+# Charts are the definition of how an application component is deployed.
+# They determine which Helm chart is used and contain value overrides for the underlying Helm chart.
 ---
 schema: armada/Chart/v1
 metadata:

@@ -35,8 +35,6 @@ test:
 
 testacc:
 	make build
-	$(GOTEST) -v -count=1 ./e2e -run="TestAccBarrelmanVersion"
-	$(GOTEST) -v -count=1 ./e2e -run="TestAccBarrelmanApplyCommand"
 	$(GOTEST) -v -count=1 ./e2e -run="TestAccBarrelmanDeleteCommand"
 
 clean:
