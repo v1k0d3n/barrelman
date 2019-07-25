@@ -30,7 +30,8 @@ build:
 	$(GOBUILD) -ldflags "$(LDFLAGS)" -o $(BINARY_NAME) -v
 
 test:
-	$(GOTEST) -v ./... -run="!TestAcc*"
+	if $(BM_TEST_E2E) == ""; then $(GOTEST) -v ./... -run="!TestAcc*"; else make build; BM_TEST_E2E=$(BM_TEST_E2E) $(GOTEST) -v -count=1 ./e2e; fi
+	echo "To run acceptance tests, run BM_TEST_E2E=true && make test"
 
 testacc:
 	make build

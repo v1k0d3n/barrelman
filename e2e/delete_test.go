@@ -12,10 +12,12 @@ func TestAccBarrelmanDeleteCommand(t *testing.T) {
 	podNS := "example-go-web-service"
 	barrelmanPath, _ := os.Getwd()
 
-	Convey("For the applied  manifest", t, func() {
+	Convey("Given a manifest", t, func() {
+                out, err := exec.Command(barrelmanPath+"/../barrelman", "apply", "testdata/manifest.yaml").CombinedOutput()
+		So(err, ShouldBeNil)
+		So(string(out), ShouldContainSubstring, "Barrelman")
 		Convey("When delete is run", func() {
-			os.Chdir("testdata")
-	                out, err := exec.Command(barrelmanPath+"/../barrelman", "delete", "manifest_update.yaml").CombinedOutput()
+	                out, err := exec.Command(barrelmanPath+"/../barrelman", "delete", "testdata/manifest_update.yaml").CombinedOutput()
 			So(err, ShouldBeNil)
 	                So(string(out), ShouldContainSubstring, "deleting release")
 

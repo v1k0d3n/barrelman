@@ -27,7 +27,7 @@ func TestAccBarrelmanVersion(t *testing.T) {
                         So(matched, ShouldBeTrue)
                 })
 		Convey("The output should include the version", func() {
-                        matched, err := regexp.MatchString(`Version=`, string(out))
+                        matched, err := regexp.MatchString(`Version=.*`, string(out))
                         So(err, ShouldBeNil)
                         So(matched, ShouldBeTrue)
 		})

@@ -19,7 +19,7 @@ data:
 schema: armada/Manifest/v1
 metadata:
   schema: metadata/Document/v1
-  name: application-group
+  name: example-go-web-service
 data:
   release_prefix: armada
   chart_groups:
@@ -37,7 +37,7 @@ data:
   wait:
     timeout: 60
     labels:
-      release_group: application-group
+      release_group: example-go-web-service
   install:
     no_hooks: false
   upgrade:
@@ -52,4 +52,4 @@ data:
     type: git
     location: https://github.com/cirrocloud/example-go-web-service
     subpath: charts/example-go-web-service
-    reference: master
+    reference: v1.0.0

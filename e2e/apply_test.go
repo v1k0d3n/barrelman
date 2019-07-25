@@ -14,8 +14,7 @@ func TestAccBarrelmanApplyCommand(t *testing.T) {
 
 	Convey("Given a manifest", t, func() {
 		Convey("When apply is run", func() {
-			os.Chdir("testdata")
-	                out, err := exec.Command(barrelmanPath+"/../barrelman", "apply", "manifest.yaml").CombinedOutput()
+	                out, err := exec.Command(barrelmanPath+"/../barrelman", "apply", "testdata/manifest.yaml").CombinedOutput()
 			So(err, ShouldBeNil)
 	                So(string(out), ShouldContainSubstring, "Barrelman")
 
@@ -27,8 +26,7 @@ func TestAccBarrelmanApplyCommand(t *testing.T) {
 
 	Convey("Given an updated manifest", t, func() {
                 Convey("When apply is run", func() {
-                        os.Chdir("testdata")
-                        out, err := exec.Command(barrelmanPath+"/../barrelman", "apply", "manifest_update.yaml").CombinedOutput()
+                        out, err := exec.Command(barrelmanPath+"/../barrelman", "apply", "testdata/manifest_update.yaml").CombinedOutput()
                         So(err, ShouldBeNil)
                         So(string(out), ShouldContainSubstring, "Barrelman")
 
