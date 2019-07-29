@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"path/filepath"
 	"os"
 	"os/exec"
 	"testing"
@@ -9,12 +10,16 @@ import (
 )
 
 func TestAccBarrelmanVersion(t *testing.T) {
-	barrelmanPath, _ := os.Getwd()
-        if accUserValue := os.Getenv("BM_TEST_E2E"); accUserValue == "N" || accUserValue == "n" {
+	if accUserValue := os.Getenv("BM_TEST_E2E"); accUserValue == "N" || accUserValue == "n" {
 		t.Skip("Skipping Version Test")
 	}
+
+	barrelmanPath, err := filepath.Abs("../barrelman")
+        if err != nil {
+                t.Log("Absolute path not found for barrelman:", err)
+        }
 	Convey("When version is run", t, func() {
-		out, err := exec.Command(barrelmanPath+"/../barrelman", "version").CombinedOutput()
+		out, err := exec.Command(barrelmanPath, "version").CombinedOutput()
 		Convey("The output should include Barrelman", func() {
 			So(err, ShouldBeNil)
 			So(string(out), ShouldContainSubstring, "msg=Barrelman")

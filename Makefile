@@ -31,10 +31,10 @@ build:
 	$(GOBUILD) -ldflags "$(LDFLAGS)" -o $(BINARY_NAME) -v
 
 test:
-	echo $(BM_TEST_E2E)
+	make build
 	case "$(BM_TEST_E2E)" in\
-		[nN]) $(GOTEST) -v ./... && exit;;\
-		[yY]) RETRYCOUNTACC=20 BM_TEST_E2E=$(BM_TEST_E2E) $(GOTEST) -v -count=1 ./e2e && exit;;\
+		[nN]) BM_TEST_E2E=$(BM_TEST_E2E) $(GOTEST) -v ./... && echo "\nTo run Acceptance tests, run 'BM_TEST_E2E=y make test'" && exit;;\
+		[yY]) BM_BIN=$(BINARY_NAME) RETRYCOUNTACC=20 BM_TEST_E2E=$(BM_TEST_E2E) $(GOTEST) -v -count=1 ./e2e && exit;;\
 		* ) echo "Please provide BM_TEST_E2E as Y/n" && exit;;\
 	esac
 
