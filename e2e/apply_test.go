@@ -18,10 +18,21 @@ func TestAccBarrelmanApplyCommand(t *testing.T) {
 	expectedPodCountForManifest := 1
 	expectedPodCountForManifestUpdated := 3
 	retryCount, _ := strconv.Atoi(os.Getenv("RETRYCOUNTACC"))
-	barrelmanPath, err := filepath.Abs("../barrelman")
-	if err != nil {
-		t.Log("Absolute path not found for barrelman:", err)
-	}
+	barrelmanPath:=""
+        bmBin := os.Getenv("BINARY_NAME")
+        if bmBin == "barrelman" {
+                t.Log("Using the newly built barrelman to run acceptance tests")
+                path, err := filepath.Abs("../"+bmBin)
+                if err != nil {
+                        t.Log("Absolute path not found for barrelman:", err)
+                }
+                barrelmanPath=path
+        } else {
+                t.Log("Using the mentioned barrelman binary to run acceptance tests")
+                barrelmanPath=bmBin
+        }
+	t.Log("BarrelmanPath:", barrelmanPath)
+
 	Convey("Given a manifest", t, func() {
 		Convey("When apply is run", func() {
 			out, err := exec.Command(barrelmanPath, "apply", "testdata/manifest.yaml").CombinedOutput()
