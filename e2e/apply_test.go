@@ -18,6 +18,7 @@ func TestAccBarrelmanApplyCommand(t *testing.T) {
                 t.Fatal("Barrelman reference path is not set in BM_BIN parameter")
         }
 	podNS := "example-go-web-service"
+	podName := "example-go-web-service"
 	expectedPodCountForManifest := 1
 	expectedPodCountForManifestUpdated := 3
 	retryCount, _ := strconv.Atoi(os.Getenv("RETRYCOUNTACC"))
@@ -28,7 +29,8 @@ func TestAccBarrelmanApplyCommand(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(string(out), ShouldContainSubstring, "Barrelman")
 			Convey("The pod count should be 1", func() {
-				So(retryUntilExpectedPodCount(retryCount, podNS, expectedPodCountForManifest), ShouldBeNil)
+				So(retryUntilExpectedPodCount(retryCount, podNS, podName, expectedPodCountForManifest), ShouldBeNil)
+
 			})
 		})
 	})
@@ -40,7 +42,7 @@ func TestAccBarrelmanApplyCommand(t *testing.T) {
 		        So(string(out), ShouldContainSubstring, "Barrelman")
 
 		        Convey("The pod count should be 3", func() {
-	                        So(retryUntilExpectedPodCount(retryCount, podNS, expectedPodCountForManifestUpdated), ShouldBeNil)
+	                        So(retryUntilExpectedPodCount(retryCount, podNS, podName, expectedPodCountForManifestUpdated), ShouldBeNil)
 	                })
 	        })
 	})

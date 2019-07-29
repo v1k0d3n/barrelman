@@ -13,9 +13,9 @@ type error interface {
     Error() string
 }
 
-func retryUntilExpectedPodCount(retryCount int, manifestNS string, expectedPodCount int) error {
+func retryUntilExpectedPodCount(retryCount int, manifestNS string, podName string, expectedPodCount int) error {
 	for i:=0; i<=retryCount; i++ {
-		err := checkPodCount(manifestNS, expectedPodCount)
+		err := checkPodCount(manifestNS, podName, expectedPodCount)
 		if err != nil {
 			if err.Error() == "retry" {
 				time.Sleep(1 * time.Second)
@@ -29,9 +29,9 @@ func retryUntilExpectedPodCount(retryCount int, manifestNS string, expectedPodCo
 	return errors.New("Out of retries")
 }
 
-func checkPodCount(manifestNS string, expectedPodCount int) error {
+func checkPodCount(manifestNS string, podName string, expectedPodCount int) error {
 	if expectedPodCount == 0 {
-		outCountString, err := kubeCmdExec(manifestNS)
+		outCountString, err := kubeCmdExec(manifestNS, podName)
 		if len(strings.SplitAfter(outCountString, "\n"))==2 {
 			expectedPodCountStr := strconv.Itoa(expectedPodCount)
 			outCountStringForNoResources := strings.SplitAfter(outCountString, "\n")
@@ -41,8 +41,7 @@ func checkPodCount(manifestNS string, expectedPodCount int) error {
 	        }
 		return errors.New("retry")
 	} else {
-		expectedPodCount = expectedPodCount + 1
-		outCountString, err := kubeCmdExec(manifestNS)
+		outCountString, err := kubeCmdExec(manifestNS, podName)
 		if strings.Compare(strconv.Itoa(expectedPodCount), outCountString) == 0 {
 			return err
                 }
@@ -50,8 +49,8 @@ func checkPodCount(manifestNS string, expectedPodCount int) error {
 	}
 }
 
-func kubeCmdExec(manifestNS string) (string, error) {
-	kubecmd := "kubectl get pods -n " + manifestNS + " --field-selector status.phase=Running | wc -l"
+func kubeCmdExec(manifestNS string, podName string) (string, error) {
+	kubecmd := "kubectl get pods -n " + manifestNS + " --field-selector status.phase=Running | grep " + podName + "| wc -l"
         outCount, err := exec.Command("/bin/bash", "-c", kubecmd).CombinedOutput()
 	return strings.TrimSpace(string(outCount)), err
 }
