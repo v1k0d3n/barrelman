@@ -10,7 +10,6 @@ GOCMD           ?=go
 DEPCMD		    ?=dep
 GOOS            ?=linux
 GOARCH          ?=amd64
-BM_TEST_E2E	?=N
 BINARY_NAME     ?=barrelman
 BINARY_ARCH     ?=amd64
 BINARY_LINUX    ?=$(BINARY_NAME)-$(VERSION)-linux-$(BINARY_ARCH)
@@ -19,7 +18,6 @@ GOBUILD         =$(GOCMD) build
 GOCLEAN         =$(GOCMD) clean
 GOTEST          =$(GOCMD) test
 GODEP           =$(DEPCMD) ensure
-RETRYCOUNTACC	?=20
 SET_VERSION     =github.com/charter-oss/barrelman/pkg/version.version=$(VERSION)
 SET_COMMIT      =github.com/charter-oss/barrelman/pkg/version.commit=$(COMMIT)
 SET_BRANCH      =github.com/charter-oss/barrelman/pkg/version.branch=$(BRANCH)
@@ -32,16 +30,11 @@ build:
 	$(GOBUILD) -ldflags "$(LDFLAGS)" -o $(BINARY_NAME) -v
 
 test:
-	make build
-	case "$(BM_TEST_E2E)" in\
-		[nN]) BM_TEST_E2E=$(BM_TEST_E2E) $(GOTEST) -v ./... && echo "\nTo run Acceptance tests, run 'BM_TEST_E2E=y BINARY_NAME=AbsPathToBarrelman[Optional] RETRYCOUNTACC=20 go test ./e2e -v'" && exit;;\
-		[yY]) BINARY_NAME=$(BINARY_NAME) RETRYCOUNTACC=$(RETRYCOUNTACC) BM_TEST_E2E=$(BM_TEST_E2E) $(GOTEST) -v -count=1 ./e2e && exit;;\
-		* ) echo "Please provide BM_TEST_E2E as Y/n" && exit;;\
-	esac
+	$(GOTEST) -v ./...
 
 testacc:
 	make build
-	$(GOTEST) -v -count=1 ./e2e
+	BM_BIN='../barrelman' BM_TEST_E2E='Y' RETRYCOUNTACC=20 $(GOTEST) -v -count=1 ./e2e
 
 clean:
 	$(GOCLEAN)

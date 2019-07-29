@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"path/filepath"
 	"os"
 	"os/exec"
 	"testing"
@@ -10,32 +9,22 @@ import (
 )
 
 func TestAccBarrelmanApplyCommand(t *testing.T) {
-	if accUserValue := os.Getenv("BM_TEST_E2E"); accUserValue == "N" || accUserValue == "n" {
+	if accUserValue := os.Getenv("BM_TEST_E2E"); accUserValue == "" || accUserValue == "n" {
+                t.Log("To run Acceptance tests, run 'BM_TEST_E2E=y BM_BIN=[PathOfBarrelman] RETRYCOUNTACC=20 go test ./e2e -v'")
                 t.Skip("Skipping Apply Test")
         }
-
+        bmBin := os.Getenv("BM_BIN")
+        if bmBin == "" {
+                t.Fatal("Barrelman reference path is not set in BM_BIN parameter")
+        }
 	podNS := "example-go-web-service"
 	expectedPodCountForManifest := 1
 	expectedPodCountForManifestUpdated := 3
 	retryCount, _ := strconv.Atoi(os.Getenv("RETRYCOUNTACC"))
-	barrelmanPath:=""
-        bmBin := os.Getenv("BINARY_NAME")
-        if bmBin == "barrelman" {
-                t.Log("Using the newly built barrelman to run acceptance tests")
-                path, err := filepath.Abs("../"+bmBin)
-                if err != nil {
-                        t.Log("Absolute path not found for barrelman:", err)
-                }
-                barrelmanPath=path
-        } else {
-                t.Log("Using the mentioned barrelman binary to run acceptance tests")
-                barrelmanPath=bmBin
-        }
-	t.Log("BarrelmanPath:", barrelmanPath)
 
 	Convey("Given a manifest", t, func() {
 		Convey("When apply is run", func() {
-			out, err := exec.Command(barrelmanPath, "apply", "testdata/manifest.yaml").CombinedOutput()
+			out, err := exec.Command(bmBin, "apply", "testdata/manifest.yaml").CombinedOutput()
 			So(err, ShouldBeNil)
 			So(string(out), ShouldContainSubstring, "Barrelman")
 			Convey("The pod count should be 1", func() {
@@ -46,7 +35,7 @@ func TestAccBarrelmanApplyCommand(t *testing.T) {
 
 	Convey("Given an updated manifest", t, func() {
 		Convey("When apply is run", func() {
-	                out, err := exec.Command(barrelmanPath, "apply", "testdata/manifest_update.yaml").CombinedOutput()
+	                out, err := exec.Command(bmBin, "apply", "testdata/manifest_update.yaml").CombinedOutput()
 	                So(err, ShouldBeNil)
 		        So(string(out), ShouldContainSubstring, "Barrelman")
 
