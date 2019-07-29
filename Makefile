@@ -10,11 +10,11 @@ GOCMD           ?=go
 DEPCMD		    ?=dep
 GOOS            ?=linux
 GOARCH          ?=amd64
+BM_TEST_E2E	?=N
 BINARY_NAME     ?=barrelman
 BINARY_ARCH     ?=amd64
 BINARY_LINUX    ?=$(BINARY_NAME)-$(VERSION)-linux-$(BINARY_ARCH)
 BINARY_DARWIN   ?=$(BINARY_NAME)-$(VERSION)-darwin-$(BINARY_ARCH)
-BM_TEST_E2E	?=""
 GOBUILD         =$(GOCMD) build
 GOCLEAN         =$(GOCMD) clean
 GOTEST          =$(GOCMD) test
@@ -31,7 +31,12 @@ build:
 	$(GOBUILD) -ldflags "$(LDFLAGS)" -o $(BINARY_NAME) -v
 
 test:
-	if $(BM_TEST_E2E) == false ; then $(GOTEST) -v ./...; elif $(BM_TEST_E2E) == true ; then make build; RETRYCOUNTACC=20 BM_TEST_E2E=$(BM_TEST_E2E) $(GOTEST) -v -count=1 ./e2e; fi
+	echo $(BM_TEST_E2E)
+	case "$(BM_TEST_E2E)" in\
+		[nN]) $(GOTEST) -v ./... && exit;;\
+		[yY]) RETRYCOUNTACC=20 BM_TEST_E2E=$(BM_TEST_E2E) $(GOTEST) -v -count=1 ./e2e && exit;;\
+		* ) echo "Please provide BM_TEST_E2E as Y/n" && exit;;\
+	esac
 
 testacc:
 	make build
