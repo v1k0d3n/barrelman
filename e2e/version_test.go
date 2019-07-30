@@ -9,7 +9,7 @@ import (
 )
 
 func TestAccBarrelmanVersion(t *testing.T) {
-	if accUserValue := os.Getenv("BM_TEST_E2E"); accUserValue == "" || accUserValue == "n" {
+	if accUserValue := os.Getenv("BM_TEST_E2E"); accUserValue == "n" || accUserValue != "Y" {
 		t.Log("To run Acceptance tests, run 'BM_TEST_E2E=y BM_BIN=[PathOfBarrelman] RETRYCOUNTACC=20 go test ./e2e -v'")
 		t.Skip("Skipping Version Test")
 	}

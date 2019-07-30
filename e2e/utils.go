@@ -13,12 +13,12 @@ type error interface {
     Error() string
 }
 
-func retryUntilExpectedPodCount(retryCount int, manifestNS string, podName string, expectedPodCount int) error {
+func retryUntilExpectedPodCount(retryCount int, interval int, manifestNS string, podName string, expectedPodCount int) error {
 	for i:=0; i<=retryCount; i++ {
 		err := checkPodCount(manifestNS, podName, expectedPodCount)
 		if err != nil {
 			if err.Error() == "retry" {
-				time.Sleep(1 * time.Second)
+				time.Sleep(time.Duration(interval) * time.Second)
 				continue
 			} else {
 				log.Panic("Kubectl listing pods execution error")

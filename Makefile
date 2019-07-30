@@ -34,7 +34,7 @@ test:
 
 testacc:
 	make build
-	BM_BIN='../barrelman' BM_TEST_E2E='Y' RETRYCOUNTACC=20 $(GOTEST) -v -count=1 ./e2e
+	BM_BIN='../barrelman' BM_TEST_E2E='Y' RETRYCOUNTACC=20 INTERVALTIME=1 $(GOTEST) -v -count=1 ./e2e
 
 clean:
 	$(GOCLEAN)

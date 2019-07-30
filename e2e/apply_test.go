@@ -9,7 +9,7 @@ import (
 )
 
 func TestAccBarrelmanApplyCommand(t *testing.T) {
-	if accUserValue := os.Getenv("BM_TEST_E2E"); accUserValue == "" || accUserValue == "n" {
+	if accUserValue := os.Getenv("BM_TEST_E2E"); accUserValue == "n" || accUserValue != "Y" {
                 t.Log("To run Acceptance tests, run 'BM_TEST_E2E=y BM_BIN=[PathOfBarrelman] RETRYCOUNTACC=20 go test ./e2e -v'")
                 t.Skip("Skipping Apply Test")
         }
@@ -22,14 +22,14 @@ func TestAccBarrelmanApplyCommand(t *testing.T) {
 	expectedPodCountForManifest := 1
 	expectedPodCountForManifestUpdated := 3
 	retryCount, _ := strconv.Atoi(os.Getenv("RETRYCOUNTACC"))
-
+	interval, _ := strconv.Atoi(os.Getenv("INTERVALTIME"))
 	Convey("Given a manifest", t, func() {
 		Convey("When apply is run", func() {
 			out, err := exec.Command(bmBin, "apply", "testdata/manifest.yaml").CombinedOutput()
 			So(err, ShouldBeNil)
 			So(string(out), ShouldContainSubstring, "Barrelman")
 			Convey("The pod count should be 1", func() {
-				So(retryUntilExpectedPodCount(retryCount, podNS, podName, expectedPodCountForManifest), ShouldBeNil)
+				So(retryUntilExpectedPodCount(retryCount, interval, podNS, podName, expectedPodCountForManifest), ShouldBeNil)
 
 			})
 		})
@@ -42,7 +42,7 @@ func TestAccBarrelmanApplyCommand(t *testing.T) {
 		        So(string(out), ShouldContainSubstring, "Barrelman")
 
 		        Convey("The pod count should be 3", func() {
-	                        So(retryUntilExpectedPodCount(retryCount, podNS, podName, expectedPodCountForManifestUpdated), ShouldBeNil)
+	                        So(retryUntilExpectedPodCount(retryCount, interval, podNS, podName, expectedPodCountForManifestUpdated), ShouldBeNil)
 	                })
 	        })
 	})
