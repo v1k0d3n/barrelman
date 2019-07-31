@@ -9,14 +9,14 @@ import (
 )
 
 func TestAccBarrelmanApplyCommand(t *testing.T) {
-	if accUserValue := os.Getenv("BM_TEST_E2E"); accUserValue == "n" || accUserValue != "Y" {
-                t.Log("To run Acceptance tests, run 'BM_TEST_E2E=y BM_BIN=[PathOfBarrelman] RETRYCOUNTACC=20 INTERVALTIME=1 go test ./e2e -v'")
-                t.Skip("Skipping Apply Test")
-        }
-        bmBin := os.Getenv("BM_BIN")
-        if bmBin == "" {
-                t.Fatal("Barrelman reference path is not set in BM_BIN parameter")
-        }
+	if accUserValue := os.Getenv("BM_TEST_E2E"); accUserValue == "" {
+		t.Log("To run Acceptance tests, run 'make testacc")
+		t.Skip("Skipping Apply Test")
+	}
+	bmBin := os.Getenv("BM_BIN")
+	if bmBin == "" {
+		t.Fatal("Barrelman binary environment variable BM_BIN not set")
+	}
 	podNS := "example-go-web-service"
 	podName := "example-go-web-service"
 	expectedPodCountForManifest := 1

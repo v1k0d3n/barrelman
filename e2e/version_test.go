@@ -9,13 +9,13 @@ import (
 )
 
 func TestAccBarrelmanVersion(t *testing.T) {
-	if accUserValue := os.Getenv("BM_TEST_E2E"); accUserValue == "n" || accUserValue != "Y" {
-		t.Log("To run Acceptance tests, run 'BM_TEST_E2E=y BM_BIN=[PathOfBarrelman] RETRYCOUNTACC=20 INTERVALTIME=1 go test ./e2e -v'")
+	if accUserValue := os.Getenv("BM_TEST_E2E"); accUserValue == "" {
+		t.Log("To run Acceptance tests, run 'make testacc")
 		t.Skip("Skipping Version Test")
 	}
 	bmBin := os.Getenv("BM_BIN")
 	if bmBin == "" {
-		t.Fatal("Barrelman path is not set in BM_BIN parameter")
+		t.Fatal("Barrelman binary environment variable BM_BIN not set")
 	}
 
 	Convey("When version is run", t, func() {

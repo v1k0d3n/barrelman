@@ -9,10 +9,6 @@ import (
 	"time"
 )
 
-type error interface {
-    Error() string
-}
-
 func retryUntilExpectedPodCount(retryCount int, interval int, manifestNS string, podName string, expectedPodCount int) error {
 	for i:=0; i<=retryCount; i++ {
 		err := checkPodCount(manifestNS, podName, expectedPodCount)
