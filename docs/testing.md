@@ -2,6 +2,7 @@
 
 ### Pre-requisite:
 Flagship cluster should be in running and stable state.
+Tiller should be installed on your cluster.
 Kubectl should be set in your PATH.
 
 ## Run unit tests

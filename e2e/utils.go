@@ -1,52 +1,78 @@
 package e2e
 
 import (
-	"errors"
-	"log"
+	"encoding/json"
+	"fmt"
 	"os/exec"
-	"strconv"
+	"reflect"
 	"strings"
 	"time"
 )
 
-func retryUntilExpectedPodCount(retryCount int, interval int, manifestNS string, podName string, expectedPodCount int) error {
-	for i:=0; i<=retryCount; i++ {
-		err := checkPodCount(manifestNS, podName, expectedPodCount)
+type WrongNumberOfPods struct {
+}
+
+func (e *WrongNumberOfPods) Error() string {
+	return fmt.Sprintf("Wrong number of pods running in the cluster.")
+}
+
+func isRetryableError(e error, retryableErrors []string) bool {
+	for _, retryableError := range retryableErrors {
+		if strings.Contains(reflect.TypeOf(e).String(), retryableError) {
+			return true
+		}
+	}
+	return false
+}
+
+func retry(f func() error, retryCount int, interval int, retryableErrors []string) error {
+	for i := 0; i <= retryCount; i++ {
+		err := f()
 		if err != nil {
-			if err.Error() == "retry" {
+			if isRetryableError(err, retryableErrors) {
 				time.Sleep(time.Duration(interval) * time.Second)
 				continue
 			} else {
-				log.Panic("Kubectl listing pods execution error")
+				return fmt.Errorf("Non retryable error returned, %s", err)
 			}
 		}
-		return err
+
+		return nil
 	}
-	return errors.New("Out of retries")
+
+	return fmt.Errorf("Retry limit exceeded")
 }
 
-func checkPodCount(manifestNS string, podName string, expectedPodCount int) error {
-	if expectedPodCount == 0 {
-		outCountString, err := kubeCmdExec(manifestNS, podName)
-		if len(strings.SplitAfter(outCountString, "\n"))==2 {
-			expectedPodCountStr := strconv.Itoa(expectedPodCount)
-			outCountStringForNoResources := strings.SplitAfter(outCountString, "\n")
-			if strings.Compare(expectedPodCountStr, outCountStringForNoResources[1]) == 0 {
-				return err
-		        }
-	        }
-		return errors.New("retry")
-	} else {
-		outCountString, err := kubeCmdExec(manifestNS, podName)
-		if strings.Compare(strconv.Itoa(expectedPodCount), outCountString) == 0 {
-			return err
-                }
-		return errors.New("retry")
-	}
+type KubectlOutput struct {
+	Items []interface{}
 }
 
-func kubeCmdExec(manifestNS string, podName string) (string, error) {
-	kubecmd := "kubectl get pods -n " + manifestNS + " --field-selector status.phase=Running | grep " + podName + "| wc -l"
-        outCount, err := exec.Command("/bin/bash", "-c", kubecmd).CombinedOutput()
-	return strings.TrimSpace(string(outCount)), err
+func getPodCount(ns, podName string) (int, error) {
+	kubecmd := fmt.Sprintf("kubectl get pods -n %s --field-selector status.phase=Running -o json", ns)
+	out, err := exec.Command("/bin/bash", "-c", kubecmd).CombinedOutput()
+	if err != nil {
+		return -1, fmt.Errorf("Failed to run command, %s", err)
+	}
+
+	var kubectlOutput KubectlOutput
+	err = json.Unmarshal(out, &kubectlOutput)
+	if err != nil {
+		return -1, fmt.Errorf("Failed to unmarshal, %s", err)
+	}
+
+	return len(kubectlOutput.Items), nil
 }
+
+func checkPodCount(ns, podName string, expectedPodCount int) error {
+	count, err := getPodCount(ns, podName)
+	if err != nil {
+		return fmt.Errorf("Failed to get the pod count, %s", err)
+	}
+
+	if expectedPodCount != count {
+		return &WrongNumberOfPods{}
+	}
+
+	return nil
+}
+

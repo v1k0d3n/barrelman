@@ -29,8 +29,11 @@ func TestAccBarrelmanApplyCommand(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(string(out), ShouldContainSubstring, "Barrelman")
 			Convey("The pod count should be 1", func() {
-				So(retryUntilExpectedPodCount(retryCount, interval, podNS, podName, expectedPodCountForManifest), ShouldBeNil)
+				f := func() error {
+					return checkPodCount(podNS, podName, expectedPodCountForManifest)
+				}
 
+				So(retry(f, retryCount, interval, []string{"WrongNumberOfPods"}), ShouldBeNil)
 			})
 		})
 	})
@@ -42,8 +45,12 @@ func TestAccBarrelmanApplyCommand(t *testing.T) {
 		        So(string(out), ShouldContainSubstring, "Barrelman")
 
 		        Convey("The pod count should be 3", func() {
-	                        So(retryUntilExpectedPodCount(retryCount, interval, podNS, podName, expectedPodCountForManifestUpdated), ShouldBeNil)
-	                })
+		                f := func() error {
+					return checkPodCount(podNS, podName, expectedPodCountForManifestUpdated)
+				}
+
+				So(retry(f, retryCount, interval, []string{"WrongNumberOfPods"}), ShouldBeNil)
+			})
 	        })
 	})
 }
