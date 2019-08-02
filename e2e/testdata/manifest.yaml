@@ -7,12 +7,12 @@ metadata:
   schema: metadata/Document/v1
   name: application-group
 data:
-  description: Application services for Barrelman quick start example.
+  description: "Application services for Barrelman quick start example."
   sequenced: True
   chart_group:
     - example-go-web-service
-# Manifest is the top level container for the components that compose the application
 ---
+# Manifest is the top level container for the components that compose the application
 schema: armada/Manifest/v1
 metadata:
   schema: metadata/Document/v1
