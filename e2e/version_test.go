@@ -1,11 +1,11 @@
 package e2e
 
 import (
+	. "github.com/smartystreets/goconvey/convey"
 	"os"
 	"os/exec"
-	"testing"
-	. "github.com/smartystreets/goconvey/convey"
 	"regexp"
+	"testing"
 )
 
 func TestAccBarrelmanVersion(t *testing.T) {
@@ -33,12 +33,11 @@ func TestAccBarrelmanVersion(t *testing.T) {
 			matched, err := regexp.MatchString(`Commit=.*`, string(out))
 			So(err, ShouldBeNil)
 			So(matched, ShouldBeTrue)
-	        })
+		})
 		Convey("The output should include the version", func() {
 			matched, err := regexp.MatchString(`Version=.*`, string(out))
 			So(err, ShouldBeNil)
-	                So(matched, ShouldBeTrue)
+			So(matched, ShouldBeTrue)
 		})
 	})
 }
-
