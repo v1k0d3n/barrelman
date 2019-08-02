@@ -19,6 +19,7 @@ func TestAccBarrelmanDeleteCommand(t *testing.T) {
 		t.Fatal("Barrelman binary environment variable BM_BIN not set")
 	}
 	podNS := "example-go-web-service-for-delete"
+	podName := "example-go-web-service"
 	expectedPodCountForDelete := 0
 	retryCount, _ := strconv.Atoi(os.Getenv("RETRYCOUNTACC"))
 	interval, _ := strconv.Atoi(os.Getenv("INTERVALTIME"))
