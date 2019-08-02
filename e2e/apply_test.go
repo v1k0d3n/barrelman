@@ -1,11 +1,11 @@
 package e2e
 
 import (
+	. "github.com/smartystreets/goconvey/convey"
 	"os"
 	"os/exec"
-	"testing"
 	"strconv"
-	. "github.com/smartystreets/goconvey/convey"
+	"testing"
 )
 
 func TestAccBarrelmanApplyCommand(t *testing.T) {
@@ -40,17 +40,17 @@ func TestAccBarrelmanApplyCommand(t *testing.T) {
 
 	Convey("Given an updated manifest", t, func() {
 		Convey("When apply is run", func() {
-	                out, err := exec.Command(bmBin, "apply", "testdata/manifest_update.yaml").CombinedOutput()
-	                So(err, ShouldBeNil)
-		        So(string(out), ShouldContainSubstring, "Barrelman")
+			out, err := exec.Command(bmBin, "apply", "testdata/manifest_update.yaml").CombinedOutput()
+			So(err, ShouldBeNil)
+			So(string(out), ShouldContainSubstring, "Barrelman")
 
-		        Convey("The pod count should be 3", func() {
-		                f := func() error {
+			Convey("The pod count should be 3", func() {
+				f := func() error {
 					return checkPodCount(podNS, podName, expectedPodCountForManifestUpdated)
 				}
 
 				So(retry(f, retryCount, interval, []string{"WrongNumberOfPods"}), ShouldBeNil)
 			})
-	        })
+		})
 	})
 }

@@ -75,4 +75,3 @@ func checkPodCount(ns, podName string, expectedPodCount int) error {
 
 	return nil
 }
-
