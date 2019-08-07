@@ -1,0 +1,47 @@
+pipeline {
+    agent {
+        kubernetes {
+        label 'go-lint'
+        containerTemplate {
+            name 'golintops'
+            image 'golang:1.11'
+            workingDir '/home/jenkins'
+            command 'cat'
+            ttyEnabled true
+            }
+        }
+    }
+    stages {
+        stage('GO Lint') {
+            steps {
+                container('golintops') {
+                checkout([$class: 'GitSCM',
+                branches: [[name: 'FETCH_HEAD']],
+                extensions: [[$class: 'LocalBranch']],
+                userRemoteConfigs: [[refspec: "+refs/pull-requests/${PR_ID}/from:pr/${PR_ID}", credentialsId: "stash-jenkins-flagship-user", url: "https://stash.dev-charter.net/stash/scm/flag/barrelman.git"]]
+                ])
+                timeout(time: 10, unit: 'MINUTES') {
+                    script {
+                        sh "mkdir -p /go/src/github.com/charter-oss/barrelman"
+                        sh "cp -R $WORKSPACE/. /go/src/github.com/charter-oss/barrelman"
+                        sh "apt-get update -y && apt-get install golint -y"
+                        sh "cd /go/src/github.com/charter-oss/barrelman && CGO_ENABLED=0 GO111MODULE=on /usr/local/go/bin/go vet ./..."
+                        sh "cd /go/src/github.com/charter-oss/barrelman && CGO_ENABLED=0 GO111MODULE=on /usr/local/go/bin/go fmt ./..."
+                        sh "cd /go/src/github.com/charter-oss/barrelman && CGO_ENABLED=0 GO111MODULE=on /usr/local/go/bin/go test ./... -v -count=1"
+                        sh "cd /go/src/github.com/charter-oss/barrelman && CGO_ENABLED=0 GO111MODULE=on golint ./..."
+                    }
+                }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            script {
+                currentBuild.result = currentBuild.result ?: 'FAILED'
+                echo currentBuild.result
+                notifyBitbucket()
+            }
+        }
+    }
+}
