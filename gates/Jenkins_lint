@@ -1,0 +1,16 @@
+pipeline {
+    agent {
+        label "ec2-flagship-ubuntu"
+    }
+    stages {
+        stage('Go lint') {
+            steps {
+                sh "sudo docker build -f gates/Dockerfile -t golang-loaded:1.11 ."
+                sh "docker run -it golang-loaded:1.11 /bin/bash -c "mkdir -p /tmp &&  go vet ./..."
+                sh "docker run -it golang-loaded:1.11 /bin/bash -c "mkdir -p /tmp && go fmt ./..."
+                sh "docker run -it golang-loaded:1.11 /bin/bash -c "mkdir -p /tmp && go test ./... -v -count=1”
+                sh "docker run -it golang-loaded:1.11 /bin/bash -c "mkdir -p /tmp &&  golint ./..."
+            }
+        }
+    }
+}

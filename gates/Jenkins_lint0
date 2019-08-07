@@ -1,0 +1,45 @@
+pipeline {
+    agent {
+        kubernetes {
+        label 'go-lint'
+        containerTemplate {
+            name 'golintOps'
+            image 'golang:1.11'
+            workingDir '/go/src/github.com/charter-oss'
+            command 'cat'
+            ttyEnabled true
+            }
+        }
+    }
+    stages {
+        stage('GO Lint') {
+            steps {
+                container('golintOps') {
+                checkout([$class: 'GitSCM',
+                branches: [[name: 'FETCH_HEAD']],
+                extensions: [[$class: 'LocalBranch']],
+                userRemoteConfigs: [[refspec: "+refs/pull-requests/${PR_ID}/from:pr/${PR_ID}", credentialsId: "stash-jenkins-flagship-user", url: "https://stash.dev-charter.net/stash/scm/flag/flagship.git"]]
+                ])
+                timeout(time: 10, unit: 'MINUTES') {
+                    script {
+                        sh "sudo apt-get install git -yy"
+                        sh "cd barrelman && CGO_ENABLED=0 GO111MODULE=on go vet ./..."
+                        sh "cd barrelman && CGO_ENABLED=0 GO111MODULE=on go fmt ./..."
+                        sh "cd barrelman && CGO_ENABLED=0 GO111MODULE=on go test ./... -v -count=1"
+                        sh "cd barrelman && CGO_ENABLED=0 GO111MODULE=on golint ./..."
+                    }
+                }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            script {
+                currentBuild.result = currentBuild.result ?: 'FAILED'
+                echo currentBuild.result
+                notifyBitbucket()
+            }
+        }
+    }
+}
