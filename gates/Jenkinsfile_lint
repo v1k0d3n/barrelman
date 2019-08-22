@@ -4,7 +4,7 @@ pipeline {
         label 'go-lint'
         containerTemplate {
             name 'golintops'
-            image 'quay.io/charter-se/golang:1.11'
+            image 'quay.io/charter-se/golang-lint:v1.11'
             workingDir '/home/jenkins'
             command 'cat'
             ttyEnabled true
@@ -18,7 +18,7 @@ pipeline {
                 checkout([$class: 'GitSCM',
                 branches: [[name: 'FETCH_HEAD']],
                 extensions: [[$class: 'LocalBranch']],
-                userRemoteConfigs: [[refspec: "+refs/pull-requests/2/from:pr/2", credentialsId: "stash-jenkins-flagship-user", url: "https://stash.dev-charter.net/stash/scm/flag/barrelman.git"]]
+                userRemoteConfigs: [[refspec: "+refs/pull-requests/${PR_ID}/from:pr/${PR_ID}", credentialsId: "stash-jenkins-flagship-user", url: "https://stash.dev-charter.net/stash/scm/flag/barrelman.git"]]
                 ])
                 timeout(time: 10, unit: 'MINUTES') {
                     script {
