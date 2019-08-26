@@ -47,7 +47,7 @@ data:
       tag: v1.1.2
       pullPolicy: IfNotPresent
     replicaCount: 1
-    hostname:
+    hostnames:
       - example.com
       - localhost
   source:
