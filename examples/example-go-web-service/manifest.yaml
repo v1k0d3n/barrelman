@@ -47,6 +47,7 @@ data:
       tag: v1.1.1
       pullPolicy: IfNotPresent
     replicaCount: 1
+    hostname: example.com
   source:
     type: git
     location: https://github.com/cirrocloud/example-go-web-service
