@@ -44,11 +44,14 @@ data:
   values:
     image:
       repository: quay.io/cirrocloud/example-go-web-service
-      tag: v1.1.1
+      tag: v1.1.2
       pullPolicy: IfNotPresent
     replicaCount: 1
+    hostnames:
+      - example.com
+      - localhost
   source:
     type: git
     location: https://github.com/cirrocloud/example-go-web-service
     subpath: charts/example-go-web-service
-    reference: v1.1.1
+    reference: v1.1.2
