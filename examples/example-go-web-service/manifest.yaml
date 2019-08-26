@@ -43,12 +43,12 @@ data:
     no_hooks: false
   values:
     image:
-      repository: cirrocloud/example-go-web-service
-      tag: v1.0.0
+      repository: quay.io/cirrocloud/example-go-web-service
+      tag: v1.1.1
       pullPolicy: IfNotPresent
     replicaCount: 1
   source:
     type: git
     location: https://github.com/cirrocloud/example-go-web-service
     subpath: charts/example-go-web-service
-    reference: v1.0.0
+    reference: v1.1.1
