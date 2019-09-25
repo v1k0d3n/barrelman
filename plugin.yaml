@@ -1,8 +1,8 @@
 name: "barrelman"
 version: "0.0.1"
-usage: "Barrelman compatible deployment tool"
+usage: "A deployment tool that functions independently and as a Helm plugin"
 description: |-
-  This plugin deploys Barrelman format manifests
+  This plugin allows complex values overrides for grouped Helm charts.
 ignoreFlags: false
 useTunnel: false
 flags: "install deploy Barrelman manifest"
