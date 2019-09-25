@@ -3,7 +3,7 @@
 # barrelman
 *A project to deploy extremely atomic Helm charts as more complex application release groups.*
 
-Barrelman is a [Helm plugin](https://github.com/helm/helm/blob/master/docs/plugins.md) that strives for document compatability with [Armada](https://github.com/att-comdev/armada) and follows Aramada YAML conventions.
+Barrelman is a [Helm plugin](https://github.com/helm/helm/blob/master/docs/plugins.md).
 
 ## Build
 
@@ -82,7 +82,7 @@ account:
 ## Example Manifest
 ```yaml
 ---
-schema: armada/Chart/v1
+schema: barrelman/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: kubernetes-common
@@ -102,7 +102,7 @@ data:
     reference: master
   dependencies: []
 ---
-schema: armada/Chart/v1
+schema: barrelman/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: storage-minio
@@ -128,7 +128,7 @@ data:
   dependencies:
     - kubernetes-common
 ---
-schema: armada/ChartGroup/v1
+schema: barrelman/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1
   name: scratch-test
@@ -138,12 +138,12 @@ data:
   chart_group:
     - storage-minio
 ---
-schema: armada/Manifest/v1
+schema: barrelman/Manifest/v1
 metadata:
   schema: metadata/Document/v1
   name: scratch-manifest
 data:
-  release_prefix: armada
+  release_prefix: barrelman
   chart_groups:
     - scratch-test
 ```

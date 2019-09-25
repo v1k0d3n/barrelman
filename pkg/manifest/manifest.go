@@ -26,7 +26,7 @@ const (
 )
 
 type Schema struct {
-	Route   string // armada, yaml2vars, etc
+	Route   string // barrelman, yaml2vars, etc
 	Type    string // Openstack Deckhand document format spec has "Document", and "Control"
 	Version string
 }
@@ -460,7 +460,7 @@ func (m *Manifest) GetChartSpec(c *Chart) (string, []*chartsync.ChartSpec, error
 //CreateArchives creates archives for charts configured in the manifest
 func (m *Manifest) CreateArchives() (*ArchiveFiles, error) {
 	af := &ArchiveFiles{List: []*ArchiveSpec{}}
-	//Chart groups as defined by Armada YAML spec
+	//Chart groups as defined by Barrelman YAML spec
 	groups, err := m.GetChartGroups()
 	if err != nil {
 		return nil, errors.Wrap(err, "error resolving chart groups")
