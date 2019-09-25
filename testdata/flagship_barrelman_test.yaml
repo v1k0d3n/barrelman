@@ -25,15 +25,6 @@ data:
     - utils-weave-scope
     - utils-kubernetes-dashboard
 ---
-schema: barrelman/Manifest/v1
-metadata:
-  schema: metadata/Document/v1
-  name: flagship-kubernetes
-data:
-  release_prefix: barrelman
-  chart_groups:
-    - flagship-kubernetes
----
 schema: barrelman/Chart/v1
 metadata:
   schema: metadata/Document/v1
