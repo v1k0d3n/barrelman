@@ -1,5 +1,5 @@
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: helm-toolkit
@@ -19,7 +19,7 @@ data:
     reference: master
   dependencies: []
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: mariadb
@@ -31,7 +31,7 @@ data:
   wait:
     timeout: 3600
     labels:
-      release_group: barrelman-mariadb
+      release_group: armada-mariadb
   install:
     no_hooks: false
   upgrade:
@@ -45,7 +45,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: memcached
@@ -57,7 +57,7 @@ data:
   wait:
     timeout: 100
     labels:
-      release_group: barrelman-memcached
+      release_group: armada-memcached
   install:
     no_hooks: false
   upgrade:
@@ -71,7 +71,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: keystone
@@ -85,7 +85,7 @@ data:
   wait:
     timeout: 100
     labels:
-      release_group: barrelman-keystone
+      release_group: armada-keystone
   install:
     no_hooks: false
   upgrade:
@@ -107,7 +107,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/ChartGroup/v1
+schema: armada/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1
   name: keystone-infra-services
@@ -118,7 +118,7 @@ data:
     - mariadb
     - memcached
 ---
-schema: barrelman/ChartGroup/v1
+schema: armada/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1
   name: openstack-keystone
@@ -128,12 +128,12 @@ data:
   chart_group:
     - keystone
 ---
-schema: barrelman/Manifest/v1
+schema: armada/Manifest/v1
 metadata:
   schema: metadata/Document/v1
-  name: barrelman-manifest
+  name: armada-manifest
 data:
-  release_prefix: barrelman
+  release_prefix: armada
   chart_groups:
     - keystone-infra-services
     - openstack-keystone

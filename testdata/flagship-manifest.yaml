@@ -1,5 +1,5 @@
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: kubernetes-common
@@ -19,7 +19,7 @@ data:
     reference: master
   dependencies: []
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: storage-minio
@@ -49,7 +49,7 @@ data:
   dependencies:
     - kubernetes-common
 ---
-schema: barrelman/ChartGroup/v1
+schema: armada/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1
   name: scratch-test
@@ -59,11 +59,11 @@ data:
   chart_group:
     - storage-minio
 ---
-schema: barrelman/Manifest/v1
+schema: armada/Manifest/v1
 metadata:
   schema: metadata/Document/v1
   name: scratch-manifest
 data:
-  release_prefix: barrelman
+  release_prefix: armada
   chart_groups:
     - scratch-test

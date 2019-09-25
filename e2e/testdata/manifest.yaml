@@ -2,7 +2,7 @@
 # An example would be to define a ChartGroup for the main application services and a ChartGroup for
 # the shared platform services like databases.
 ---
-schema: barrelman/ChartGroup/v1
+schema: armada/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1
   name: application-group
@@ -13,18 +13,18 @@ data:
     - example-go-web-service
 ---
 # Manifest is the top level container for the components that compose the application
-schema: barrelman/Manifest/v1
+schema: armada/Manifest/v1
 metadata:
   schema: metadata/Document/v1
   name: example-go-web-service
 data:
-  release_prefix: barrelman
+  release_prefix: armada
   chart_groups:
     - application-group
 # Charts are the definition of how an application component is deployed.
 # They determine which Helm chart is used and contain value overrides for the underlying Helm chart.
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: example-go-web-service

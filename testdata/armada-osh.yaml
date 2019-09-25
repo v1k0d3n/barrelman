@@ -1,5 +1,5 @@
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: helm-toolkit
@@ -15,7 +15,7 @@ data:
     reference: master
   dependencies: []
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: openstack-ingress-controller
@@ -56,7 +56,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: openstack-ceph-config
@@ -112,7 +112,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: mariadb
@@ -157,7 +157,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: memcached
@@ -197,7 +197,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: keystone-rabbitmq
@@ -254,7 +254,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: keystone
@@ -326,7 +326,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: radosgw-openstack
@@ -391,7 +391,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: glance-rabbitmq
@@ -448,7 +448,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: glance
@@ -524,7 +524,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: cinder-rabbitmq
@@ -581,7 +581,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: cinder
@@ -669,7 +669,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: openvswitch
@@ -703,7 +703,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: libvirt
@@ -732,7 +732,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: nova-rabbitmq
@@ -789,7 +789,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: nova
@@ -946,7 +946,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: neutron-rabbitmq
@@ -1003,7 +1003,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: neutron
@@ -1130,7 +1130,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: heat-rabbitmq
@@ -1187,7 +1187,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: heat
@@ -1275,7 +1275,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: barbican-rabbitmq
@@ -1332,7 +1332,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: barbican
@@ -1404,7 +1404,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/Chart/v1
+schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
   name: prometheus-openstack-exporter
@@ -1444,7 +1444,7 @@ data:
   dependencies:
     - helm-toolkit
 ---
-schema: barrelman/ChartGroup/v1
+schema: armada/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1
   name: openstack-ingress-controller
@@ -1454,7 +1454,7 @@ data:
   chart_group:
     - openstack-ingress-controller
 ---
-schema: barrelman/ChartGroup/v1
+schema: armada/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1
   name: openstack-ceph-config
@@ -1464,7 +1464,7 @@ data:
   chart_group:
     - openstack-ceph-config
 ---
-schema: barrelman/ChartGroup/v1
+schema: armada/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1
   name: deploy-mariadb
@@ -1474,7 +1474,7 @@ data:
   chart_group:
     - mariadb
 ---
-schema: barrelman/ChartGroup/v1
+schema: armada/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1
   name: deploy-memcached
@@ -1484,7 +1484,7 @@ data:
   chart_group:
     - memcached
 ---
-schema: barrelman/ChartGroup/v1
+schema: armada/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1
   name: openstack-keystone
@@ -1495,7 +1495,7 @@ data:
     - keystone-rabbitmq
     - keystone
 ---
-schema: barrelman/ChartGroup/v1
+schema: armada/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1
   name: openstack-glance
@@ -1506,7 +1506,7 @@ data:
     - glance-rabbitmq
     - glance
 ---
-schema: barrelman/ChartGroup/v1
+schema: armada/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1
   name: openstack-radosgw
@@ -1516,7 +1516,7 @@ data:
   chart_group:
     - radosgw-openstack
 ---
-schema: barrelman/ChartGroup/v1
+schema: armada/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1
   name: openstack-cinder
@@ -1527,7 +1527,7 @@ data:
     - cinder-rabbitmq
     - cinder
 ---
-schema: barrelman/ChartGroup/v1
+schema: armada/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1
   name: openstack-compute-kit
@@ -1542,7 +1542,7 @@ data:
     - neutron-rabbitmq
     - neutron
 ---
-schema: barrelman/ChartGroup/v1
+schema: armada/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1
   name: openstack-heat
@@ -1553,7 +1553,7 @@ data:
     - heat-rabbitmq
     - heat
 ---
-schema: barrelman/ChartGroup/v1
+schema: armada/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1
   name: openstack-barbican
@@ -1564,7 +1564,7 @@ data:
     - barbican-rabbitmq
     - barbican
 ---
-schema: barrelman/ChartGroup/v1
+schema: armada/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1
   name: prometheus-openstack-exporter
@@ -1574,10 +1574,10 @@ data:
   chart_group:
     - prometheus-openstack-exporter
 ---
-schema: barrelman/Manifest/v1
+schema: armada/Manifest/v1
 metadata:
   schema: metadata/Document/v1
-  name: barrelman-manifest
+  name: armada-manifest
 data:
   release_prefix: osh
   chart_groups:
