@@ -44,7 +44,7 @@ func twoGood() (string, []byte) {
 	name := "file-test"
 	b := []byte(dedent.Dedent(`
 	---
-    schema: armada/Chart/v1
+    schema: barrelman/Chart/v1
     metadata:
         schema: metadata/Document/v1
         name: kubernetes-common
@@ -62,7 +62,7 @@ func twoGood() (string, []byte) {
             location: ./testdata/kubernetes-common.tgz
         dependencies: []
     ---
-    schema: armada/Chart/v1
+    schema: barrelman/Chart/v1
     metadata:
         schema: metadata/Document/v1
         name: storage-minio
@@ -87,7 +87,7 @@ func twoGood() (string, []byte) {
         dependencies: 
             - kubernetes-common
     ---
-    schema: armada/ChartGroup/v1
+    schema: barrelman/ChartGroup/v1
     metadata:
         schema: metadata/Document/v1
         name: scratch-test
@@ -97,12 +97,12 @@ func twoGood() (string, []byte) {
         chart_group:
         - storage-minio
     ---
-    schema: armada/Manifest/v1
+    schema: barrelman/Manifest/v1
     metadata:
         schema: metadata/Document/v1
         name: scratch-manifest
     data:
-        release_prefix: armada
+        release_prefix: barrelman
         chart_groups:
         - scratch-test
 	`))

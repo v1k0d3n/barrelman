@@ -1,9 +1,9 @@
 name: "barrelman"
 version: "0.0.1"
-usage: "Armada compatible deployment tool"
+usage: "A deployment tool that functions independently and as a Helm plugin"
 description: |-
-  This plugin deploys Armada format manifests
+  This plugin allows complex values overrides for grouped Helm charts.
 ignoreFlags: false
 useTunnel: false
-flags: "install deploy Armada manifest"
+flags: "install deploy Barrelman manifest"
 command: "$HELM_PLUGIN_DIR/barrelman"
