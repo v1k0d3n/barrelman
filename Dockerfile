@@ -12,10 +12,10 @@ ENV BRANCH=$BRANCH
 ENV GOOS=$GOOS
 ENV GOARCH=$GOARCH
 
-WORKDIR /go/src/github.com/charter-se/barrelman
+WORKDIR /go/src/github.com/charter-oss/barrelman
 COPY . .
 
-RUN CGO_ENABLED=0 go build -ldflags "-w -s -X github.com/charter-se/barrelman/version.version=${VERSION} -X github.com/charter-se/barrelman/version.commit=${COMMIT} -X github.com/charter-se/barrelman/version.branch=${BRANCH}" -a -installsuffix cgo -o /barrelman
+RUN CGO_ENABLED=0 go build -ldflags "-w -s -X github.com/charter-oss/barrelman/version.version=${VERSION} -X github.com/charter-oss/barrelman/version.commit=${COMMIT} -X github.com/charter-oss/barrelman/version.branch=${BRANCH}" -a -installsuffix cgo -o /barrelman
 
 FROM scratch AS build
 COPY --from=0 /barrelman /barrelman

@@ -18,9 +18,9 @@ GOBUILD         =$(GOCMD) build
 GOCLEAN         =$(GOCMD) clean
 GOTEST          =$(GOCMD) test
 GODEP           =$(DEPCMD) ensure
-SET_VERSION     =github.com/charter-se/barrelman/version.version=$(VERSION)
-SET_COMMIT      =github.com/charter-se/barrelman/version.commit=$(COMMIT)
-SET_BRANCH      =github.com/charter-se/barrelman/version.branch=$(BRANCH)
+SET_VERSION     =github.com/charter-oss/barrelman/pkg/version.version=$(VERSION)
+SET_COMMIT      =github.com/charter-oss/barrelman/pkg/version.commit=$(COMMIT)
+SET_BRANCH      =github.com/charter-oss/barrelman/pkg/version.branch=$(BRANCH)
 
 LDFLAGS         =-w -s -X $(SET_VERSION) -X $(SET_COMMIT) -X $(SET_BRANCH)
 
@@ -32,11 +32,16 @@ build:
 test:
 	$(GOTEST) -v ./...
 
+testacc:
+	make build
+	BM_BIN='../barrelman' BM_TEST_E2E='Y' RETRYCOUNTACC=20 INTERVALTIME=1 $(GOTEST) -v -count=1 ./e2e
+
 clean:
 	$(GOCLEAN)
 	rm -f $(BINARY_NAME)
 	rm -f $(BINARY_LINUX)
 	rm -f $(BINARY_DARWIN)
+	rm -f testdata/*.tgz
 
 run:
 	$(GOBUILD) -o $(BINARY_NAME) -v ./...
@@ -65,3 +70,6 @@ docker-push:
 ## Use: make docker-push BINARY_NAME=barrelman REGISTRY=quay.io NAMESPACE=charter-se VERSION=v0.2.5 COMMIT=$(git rev-parse --short HEAD)
 docker-push-commit:
 	docker build $(REGISTRY)/$(NAMESPACE)/$(BINARY_NAME):$(VERSION)-$(COMMIT)
+
+docker-test:
+	docker build -f Dockertest .

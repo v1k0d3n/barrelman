@@ -7,10 +7,9 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/charter-oss/barrelman/pkg/barrelman"
+	"github.com/charter-oss/barrelman/pkg/cluster/mocks"
 	. "github.com/smartystreets/goconvey/convey"
-
-	"github.com/charter-se/barrelman/pkg/barrelman"
-	"github.com/charter-se/barrelman/pkg/cluster/mocks"
 )
 
 func TestNewApplyCmd(t *testing.T) {
@@ -24,34 +23,11 @@ func TestNewApplyCmd(t *testing.T) {
 			})
 			So(cmd.Name(), ShouldEqual, "apply")
 		})
-		Convey("Can fail Run", func() {
-			cmd := newApplyCmd(&barrelman.ApplyCmd{
-				Options:    &barrelman.CmdOptions{},
-				Config:     &barrelman.Config{},
-				LogOptions: &logOpts,
-			})
-
-			err := cmd.RunE(cmd, []string{})
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "config file does not exist")
-		})
 	})
 }
 
 func TestApplyRun(t *testing.T) {
 	Convey("Run", t, func() {
-		Convey("Can fail to find config file", func() {
-			c := &barrelman.ApplyCmd{
-				Options: &barrelman.CmdOptions{
-					ConfigFile: "",
-				},
-			}
-			session := &mocks.Sessioner{}
-			err := c.Run(session)
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "config file does not exist")
-		})
-
 		Convey("Can handle Init failure", func() {
 			c := &barrelman.ApplyCmd{
 				Options: &barrelman.CmdOptions{
@@ -63,6 +39,7 @@ func TestApplyRun(t *testing.T) {
 					NoSync:         true,
 				},
 			}
+
 			session := &mocks.Sessioner{}
 			session.On("Init").Return(errors.New("simulated Init failure")).Once()
 

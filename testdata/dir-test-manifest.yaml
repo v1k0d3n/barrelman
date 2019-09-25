@@ -39,7 +39,8 @@ data:
   source:
     type: dir
     location: ./testdata/charts/test-minio
-  dependencies: kubernetes-common
+  dependencies:
+    - kubernetes-common
 ---
 schema: barrelman/ChartGroup/v1
 metadata:

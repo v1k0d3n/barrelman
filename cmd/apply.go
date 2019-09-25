@@ -1,25 +1,41 @@
 package cmd
 
 import (
+	"strings"
+
+	"github.com/lithammer/dedent"
 	"github.com/spf13/cobra"
 
-	"github.com/charter-se/barrelman/pkg/barrelman"
-	"github.com/charter-se/barrelman/pkg/cluster"
-	"github.com/charter-se/structured/log"
+	"github.com/charter-oss/barrelman/pkg/barrelman"
+	"github.com/charter-oss/barrelman/pkg/cluster"
 )
 
 func newApplyCmd(cmd *barrelman.ApplyCmd) *cobra.Command {
+	longDesc := strings.TrimSpace(dedent.Dedent(`
+		The apply command attempts to commit the differences between a supplied manifest and
+		the current Kubernetes cluster state.
+
+		For the given manifest each chart is installed on the Kubernetes cluster.
+	`))
+
+	shortDesc := `Apply the given manifest to the cluster.`
+
+	examples := `barrelman apply lamp-stack.yaml`
+
 	cobraCmd := &cobra.Command{
-		Use:   "apply [manifest.yaml]",
-		Short: "apply something",
-		Long:  `Something something else...`,
+		Use:           "apply [manifest.yaml]",
+		Short:         shortDesc,
+		Long:          longDesc,
+		Example:       examples,
+		Args:          cobra.ExactArgs(1),
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
-			if len(args) > 0 {
-				cmd.Options.ManifestFile = args[0]
-			}
+
+			cmd.Options.ManifestFile = args[0]
+
 			cobraCmd.SilenceUsage = true
 			cobraCmd.SilenceErrors = true
-			log.Configure(logSettings(cmd.LogOptions)...)
 			session := cluster.NewSession(
 				cmd.Options.KubeContext,
 				cmd.Options.KubeConfigFile)
@@ -30,16 +46,12 @@ func newApplyCmd(cmd *barrelman.ApplyCmd) *cobra.Command {
 		},
 	}
 
-	cobraCmd.Flags().StringVar(
-		&cmd.Options.KubeConfigFile,
-		"kubeconfig",
-		Default().KubeConfigFile,
-		"use alternate kube config file")
-	cobraCmd.Flags().StringVar(
-		&cmd.Options.KubeContext,
-		"kubecontext",
-		Default().KubeContext,
-		"use alternate kube context")
+	cmd.LogOptions = cobraCmd.Flags().StringSliceP(
+		"log",
+		"l",
+		nil,
+		"log options (e.g. --log=debug,JSON")
+
 	cobraCmd.Flags().BoolVar(
 		&cmd.Options.DryRun,
 		"dry-run",

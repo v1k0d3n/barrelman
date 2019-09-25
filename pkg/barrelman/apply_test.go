@@ -11,10 +11,10 @@ import (
 	"github.com/stretchr/testify/mock"
 	"k8s.io/helm/pkg/proto/hapi/chart"
 
-	"github.com/charter-se/barrelman/pkg/cluster"
-	"github.com/charter-se/barrelman/pkg/cluster/mocks"
-	"github.com/charter-se/barrelman/pkg/manifest"
-	"github.com/charter-se/barrelman/pkg/manifest/chartsync"
+	"github.com/charter-oss/barrelman/pkg/cluster"
+	"github.com/charter-oss/barrelman/pkg/cluster/mocks"
+	"github.com/charter-oss/barrelman/pkg/manifest"
+	"github.com/charter-oss/barrelman/pkg/manifest/chartsync"
 )
 
 func TestApplyRun(t *testing.T) {
@@ -39,14 +39,8 @@ func TestApplyRun(t *testing.T) {
 		applyCmd := newTestApplyCmd()
 
 		session := &mocks.Sessioner{}
+		transaction := &mocks.Transactioner{}
 
-		Convey("Should error on config file", func() {
-			applyCmd.Options.ConfigFile = "notExist"
-			err := applyCmd.Run(session)
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "config file does not exist")
-			session.AssertExpectations(t)
-		})
 		Convey("Should error on session.Init()", func() {
 			session.On("Init").Return(errors.New("simulated Init error"))
 			err := applyCmd.Run(session)
@@ -57,8 +51,8 @@ func TestApplyRun(t *testing.T) {
 		Convey("Should error on manifest file not found", func() {
 			applyCmd.Options.ManifestFile = "testdata/nofile"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext)
+			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext).Maybe()
 			err := applyCmd.Run(session)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "nofile")
@@ -67,8 +61,8 @@ func TestApplyRun(t *testing.T) {
 		Convey("Should successfuly error during sync", func() {
 			applyCmd.Options.ManifestFile = "testdata/repo-not-exist.yaml"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext)
+			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext).Maybe()
 			err := applyCmd.Run(session)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "repository does not exist")
@@ -78,21 +72,23 @@ func TestApplyRun(t *testing.T) {
 		Convey("Should successfuly handle error in ListReleases()", func() {
 			applyCmd.Options.ManifestFile = "testdata/dir-test-manifest.yaml"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext)
-			session.On("Releases").Return(nil, errors.New("simulated"))
+			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext).Maybe()
+			session.On("ReleasesByManifest", mock.AnythingOfType("string")).Return(nil, errors.New("simulated"))
+			session.On("NewTransaction", mock.AnythingOfType("string")).Return(transaction, nil)
 			err := applyCmd.Run(session)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "simulated")
 			session.AssertExpectations(t)
 		})
+
 		Convey("Should return nil on diff", func() {
 			applyCmd.Options.ManifestFile = "testdata/dir-test-manifest.yaml"
 			applyCmd.Options.Diff = true
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext)
-			session.On("Releases").Return(map[string]*cluster.ReleaseMeta{
+			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext).Maybe()
+			session.On("ReleasesByManifest", mock.AnythingOfType("string")).Return(map[string]*cluster.ReleaseMeta{
 				"storage-minio": &cluster.ReleaseMeta{
 					Chart: &chart.Chart{
 						Metadata: &chart.Metadata{
@@ -109,9 +105,24 @@ func TestApplyRun(t *testing.T) {
 						Name: "storage-minio",
 					},
 				}, nil)
+			session.On("NewTransaction", mock.AnythingOfType("string")).Return(transaction, nil)
+			transaction.On("Versions").Return(&cluster.Versions{
+				Name: "someVersionsName",
+				Data: []*cluster.Version{
+					&cluster.Version{
+						Name:             "someRelease",
+						Namespace:        "someNamespace",
+						Revision:         int32(5),
+						PreviousRevision: int32(2),
+						Modified:         true,
+					},
+				},
+			})
+
 			session.On("InstallRelease", mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
 				return true
-			})).Return("", "", nil)
+			}), mock.AnythingOfType("string")).Return(&cluster.InstallReleaseResponse{}, nil)
+
 			err := applyCmd.Run(session)
 			So(err, ShouldBeNil)
 			session.AssertExpectations(t)
@@ -120,9 +131,9 @@ func TestApplyRun(t *testing.T) {
 		Convey("Should handle failure on Releases()", func() {
 			applyCmd.Options.ManifestFile = "testdata/dir-test-manifest.yaml"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext)
-			session.On("Releases").Return(map[string]*cluster.ReleaseMeta{
+			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext).Maybe()
+			session.On("ReleasesByManifest", mock.AnythingOfType("string")).Return(map[string]*cluster.ReleaseMeta{
 				"storage-minio": &cluster.ReleaseMeta{
 					Chart: &chart.Chart{
 						Metadata: &chart.Metadata{
@@ -131,6 +142,7 @@ func TestApplyRun(t *testing.T) {
 					},
 				},
 			}, errors.New("simulated"))
+			session.On("NewTransaction", mock.AnythingOfType("string")).Return(transaction, nil)
 			err := applyCmd.Run(session)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "simulated")
@@ -140,9 +152,9 @@ func TestApplyRun(t *testing.T) {
 		Convey("Should handle failure on ChartFromArchive()", func() {
 			applyCmd.Options.ManifestFile = "testdata/dir-test-manifest.yaml"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext)
-			session.On("Releases").Return(map[string]*cluster.ReleaseMeta{
+			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext).Maybe()
+			session.On("ReleasesByManifest", mock.AnythingOfType("string")).Return(map[string]*cluster.ReleaseMeta{
 				"storage-minio": &cluster.ReleaseMeta{
 					Chart: &chart.Chart{
 						Metadata: &chart.Metadata{
@@ -159,6 +171,7 @@ func TestApplyRun(t *testing.T) {
 						Name: "storage-minio",
 					},
 				}, errors.New("simulated"))
+			session.On("NewTransaction", mock.AnythingOfType("string")).Return(transaction, nil)
 			err := applyCmd.Run(session)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "simulated")
@@ -168,9 +181,9 @@ func TestApplyRun(t *testing.T) {
 		Convey("Should handle failure to install release", func() {
 			applyCmd.Options.ManifestFile = "testdata/dir-test-manifest.yaml"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext)
-			session.On("Releases").Return(map[string]*cluster.ReleaseMeta{
+			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext).Maybe()
+			session.On("ReleasesByManifest", mock.AnythingOfType("string")).Return(map[string]*cluster.ReleaseMeta{
 				"storage-minio": &cluster.ReleaseMeta{
 					Chart: &chart.Chart{
 						Metadata: &chart.Metadata{
@@ -179,6 +192,7 @@ func TestApplyRun(t *testing.T) {
 					},
 				},
 			}, nil)
+			session.On("NewTransaction", mock.AnythingOfType("string")).Return(transaction, nil)
 			session.On("ChartFromArchive", mock.MatchedBy(func(crm *bytes.Buffer) bool {
 				return true
 			})).Return(
@@ -189,7 +203,22 @@ func TestApplyRun(t *testing.T) {
 				}, nil)
 			session.On("InstallRelease", mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
 				return true
-			})).Return("", "", errors.New("simulated"))
+			}), mock.AnythingOfType("string"),
+			).Return(&cluster.InstallReleaseResponse{}, errors.New("simulated"))
+
+			transaction.On("Versions").Return(&cluster.Versions{
+				Name: "someVersionsName",
+				Data: []*cluster.Version{
+					&cluster.Version{
+						Name:             "someRelease",
+						Namespace:        "someNamespace",
+						Revision:         int32(5),
+						PreviousRevision: int32(2),
+						Modified:         true,
+					},
+				},
+			})
+
 			err := applyCmd.Run(session)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "simulated")
@@ -199,9 +228,9 @@ func TestApplyRun(t *testing.T) {
 		Convey("Should succeed", func() {
 			applyCmd.Options.ManifestFile = "testdata/dir-test-manifest.yaml"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext)
-			session.On("Releases").Return(map[string]*cluster.ReleaseMeta{
+			session.On("GetKubeConfig").Return(applyCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(applyCmd.Options.KubeContext).Maybe()
+			session.On("ReleasesByManifest", mock.AnythingOfType("string")).Return(map[string]*cluster.ReleaseMeta{
 				"storage-minio": &cluster.ReleaseMeta{
 					Chart: &chart.Chart{
 						Metadata: &chart.Metadata{
@@ -210,6 +239,21 @@ func TestApplyRun(t *testing.T) {
 					},
 				},
 			}, nil)
+			session.On("NewTransaction", mock.AnythingOfType("string")).Return(transaction, nil)
+			transaction.On("Versions").Return(&cluster.Versions{
+				Name: "someVersionsName",
+				Data: []*cluster.Version{
+					&cluster.Version{
+						Name:             "someRelease",
+						Namespace:        "someNamespace",
+						Revision:         int32(5),
+						PreviousRevision: int32(2),
+						Modified:         true,
+					},
+				},
+			})
+			transaction.On("Complete").Return(nil)
+
 			session.On("ChartFromArchive", mock.MatchedBy(func(crm *bytes.Buffer) bool {
 				return true
 			})).Return(
@@ -220,7 +264,14 @@ func TestApplyRun(t *testing.T) {
 				}, nil)
 			session.On("InstallRelease", mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
 				return true
-			})).Return("", "", nil)
+			}), mock.AnythingOfType("string"),
+			).Return(&cluster.InstallReleaseResponse{}, nil)
+
+			session.On("DeleteRelease", mock.MatchedBy(func(crm *cluster.DeleteMeta) bool {
+				return true
+			}), mock.AnythingOfType("string"),
+			).Return(nil)
+
 			err := applyCmd.Run(session)
 			So(err, ShouldBeNil)
 			session.AssertExpectations(t)
@@ -245,6 +296,7 @@ func TestComputeReleases(t *testing.T) {
 	}
 	defer chartReader.Close()
 	Convey("ComputeReleases", t, func() {
+		manifestName := "testManifest"
 		releaseMatch := "releaseMatch"
 		releaseDontMatch := "releaseDontMatch"
 		applyCmd := &ApplyCmd{
@@ -253,6 +305,7 @@ func TestComputeReleases(t *testing.T) {
 			},
 		}
 		session := &mocks.Sessioner{}
+		transaction := &mocks.Transactioner{}
 		releases := map[string]*cluster.ReleaseMeta{
 			releaseMatch: &cluster.ReleaseMeta{
 				ReleaseName: releaseMatch,
@@ -276,7 +329,7 @@ func TestComputeReleases(t *testing.T) {
 			}),
 			).Return(&cluster.Chart{}, errors.New("simulated fail in DiffRelease"))
 
-			_, err := applyCmd.ComputeReleases(session, archives, releases)
+			_, err := applyCmd.ComputeReleases(session, transaction, manifestName, archives, releases)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "Failed to generate chart from archive")
 			session.AssertExpectations(t)
@@ -303,9 +356,26 @@ func TestComputeReleases(t *testing.T) {
 			}),
 			).Return(&cluster.Chart{}, nil)
 
-			releaseTargets, err := applyCmd.ComputeReleases(session, archives, releases)
+			transaction.On("Versions").Return(&cluster.Versions{
+				Name: "someVersionsName",
+				Data: []*cluster.Version{
+					&cluster.Version{
+						Name:             "someRelease",
+						Namespace:        "someNamespace",
+						Revision:         int32(5),
+						PreviousRevision: int32(2),
+						Modified:         true,
+					},
+				},
+			})
+
+			// session.On("DeleteRelease", mock.MatchedBy(func(crm *cluster.DeleteMeta) bool {
+			// 	return true
+			// })).Return(nil)
+
+			releaseTargets, err := applyCmd.ComputeReleases(session, transaction, manifestName, archives, releases)
 			So(err, ShouldBeNil)
-			So(releaseTargets[0].State, ShouldEqual, Replaceable)
+			So(releaseTargets.Data[0].TransitionState, ShouldEqual, Replaceable)
 			session.AssertExpectations(t)
 		})
 		Convey("Should result in Upgradable", func() {
@@ -327,9 +397,22 @@ func TestComputeReleases(t *testing.T) {
 			}),
 			).Return(&cluster.Chart{}, nil)
 
-			releaseTargets, err := applyCmd.ComputeReleases(session, archives, releases)
+			transaction.On("Versions").Return(&cluster.Versions{
+				Name: "someVersionsName",
+				Data: []*cluster.Version{
+					&cluster.Version{
+						Name:             "someRelease",
+						Namespace:        "someNamespace",
+						Revision:         int32(5),
+						PreviousRevision: int32(2),
+						Modified:         true,
+					},
+				},
+			})
+
+			releaseTargets, err := applyCmd.ComputeReleases(session, transaction, manifestName, archives, releases)
 			So(err, ShouldBeNil)
-			So(releaseTargets[0].State, ShouldEqual, Upgradable)
+			So(releaseTargets.Data[0].TransitionState, ShouldEqual, Upgradable)
 			session.AssertExpectations(t)
 		})
 		Convey("Should result in Installable", func() {
@@ -351,9 +434,22 @@ func TestComputeReleases(t *testing.T) {
 			}),
 			).Return(&cluster.Chart{}, nil)
 
-			releaseTargets, err := applyCmd.ComputeReleases(session, archives, releases)
+			transaction.On("Versions").Return(&cluster.Versions{
+				Name: "someVersionsName",
+				Data: []*cluster.Version{
+					&cluster.Version{
+						Name:             "someRelease",
+						Namespace:        "someNamespace",
+						Revision:         int32(5),
+						PreviousRevision: int32(2),
+						Modified:         true,
+					},
+				},
+			})
+
+			releaseTargets, err := applyCmd.ComputeReleases(session, transaction, manifestName, archives, releases)
 			So(err, ShouldBeNil)
-			So(releaseTargets[0].State, ShouldEqual, Installable)
+			So(releaseTargets.Data[0].TransitionState, ShouldEqual, Installable)
 			session.AssertExpectations(t)
 		})
 		Reset(func() {
@@ -366,12 +462,16 @@ func TestApply(t *testing.T) {
 	Convey("Apply", t, func() {
 		session := &mocks.Sessioner{}
 		rt := ReleaseTargets{
-			&ReleaseTarget{
-				ReleaseMeta: &cluster.ReleaseMeta{
-					MetaName:  "storage-minio",
-					Namespace: "scratch",
+			session: session,
+			Data: []*ReleaseTarget{
+				&ReleaseTarget{
+					ReleaseMeta: &cluster.ReleaseMeta{
+						MetaName:  "storage-minio",
+						Namespace: "scratch",
+					},
+					TransitionState: Replaceable,
+					ReleaseVersion:  &cluster.Version{},
 				},
-				State: Replaceable,
 			},
 		}
 		opt := &CmdOptions{
@@ -381,105 +481,106 @@ func TestApply(t *testing.T) {
 		Convey("Should handle DeleteRelease failure with state Replaceable", func() {
 			session.On("DeleteRelease", mock.MatchedBy(func(crm *cluster.DeleteMeta) bool {
 				return true
-			}),
+			}), mock.AnythingOfType("string"),
 			).Return(errors.New("simulated fail in DeleteRelease"))
-			err := rt.Apply(session, opt)
+			err := rt.Apply(opt)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "simulated")
 			session.AssertExpectations(t)
 		})
 		Convey("Should handle InstallRelease failure with state Installable, then fallthrough to UpgradeRelease", func() {
-			rt[0].State = Installable
+			rt.Data[0].TransitionState = Installable
 
 			session.On("InstallRelease", mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
 				return true
-			}),
-			).Return("msg String", "newReleaseName", errors.New("simulated fail in InstallRelease")).Times(3)
+			}), mock.AnythingOfType("string"),
+			).Return(&cluster.InstallReleaseResponse{}, errors.New("simulated fail in InstallRelease")).Times(3)
 
 			session.On("DeleteRelease", mock.MatchedBy(func(crm *cluster.DeleteMeta) bool {
 				return true
-			}),
+			}), mock.AnythingOfType("string"),
 			).Return(nil)
 
-			err := rt.Apply(session, opt)
+			err := rt.Apply(opt)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "simulated")
 			session.AssertExpectations(t)
 		})
 		Convey("Should succeed in InstallRelease", func() {
-			rt[0].State = Installable
+			rt.Data[0].TransitionState = Installable
 			session.On("InstallRelease", mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
 				return true
-			}),
-			).Return("msg String", "newReleaseName", nil)
+			}), mock.AnythingOfType("string"),
+			).Return(&cluster.InstallReleaseResponse{}, nil)
 
-			err := rt.Apply(session, opt)
+			err := rt.Apply(opt)
 			So(err, ShouldBeNil)
 			session.AssertExpectations(t)
 		})
 		Convey("Should handle InstallRelease failure with state Installable, then succeed", func() {
-			rt[0].State = Installable
+			rt.Data[0].TransitionState = Installable
 			session.On("InstallRelease", mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
 				return true
-			}),
-			).Return("msg String", "newReleaseName", errors.New("simulated fail in InstallRelease")).Once()
+			}), mock.AnythingOfType("string"),
+			).Return(&cluster.InstallReleaseResponse{}, errors.New("simulated fail in InstallRelease")).Once()
 
 			session.On("DeleteRelease", mock.MatchedBy(func(crm *cluster.DeleteMeta) bool {
 				return true
-			}),
+			}), mock.AnythingOfType("string"),
 			).Return(nil)
+
 			session.On("InstallRelease", mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
 				return true
-			}),
-			).Return("msg String", "newReleaseName", nil).Once()
+			}), mock.AnythingOfType("string"),
+			).Return(&cluster.InstallReleaseResponse{}, nil).Once()
 
-			err := rt.Apply(session, opt)
+			err := rt.Apply(opt)
 			So(err, ShouldBeNil)
 			session.AssertExpectations(t)
 		})
 		Convey("Should fail in UpgradeRelease with state Upgradable", func() {
-			rt[0].State = Upgradable
-			rt[0].Changed = true
+			rt.Data[0].TransitionState = Upgradable
+			rt.Data[0].Changed = true
 			session.On("UpgradeRelease", mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
 				return true
-			}),
-			).Return("msg String", errors.New("simulated fail in UpgradeRelease")).Times(1)
+			}), mock.AnythingOfType("string"),
+			).Return(&cluster.UpgradeReleaseResponse{}, errors.New("simulated fail in UpgradeRelease")).Times(1)
 
-			err := rt.Apply(session, opt)
+			err := rt.Apply(opt)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "simulated")
 			session.AssertExpectations(t)
 		})
 		Convey("Should succeed in UpgradeRelease with state Upgradable", func() {
-			rt[0].State = Upgradable
-			rt[0].Changed = true
+			rt.Data[0].TransitionState = Upgradable
+			rt.Data[0].Changed = true
 			session.On("UpgradeRelease", mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
 				return true
-			}),
-			).Return("msg String", nil).Times(1)
+			}), mock.AnythingOfType("string"),
+			).Return(&cluster.UpgradeReleaseResponse{}, nil).Times(1)
 
-			err := rt.Apply(session, opt)
+			err := rt.Apply(opt)
 			So(err, ShouldBeNil)
 			session.AssertExpectations(t)
 		})
 		Convey("Should skip due to Upgradable and no change", func() {
-			rt[0].State = Upgradable
-			rt[0].Changed = false
+			rt.Data[0].TransitionState = Upgradable
+			rt.Data[0].Changed = false
 
-			err := rt.Apply(session, opt)
+			err := rt.Apply(opt)
 			So(err, ShouldBeNil)
 			session.AssertExpectations(t)
 		})
 		Convey("Should skip unhandled state", func() {
-			rt[0].State = -1
+			rt.Data[0].TransitionState = -1
 
-			err := rt.Apply(session, opt)
+			err := rt.Apply(opt)
 			So(err, ShouldBeNil)
 			session.AssertExpectations(t)
 		})
 		Reset(func() {
-			rt[0].State = Replaceable
-			rt[0].Changed = false
+			rt.Data[0].TransitionState = Replaceable
+			rt.Data[0].Changed = false
 		})
 	})
 }
@@ -490,12 +591,14 @@ func TestDiff(t *testing.T) {
 
 			session := &mocks.Sessioner{}
 			rt := ReleaseTargets{
-				&ReleaseTarget{
-					ReleaseMeta: &cluster.ReleaseMeta{
-						MetaName:  "storage-minio",
-						Namespace: "scratch",
+				Data: []*ReleaseTarget{
+					&ReleaseTarget{
+						ReleaseMeta: &cluster.ReleaseMeta{
+							MetaName:  "storage-minio",
+							Namespace: "scratch",
+						},
+						TransitionState: Upgradable,
 					},
-					State: Upgradable,
 				},
 			}
 
@@ -512,12 +615,14 @@ func TestDiff(t *testing.T) {
 
 			session := &mocks.Sessioner{}
 			rt := ReleaseTargets{
-				&ReleaseTarget{
-					ReleaseMeta: &cluster.ReleaseMeta{
-						MetaName:  "storage-minio",
-						Namespace: "scratch",
+				Data: []*ReleaseTarget{
+					&ReleaseTarget{
+						ReleaseMeta: &cluster.ReleaseMeta{
+							MetaName:  "storage-minio",
+							Namespace: "scratch",
+						},
+						TransitionState: Upgradable,
 					},
-					State: Upgradable,
 				},
 			}
 
@@ -535,19 +640,21 @@ func TestDryRun(t *testing.T) {
 	Convey("dryRun", t, func() {
 		session := &mocks.Sessioner{}
 		rt := ReleaseTargets{
-			&ReleaseTarget{
-				ReleaseMeta: &cluster.ReleaseMeta{
-					MetaName:  "storage-minio",
-					Namespace: "scratch",
+			Data: []*ReleaseTarget{
+				&ReleaseTarget{
+					ReleaseMeta: &cluster.ReleaseMeta{
+						MetaName:  "storage-minio",
+						Namespace: "scratch",
+					},
+					TransitionState: Upgradable,
 				},
-				State: Upgradable,
 			},
 		}
 		Convey("Should handle Upgradable, no error", func() {
 			session.On("UpgradeRelease", mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
 				return true
-			}),
-			).Return("", nil)
+			}), mock.AnythingOfType("string"),
+			).Return(&cluster.UpgradeReleaseResponse{}, nil)
 			err := rt.dryRun(session)
 			So(err, ShouldBeNil)
 			session.AssertExpectations(t)
@@ -555,20 +662,20 @@ func TestDryRun(t *testing.T) {
 		Convey("Should handle Upgradable, with error", func() {
 			session.On("UpgradeRelease", mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
 				return true
-			}),
-			).Return("", errors.New("simulated error"))
+			}), mock.AnythingOfType("string"),
+			).Return(&cluster.UpgradeReleaseResponse{}, errors.New("simulated error"))
 			err := rt.dryRun(session)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "simulated")
 			session.AssertExpectations(t)
 		})
 
-		rt[0].State = Installable
+		rt.Data[0].TransitionState = Installable
 		Convey("Should handle Installable, no error", func() {
 			session.On("InstallRelease", mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
 				return true
-			}),
-			).Return("", "", nil)
+			}), mock.AnythingOfType("string"),
+			).Return(&cluster.InstallReleaseResponse{}, nil)
 			err := rt.dryRun(session)
 			So(err, ShouldBeNil)
 			session.AssertExpectations(t)
@@ -576,8 +683,8 @@ func TestDryRun(t *testing.T) {
 		Convey("Should handle Installable, with error", func() {
 			session.On("InstallRelease", mock.MatchedBy(func(crm *cluster.ReleaseMeta) bool {
 				return true
-			}),
-			).Return("", "", errors.New("simulated error"))
+			}), mock.AnythingOfType("string"),
+			).Return(&cluster.InstallReleaseResponse{}, errors.New("simulated error"))
 			err := rt.dryRun(session)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "simulated")

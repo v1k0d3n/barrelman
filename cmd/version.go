@@ -3,17 +3,18 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/charter-se/barrelman/pkg/barrelman"
+	"github.com/charter-oss/barrelman/pkg/barrelman"
 )
 
 func newVersionCmd(cmd *barrelman.VersionCmd) *cobra.Command {
 	cobraCmd := &cobra.Command{
-		Use:   "version",
-		Short: "version something",
-		Long:  `Something something else...`,
+		Use:           "version",
+		Short:         "Display version and build information",
+		Long:          `Display version and build information supplied at build time.`,
+		Example:       "barrelman version",
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		RunE: func(cobraCmd *cobra.Command, args []string) error {
-			cobraCmd.SilenceUsage = true
-			cobraCmd.SilenceErrors = true
 
 			return cmd.Run()
 		},

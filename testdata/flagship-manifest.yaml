@@ -38,6 +38,9 @@ data:
     no_hooks: false
   values:
     elasticsearch: openstack-minus
+    conf:
+      minio:
+        secret_key: "some minio access Key"
   source:
     type: git
     location: https://github.com/v1k0d3n/flagship

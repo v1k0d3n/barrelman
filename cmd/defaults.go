@@ -14,6 +14,8 @@ type Defaults struct {
 	ConfigFile     string
 	InstallRetry   int
 	Force          *[]string
+	LogLevel       string
+	LogFormat      string
 }
 
 func Default() *Defaults {
@@ -32,5 +34,7 @@ func Default() *Defaults {
 	d.DataDir = fmt.Sprintf("%v/.barrelman/data", usr.HomeDir)
 	d.InstallRetry = int(3)
 	d.Force = &[]string{}
+	d.LogLevel = "info"
+	d.LogFormat = "text"
 	return d
 }

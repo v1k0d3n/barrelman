@@ -3,7 +3,7 @@
 package mocks
 
 import chart "k8s.io/helm/pkg/proto/hapi/chart"
-import cluster "github.com/charter-se/barrelman/pkg/cluster"
+import cluster "github.com/charter-oss/barrelman/pkg/cluster"
 import io "io"
 import mock "github.com/stretchr/testify/mock"
 
@@ -107,32 +107,50 @@ func (_m *Releaser) DiffRelease(m *cluster.ReleaseMeta) (bool, []byte, error) {
 	return r0, r1, r2
 }
 
-// InstallRelease provides a mock function with given fields: _a0
-func (_m *Releaser) InstallRelease(_a0 *cluster.ReleaseMeta) (string, string, error) {
-	ret := _m.Called(_a0)
+// GetRelease provides a mock function with given fields: releaseName, revision
+func (_m *Releaser) GetRelease(releaseName string, revision int32) (*cluster.ReleaseMeta, error) {
+	ret := _m.Called(releaseName, revision)
 
-	var r0 string
-	if rf, ok := ret.Get(0).(func(*cluster.ReleaseMeta) string); ok {
-		r0 = rf(_a0)
+	var r0 *cluster.ReleaseMeta
+	if rf, ok := ret.Get(0).(func(string, int32) *cluster.ReleaseMeta); ok {
+		r0 = rf(releaseName, revision)
 	} else {
-		r0 = ret.Get(0).(string)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cluster.ReleaseMeta)
+		}
 	}
 
-	var r1 string
-	if rf, ok := ret.Get(1).(func(*cluster.ReleaseMeta) string); ok {
-		r1 = rf(_a0)
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, int32) error); ok {
+		r1 = rf(releaseName, revision)
 	} else {
-		r1 = ret.Get(1).(string)
+		r1 = ret.Error(1)
 	}
 
-	var r2 error
-	if rf, ok := ret.Get(2).(func(*cluster.ReleaseMeta) error); ok {
-		r2 = rf(_a0)
+	return r0, r1
+}
+
+// InstallRelease provides a mock function with given fields: m, manifestName
+func (_m *Releaser) InstallRelease(m *cluster.ReleaseMeta, manifestName string) (*cluster.InstallReleaseResponse, error) {
+	ret := _m.Called(m, manifestName)
+
+	var r0 *cluster.InstallReleaseResponse
+	if rf, ok := ret.Get(0).(func(*cluster.ReleaseMeta, string) *cluster.InstallReleaseResponse); ok {
+		r0 = rf(m, manifestName)
 	} else {
-		r2 = ret.Error(2)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cluster.InstallReleaseResponse)
+		}
 	}
 
-	return r0, r1, r2
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*cluster.ReleaseMeta, string) error); ok {
+		r1 = rf(m, manifestName)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // ListReleases provides a mock function with given fields:
@@ -181,20 +199,66 @@ func (_m *Releaser) Releases() (map[string]*cluster.ReleaseMeta, error) {
 	return r0, r1
 }
 
-// UpgradeRelease provides a mock function with given fields: m
-func (_m *Releaser) UpgradeRelease(m *cluster.ReleaseMeta) (string, error) {
-	ret := _m.Called(m)
+// ReleasesByManifest provides a mock function with given fields: manifest
+func (_m *Releaser) ReleasesByManifest(manifest string) (map[string]*cluster.ReleaseMeta, error) {
+	ret := _m.Called(manifest)
 
-	var r0 string
-	if rf, ok := ret.Get(0).(func(*cluster.ReleaseMeta) string); ok {
-		r0 = rf(m)
+	var r0 map[string]*cluster.ReleaseMeta
+	if rf, ok := ret.Get(0).(func(string) map[string]*cluster.ReleaseMeta); ok {
+		r0 = rf(manifest)
 	} else {
-		r0 = ret.Get(0).(string)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]*cluster.ReleaseMeta)
+		}
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*cluster.ReleaseMeta) error); ok {
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(manifest)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// RollbackRelease provides a mock function with given fields: m
+func (_m *Releaser) RollbackRelease(m *cluster.RollbackMeta) (int32, error) {
+	ret := _m.Called(m)
+
+	var r0 int32
+	if rf, ok := ret.Get(0).(func(*cluster.RollbackMeta) int32); ok {
+		r0 = rf(m)
+	} else {
+		r0 = ret.Get(0).(int32)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*cluster.RollbackMeta) error); ok {
 		r1 = rf(m)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// UpgradeRelease provides a mock function with given fields: m, manifestName
+func (_m *Releaser) UpgradeRelease(m *cluster.ReleaseMeta, manifestName string) (*cluster.UpgradeReleaseResponse, error) {
+	ret := _m.Called(m, manifestName)
+
+	var r0 *cluster.UpgradeReleaseResponse
+	if rf, ok := ret.Get(0).(func(*cluster.ReleaseMeta, string) *cluster.UpgradeReleaseResponse); ok {
+		r0 = rf(m, manifestName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*cluster.UpgradeReleaseResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*cluster.ReleaseMeta, string) error); ok {
+		r1 = rf(m, manifestName)
 	} else {
 		r1 = ret.Error(1)
 	}

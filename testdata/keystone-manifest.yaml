@@ -76,6 +76,7 @@ metadata:
   schema: metadata/Document/v1
   name: keystone
 data:
+  installwait: true
   chart_name: keystone
   test:
     enabled: true

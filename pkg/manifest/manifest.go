@@ -1,21 +1,19 @@
 package manifest
 
 import (
-	"bytes"
 	"crypto/rand"
 	"encoding/hex"
-	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
+	"github.com/cirrocloud/yamlpack"
 	"github.com/ghodss/yaml"
 
-	"github.com/charter-se/barrelman/pkg/manifest/chartsync"
-	"github.com/charter-se/structured"
-	"github.com/charter-se/structured/errors"
-	"github.com/charter-se/structured/log"
+	"github.com/charter-oss/barrelman/pkg/manifest/chartsync"
+	"github.com/cirrocloud/structured"
+	"github.com/cirrocloud/structured/errors"
+	"github.com/cirrocloud/structured/log"
 )
 
 const (
@@ -50,7 +48,7 @@ type Manifest struct {
 	Name      string
 	Data      *ManifestData
 	Lookup    *LookupTable
-	YamlSec   []*YamlSection
+	YamlSec   []*yamlpack.YamlSection
 }
 
 type ManifestData struct {
@@ -87,6 +85,7 @@ type ChartData struct {
 	Timeout      int
 	Wait         *ChartDataWait
 	Install      *ChartDataInstall
+	InstallWait  bool
 	Upgrade      *ChartDataUpgrade
 	Source       *ChartSource
 	Dependencies []string
@@ -125,13 +124,29 @@ type Metadata struct {
 	Name   string
 }
 
-type YamlSection struct {
-	Bytes  []byte
-	Schema *Schema
-}
-
 //New creates an initializes a *Manifest instance
 func New(c *Config) (*Manifest, error) {
+	if c.Log == nil {
+		c.Log = log.New()
+	}
+	file := c.ManifestFile
+	c.Log.WithFields(log.Fields{
+		"File": file,
+	}).Debug("opening file")
+	fileR, err := os.Open(file)
+	if err != nil {
+		return &Manifest{}, errors.WithFields(errors.Fields{"file": file}).Wrap(err, "error opening file")
+	}
+	defer fileR.Close()
+	yp := yamlpack.New()
+	if err := yp.Import(file, fileR); err != nil {
+		return nil, errors.WithFields(errors.Fields{"file": file}).Wrap(err, "error importing manifest")
+	}
+	return NewFromSections(c, yp.AllSections())
+}
+
+//NewFromSections takes a *Config and array of *yamlpack.Section to assemble a *Manifest
+func NewFromSections(c *Config, yamlSections []*yamlpack.YamlSection) (*Manifest, error) {
 	m := &Manifest{}
 	m.Data = &ManifestData{}
 	m.Lookup = &LookupTable{}
@@ -144,69 +159,13 @@ func New(c *Config) (*Manifest, error) {
 		return nil, errors.New("manifest.New() called without account table")
 	}
 	m.Config = c
-	file := m.Config.ManifestFile
-	m.Config.Log.WithFields(log.Fields{
-		"File": file,
-	}).Debug("opening file")
-	fileR, err := os.Open(file)
-	if err != nil {
-		return &Manifest{}, errors.WithFields(errors.Fields{"file": file}).Wrap(err, "error opening file")
-	}
-	m.YamlSec, err = importYaml(fileR)
-	if err != nil {
-		return &Manifest{}, errors.WithFields(errors.Fields{"file": file}).Wrap(err, "error importing manifest")
-	}
+
+	m.YamlSec = yamlSections
 	m.ChartSync = chartsync.New(m.Config.DataDir, c.AccountTable)
 	if err := m.load(); err != nil {
 		return nil, errors.Wrap(err, "Error running chartsync")
 	}
-
 	return m, nil
-}
-
-// Takes a yaml file and chunks each document into bytes. Each chunk will then have a label on what kind of document
-// the bytes belong to
-func importYaml(r io.Reader) ([]*YamlSection, error) {
-	var sections []*YamlSection
-	buf := new(bytes.Buffer)
-	_, err := buf.ReadFrom(r)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not read data")
-	}
-	data := buf.Bytes()
-	rxChunks := regexp.MustCompile(`---`)
-	chunks := rxChunks.FindAllIndex(data, -1)
-	if len(chunks) == 0 {
-		//This is missing the end delimiter ('---') or both,
-		//either way we are treating the whole file as 1 section
-		chunks = [][]int{[]int{
-			int(0), int(len(data)),
-		}}
-	}
-	for i := range chunks {
-		var b []byte
-		if i < len(chunks)-1 {
-			b = data[chunks[i][1]:chunks[i+1][0]]
-		} else {
-			b = data[chunks[i][1]:]
-		}
-		var base map[string]interface{}
-		err = yaml.Unmarshal(b, &base)
-		if err != nil {
-			return nil, errors.Wrap(err, "Failed to unmarshal schema")
-		}
-		if base["schema"] == nil {
-			return nil, errors.Wrap(errors.New("no schema detected"), "unable to parse schema")
-		} else {
-			schema, err := parseSchema(base["schema"].(string))
-			if err != nil {
-				return nil, errors.Wrap(err, "unable to parse schema")
-			}
-			sections = append(sections, &YamlSection{Bytes: b, Schema: schema})
-		}
-
-	}
-	return sections, nil
 }
 
 func (m *Manifest) AddChartGroup(cg *ChartGroup) error {
@@ -337,16 +296,23 @@ func (m *Manifest) Sync() error {
 
 func (m *Manifest) load() error {
 	for _, k := range m.YamlSec {
-		switch k.Schema.Type {
+		schem, err := parseSchema(k.GetString("schema"))
+		if err != nil {
+			return errors.WithFields(errors.Fields{
+				"Schema": k.GetString("metatdata.name"),
+			}).Wrap(err, "Failed to parse schema")
+		}
+		switch schem.Type {
 		case StringManifest:
-			m.Version = k.Schema.Version
+			m.Version = schem.Version
 			err := yaml.Unmarshal(k.Bytes, m)
 			if err != nil {
 				return errors.Wrap(err, "Error loading manifest")
 			}
+			m.Name = k.GetString("metadata.name")
 		case StringChartGroup:
 			chartGroup := NewChartGroup()
-			chartGroup.Version = k.Schema.Version
+			chartGroup.Version = schem.Version
 			err := yaml.Unmarshal(k.Bytes, &chartGroup)
 			if err != nil {
 				return err
@@ -359,7 +325,7 @@ func (m *Manifest) load() error {
 			}
 		case StringChart:
 			chart := NewChart()
-			chart.Version = k.Schema.Version
+			chart.Version = schem.Version
 			err := yaml.Unmarshal(k.Bytes, &chart)
 			if err != nil {
 				return err
@@ -371,6 +337,9 @@ func (m *Manifest) load() error {
 					"Type": chart.Data.Source.Type,
 					"Name": chart.Metadata.Name,
 				}).Wrap(err, "Failed to marshal Override Values")
+			}
+			if chart.Data.Source == nil {
+				return errors.New("chart missing Data.Source")
 			}
 			chart.Data.SyncSource = &chartsync.Source{
 				Location:  chart.Data.Source.Location,

@@ -1,4 +1,13 @@
 ---
+schema: barrelman/Manifest/v1
+metadata:
+  schema: metadata/Document/v1
+  name: flagship-kubernetes
+data:
+  release_prefix: barrelman
+  chart_groups:
+    - flagship-kubernetes
+---
 schema: barrelman/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1

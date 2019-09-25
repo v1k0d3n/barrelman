@@ -7,10 +7,10 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/charter-se/barrelman/pkg/cluster"
-	"github.com/charter-se/barrelman/pkg/cluster/mocks"
-	"github.com/charter-se/barrelman/pkg/manifest/chartsync"
-	"github.com/charter-se/structured/errors"
+	"github.com/charter-oss/barrelman/pkg/cluster"
+	"github.com/charter-oss/barrelman/pkg/cluster/mocks"
+	"github.com/charter-oss/barrelman/pkg/manifest/chartsync"
+	"github.com/cirrocloud/structured/errors"
 )
 
 func TestDeleteRun(t *testing.T) {
@@ -36,14 +36,6 @@ func TestDeleteRun(t *testing.T) {
 
 		session := &mocks.Sessioner{}
 
-		Convey("Should error on config file", func() {
-			delCmd.Options.ConfigFile = "notExist"
-			err := delCmd.Run(session)
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "config file does not exist")
-			session.AssertExpectations(t)
-		})
-
 		Convey("Should error on session.Init()", func() {
 			session.On("Init").Return(errors.New("simulated Init error"))
 			err := delCmd.Run(session)
@@ -55,8 +47,8 @@ func TestDeleteRun(t *testing.T) {
 		Convey("Should error on manifest file not found", func() {
 			delCmd.Options.ManifestFile = "testdata/nofile"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(delCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(delCmd.Options.KubeContext)
+			session.On("GetKubeConfig").Return(delCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(delCmd.Options.KubeContext).Maybe()
 			err := delCmd.Run(session)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "nofile")
@@ -66,8 +58,8 @@ func TestDeleteRun(t *testing.T) {
 		Convey("Should successfuly error during sync", func() {
 			delCmd.Options.ManifestFile = "testdata/repo-not-exist.yaml"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(delCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(delCmd.Options.KubeContext)
+			session.On("GetKubeConfig").Return(delCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(delCmd.Options.KubeContext).Maybe()
 			err := delCmd.Run(session)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "repository does not exist")
@@ -77,8 +69,8 @@ func TestDeleteRun(t *testing.T) {
 		Convey("Should successfuly handle error in ListReleases()", func() {
 			delCmd.Options.ManifestFile = "testdata/file-test-manifest.yaml"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(delCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(delCmd.Options.KubeContext)
+			session.On("GetKubeConfig").Return(delCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(delCmd.Options.KubeContext).Maybe()
 			session.On("ListReleases").Return([]*cluster.Release{}, errors.New("simulated"))
 			err := delCmd.Run(session)
 			So(err, ShouldNotBeNil)
@@ -89,8 +81,8 @@ func TestDeleteRun(t *testing.T) {
 		Convey("Should successfuly handle error in DeleteByManifest()", func() {
 			delCmd.Options.ManifestFile = "testdata/file-test-manifest.yaml"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(delCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(delCmd.Options.KubeContext)
+			session.On("GetKubeConfig").Return(delCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(delCmd.Options.KubeContext).Maybe()
 			session.On("ListReleases").Return([]*cluster.Release{&cluster.Release{
 				ReleaseName: "storage-minio",
 			}}, nil)
@@ -105,8 +97,8 @@ func TestDeleteRun(t *testing.T) {
 		Convey("Should complete without error", func() {
 			delCmd.Options.ManifestFile = "testdata/file-test-manifest.yaml"
 			session.On("Init").Return(nil)
-			session.On("GetKubeConfig").Return(delCmd.Options.KubeConfigFile)
-			session.On("GetKubeContext").Return(delCmd.Options.KubeContext)
+			session.On("GetKubeConfig").Return(delCmd.Options.KubeConfigFile).Maybe()
+			session.On("GetKubeContext").Return(delCmd.Options.KubeContext).Maybe()
 			session.On("ListReleases").Return([]*cluster.Release{&cluster.Release{
 				ReleaseName: "storage-minio",
 			}}, nil)

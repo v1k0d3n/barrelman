@@ -2,7 +2,7 @@
 
 package mocks
 
-import chartsync "github.com/charter-se/barrelman/pkg/manifest/chartsync"
+import chartsync "github.com/charter-oss/barrelman/pkg/manifest/chartsync"
 import io "io"
 import mock "github.com/stretchr/testify/mock"
 

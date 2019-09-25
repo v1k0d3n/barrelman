@@ -25,7 +25,7 @@ import (
 	"k8s.io/helm/pkg/proto/hapi/release"
 	"k8s.io/helm/pkg/timeconv"
 
-	"github.com/charter-se/structured/log"
+	"github.com/cirrocloud/structured/log"
 )
 
 var printReleaseTemplate = `REVISION: {{.Release.Version}}
